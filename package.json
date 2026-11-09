@@ -1,0 +1,9 @@
+{
+  "name": "franjakids",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node src/build.mjs",
+    "imagens": "python3 ferramentas/imagens.py"
+  }
+}

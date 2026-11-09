@@ -1,0 +1,31 @@
+{
+  "linhas": [
+    { "id": "personalizados", "nome": "Personalizados", "frase": "Bodies, t-shirts e camisolas com o nome, a data ou a frase que escolheres.", "categorias": ["bodies", "t-shirts", "camisolas", "babetes"] },
+    { "id": "bebe", "nome": "Bebé", "frase": "Babygrows, conjuntos de malha e de algodão, mantas e o que faz falta nos primeiros dias.", "categorias": ["babygrows", "conjuntos", "mantas-e-toalhas", "primeira-roupinha"] },
+    { "id": "presentes", "nome": "Presentes", "frase": "A Box Franja, caixas para surpresas e recordações para guardar.", "categorias": ["box-franja", "caixas", "placas"] }
+  ],
+  "categorias": {
+    "bodies": "Bodies",
+    "t-shirts": "T-shirts",
+    "camisolas": "Camisolas",
+    "babetes": "Babetes",
+    "babygrows": "Babygrows",
+    "conjuntos": "Conjuntos",
+    "mantas-e-toalhas": "Mantas e toalhas",
+    "primeira-roupinha": "Primeira roupinha",
+    "box-franja": "Box Franja",
+    "caixas": "Caixas surpresa",
+    "placas": "Placas"
+  },
+  "ocasioes": [
+    { "id": "bebe-a-caminho", "nome": "Bebé a caminho", "foto": "ocasiao-gravidez" },
+    { "id": "avos", "nome": "Avós", "foto": "ocasiao-avos" },
+    { "id": "padrinhos", "nome": "Padrinhos", "foto": "ocasiao-padrinhos" },
+    { "id": "papa", "nome": "Papá", "foto": "ocasiao-papa" },
+    { "id": "mama", "nome": "Mamã", "foto": "ocasiao-mama" },
+    { "id": "irmaos", "nome": "Irmãos", "foto": "ocasiao-irmaos" },
+    { "id": "entre-paises", "nome": "Entre países", "foto": "ocasiao-entre-paises" },
+    { "id": "natal", "nome": "Natal", "foto": "ocasiao-natal" },
+    { "id": "familia", "nome": "Tios e primos", "foto": null }
+  ]
+}

@@ -1,0 +1,7 @@
+_site/
+_cliente/
+node_modules/
+propostas/capturas/
+propostas/*/index.html
+propostas/index.html
+.DS_Store
