@@ -18,9 +18,14 @@
   const ler = () => { try { const v = JSON.parse(localStorage.getItem(CHAVE)); return Array.isArray(v) ? v : []; } catch { return []; } };
   const gravar = (itens) => { try { localStorage.setItem(CHAVE, JSON.stringify(itens)); } catch { /* sem armazenamento: o carrinho dura só esta página */ } contar(); };
   const chaveDe = (i) => JSON.stringify([i.slug, i.tamanho || '', i.cor || '', i.opcoes || {}, i.texto || '', !!i.personalizar]);
+  let contados = null;  // o número da última vez: só salta quando sobe (juntar uma peça), não ao abrir
   function contar() {
     const n = ler().reduce((s, i) => s + i.qtd, 0);
-    $$('[data-carrinho-conta]').forEach((el) => { el.textContent = n; el.hidden = !n; });
+    $$('[data-carrinho-conta]').forEach((el) => {
+      el.textContent = n; el.hidden = !n;
+      if (contados !== null && n > contados) { el.classList.remove('salta'); void el.offsetWidth; el.classList.add('salta'); }
+    });
+    contados = n;
     $$('[data-carrinho-ligacao]').forEach((el) => el.setAttribute('aria-label', n ? `Carrinho, ${n} ${n === 1 ? 'artigo' : 'artigos'}` : 'Carrinho'));
   }
   contar();
@@ -62,6 +67,37 @@
       + `<span class="progresso__barra" aria-hidden="true"><span style="width:${Math.min(100, (subtotal / limite) * 100)}%"></span></span>`;
   };
 
+  // ── Movimento: o que entra ao descer (a MESMA lista do site.css, «Movimento») ──
+  const ENTRAM = '.seccao__topo h2, .ocasioes li, .linhas__cartao, .fila.produtos li, .passos li, .sobre__foto, .sobre__texto, .insta li, .grelha li, .cartoes-ajuda li, .factos li';
+  const raiz = document.documentElement;
+  if ('IntersectionObserver' in window) {
+    // os que entram juntos (uma fila de cartões) entram um a seguir ao outro
+    const io = new IntersectionObserver((entradas) => {
+      let d = 0;
+      for (const en of entradas) {
+        if (!en.isIntersecting) continue;
+        en.target.style.setProperty('--d', String(Math.min(d++, 6)));
+        en.target.classList.add('visivel');
+        io.unobserve(en.target);
+      }
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.1 });
+    $$(ENTRAM).forEach((el) => io.observe(el));
+    raiz.classList.add('observa');
+    // salvaguarda: o que está à vista e o observador não viu aparece na mesma
+    setTimeout(() => $$(ENTRAM).forEach((el) => {
+      if (el.classList.contains('visivel')) return;
+      const r = el.getBoundingClientRect();
+      if (r.width && r.top < innerHeight && r.bottom > 0) el.classList.add('visivel');
+    }), 2500);
+    // o selo da capa só roda enquanto está à vista
+    const selo = $('.selo');
+    if (selo) new IntersectionObserver(([e]) => selo.classList.toggle('fora', !e.isIntersecting)).observe(selo);
+  } else $$(ENTRAM).forEach((el) => el.classList.add('visivel'));
+  // o topo ganha uma sombra quando a página desce
+  const rolou = () => raiz.classList.toggle('rolou', scrollY > 8);
+  addEventListener('scroll', rolou, { passive: true });
+  rolou();
+
   // ── Menu do telemóvel ──
   const botaoMenu = $('[data-menu]');
   const painel = $('#menu-telemovel');
@@ -88,8 +124,11 @@
     const aplicar = (escrever) => {
       $$('[data-filtro]', filtros).forEach((b) => b.setAttribute('aria-pressed', String(estado[b.dataset.filtro] === b.dataset.valor)));
       let n = 0;
+      let k = 0;
       for (const li of itens) {
         const ok = (!estado.categoria || li.dataset.categoria === estado.categoria) && (!estado.ocasiao || li.dataset.ocasiao.split(' ').includes(estado.ocasiao));
+        // os que voltam com o filtro entram outra vez (a animação recomeça quando deixam de estar escondidos)
+        if (ok && li.hidden) li.style.setProperty('--d', String(Math.min(k++, 8)));
         li.hidden = !ok; n += ok;
       }
       $('[data-contagem]').textContent = `${n} ${n === 1 ? 'artigo' : 'artigos'}`;
@@ -136,6 +175,7 @@
     const grandes = $$('[data-foto-grande]');
     const minis = $$('[data-miniatura]');
     const mostrar = (k) => {
+      $('[data-galeria]').classList.add('troca');  // daqui para a frente a fotografia troca a esbater
       grandes.forEach((g) => { g.hidden = g.dataset.fotoGrande !== String(k); });
       minis.forEach((m) => m.setAttribute('aria-pressed', String(m.dataset.miniatura === String(k))));
     };

@@ -19,6 +19,7 @@ export function pagina({ loja, versao, api = '', caminho, titulo, descricao, cor
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>document.documentElement.classList.add('js')</script>
 <title>${esc(tituloCompleto)}</title>
 <meta name="description" content="${esc(descricao || loja.descricao)}">
 ${PRODUCAO ? '' : '<meta name="robots" content="noindex, nofollow">\n'}<link rel="canonical" href="${absoluto(caminho)}">
@@ -55,6 +56,7 @@ ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j)}</sc
     <ul class="contentor">${lista()}</ul>
   </nav>
 </header>
+<script>/* o número do carrinho já no primeiro desenho (a passagem entre páginas não pisca); o site.js mantém-no. A chave é a do site.js (CHAVE). */try{const n=(JSON.parse(localStorage.getItem('franja:carrinho:v2'))||[]).reduce((s,i)=>s+(i.qtd||0),0);if(n>0){const b=document.querySelector('[data-carrinho-conta]');b.textContent=n;b.hidden=false}}catch(e){}</script>
 
 <main id="conteudo">
 ${corpo}

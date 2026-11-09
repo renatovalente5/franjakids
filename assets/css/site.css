@@ -399,3 +399,59 @@ dialog::backdrop { background: rgb(46 30 22 / .35); }
 .obrigado__totais dt { color: var(--tinta-suave); }
 .obrigado__totais dd { margin: 0; text-align: right; font-weight: 600; }
 .obrigado__totais dt:last-of-type, .obrigado__totais dd:last-of-type { color: var(--tinta); font-weight: 700; font-size: 1.125rem; }
+
+/* ── Movimento ──
+   As entradas ao descer, a capa ao abrir, o selo que roda e o que responde ao toque. Só se esconde
+   alguma coisa com JavaScript a correr: .js no <html> (posto no <head>) e .observa (posto pelo site.js
+   quando o observador arranca). Se o site.js não chegar, o que estava escondido aparece aos 3 s. Quem
+   pediu menos movimento vê tudo no sítio e parado (aqui nada se esconde, e a regra do topo tira as
+   animações). A LISTA DO QUE ENTRA AO DESCER É A MESMA DO site.js (ENTRAM). */
+:root { --suave: cubic-bezier(.22, 1, .36, 1); }
+@keyframes entra { from { opacity: 0; transform: translateY(26px); } }
+@keyframes entra-pop { from { opacity: 0; transform: translateY(14px) scale(.94); } }
+@keyframes assenta { from { transform: translateY(18px) scale(.96); } }
+@keyframes surge { from { opacity: 0; } }
+@keyframes roda { to { transform: rotate(1turn); } }
+@keyframes salta { 35% { transform: scale(1.4); } 70% { transform: scale(.92); } }
+@keyframes revela-tarde { to { opacity: 1; } }
+@keyframes vt-sai { to { opacity: 0; } }
+@keyframes vt-entra { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: no-preference) {
+  .js :is(.seccao__topo h2, .ocasioes li, .linhas__cartao, .fila.produtos li, .passos li, .sobre__foto, .sobre__texto, .insta li, .grelha li, .cartoes-ajuda li, .factos li):not(.visivel) { opacity: 0; }
+  .js:not(.observa) :is(.seccao__topo h2, .ocasioes li, .linhas__cartao, .fila.produtos li, .passos li, .sobre__foto, .sobre__texto, .insta li, .grelha li, .cartoes-ajuda li, .factos li):not(.visivel) { animation: revela-tarde .4s 3s forwards; }
+  .visivel { animation: entra .75s var(--suave) both; animation-delay: calc(var(--d, 0) * 90ms); }
+  :is(.ocasioes li, .insta li, .passos li).visivel { animation-name: entra-pop; }
+  /* a capa, ao abrir (a fotografia só assenta: não se esbate, para não atrasar a primeira imagem) */
+  .js .heroi__texto > * { animation: entra .9s var(--suave) both; }
+  .js .heroi__texto > :nth-child(2) { animation-delay: .1s; }
+  .js .heroi__texto > :nth-child(3) { animation-delay: .2s; }
+  .js .heroi__foto { animation: assenta 1.1s var(--suave) both; }
+  .js .selo { animation: entra-pop .8s var(--suave) .45s both; }
+  /* o selo roda devagar (a frase à volta; o coração e o círculo ficam), só enquanto está à vista */
+  .selo text { transform-box: view-box; transform-origin: 50% 50%; animation: roda 28s linear infinite; }
+  .selo.fora text { animation-play-state: paused; }
+  /* a fotografia que se escolhe na ficha (só depois de escolher: a primeira não se esbate) */
+  .galeria.troca .galeria__principal > div:not([hidden]) { animation: surge .35s ease both; }
+  /* o número do carrinho, quando se junta uma peça */
+  .topo__conta.salta { animation: salta .5s var(--suave); }
+  /* de uma página para a outra, sem piscar */
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root) { animation: .18s ease both vt-sai; }
+  ::view-transition-new(root) { animation: .32s var(--suave) both vt-entra; }
+}
+/* o que responde ao rato (no telemóvel, um toque não fica «por cima») */
+@media (hover: hover) {
+  .cartao__foto picture, .linhas__foto picture { transition: transform .6s var(--suave); }
+  .cartao:hover .cartao__foto picture { transform: scale(1.05); }
+  .linhas__cartao:hover .linhas__foto picture { transform: scale(1.04); }
+  .ocasioes__seta { transition: transform .25s var(--suave); }
+  .ocasioes a:hover .ocasioes__seta { transform: translateX(5px); }
+}
+/* carregar num botão afunda-o um pouco */
+.botao { transition: background-color .2s, box-shadow .2s, transform .15s; }
+.pastilha { transition: background-color .2s, color .2s, box-shadow .2s, transform .15s; }
+.redondo { transition: background-color .2s, transform .15s; }
+.botao:active, .pastilha:active, .redondo:active { transform: scale(.97); }
+/* o topo ganha uma sombra quando a página desce */
+.topo { transition: box-shadow .25s; }
+.rolou .topo { box-shadow: 0 1px 0 var(--linha), 0 12px 28px -22px rgb(74 52 40 / .45); }
