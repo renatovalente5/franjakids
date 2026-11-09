@@ -389,7 +389,7 @@ dialog::backdrop { background: rgb(46 30 22 / .35); }
 .ficha__lista dd { margin: 0; color: var(--tinta-suave); }
 
 /* ── Obrigado ── */
-.obrigado > * + * { margin-top: 16px; }
+.obrigado > * + *, .obrigado [data-obrigado-corpo] > * + * { margin-top: 16px; }
 .obrigado h1:focus { outline: none; }
 .obrigado__linhas { max-width: 560px; border-top: 1px solid rgba(74, 52, 40, .15); }
 .obrigado__linhas li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid rgba(74, 52, 40, .15); }
