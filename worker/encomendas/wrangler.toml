@@ -1,0 +1,67 @@
+# O WORKER DAS ENCOMENDAS DA FRANJA KIDS (docs/ENCOMENDAS.md, §7).
+#
+# Corre-se SEMPRE com --config apontado a este ficheiro (memória wrangler-autoconfig-pasta-mae: da
+# pasta-mãe sem config, o wrangler inventa um Worker com o conteúdo de outro projecto; e na raiz do
+# repositório há outro, o wrangler.jsonc do franjakids-site). O wrangler está instalado na
+# mimices-painel:
+#   ~/Websites/mimices-painel/node_modules/.bin/wrangler deploy --config ~/Websites/franjakids/worker/encomendas/wrangler.toml
+#
+# O index.js importa as regras do site (../../src/lib/regras.mjs): o wrangler junta-as no pacote.
+# Publica-se da cópia do repositório que tem o regras.mjs que o site publicado usa.
+name = "franjakids-encomendas"
+main = "index.js"
+compatibility_date = "2026-09-01"
+
+[observability]
+enabled = true
+
+# As encomendas (encomenda.js diz as chaves). POR CRIAR — o título na Cloudflare é
+# «franjakids-encomendas-ORDERS» (o «ORDERS» sem prefixo é o do Armazém dos Pneus, o
+# «lfmobile-encomendas-ORDERS» é o da LF Mobile). Criar com:
+#   wrangler kv namespace create franjakids-encomendas-ORDERS --config ~/Websites/franjakids/worker/encomendas/wrangler.toml
+# e pôr aqui o id que ele escrever. Com o marcador, um deploy falha (não há namespace com este id).
+[[kv_namespaces]]
+binding = "ORDERS"
+id = "POR-CRIAR"
+
+# O travão do /checkout que vale em TODAS as localizações da Cloudflare (o de memória, em index.js,
+# só vale no seu isolate): 5 pedidos por minuto por IP. O namespace_id é único na conta: 1001 e 1002
+# são do Carimbo, 1101 do Armazém dos Pneus, 1102 da LF Mobile.
+[[ratelimits]]
+name = "TRAVAO_CHECKOUT"
+namespace_id = "1103"
+simple = { limit = 5, period = 60 }
+
+[vars]
+# A pré-visualização no GitHub Pages; passa ao domínio quando o houver (franjakids.com), e com ele o
+# logótipo e as origens. O catálogo vem de SITE_URL/assets/catalogo.json (CATALOGO_URL só se for
+# outro sítio).
+SITE_URL = "https://renatovalente5.github.io/franjakids"
+# O logótipo no topo dos emails: o PNG do site (o Outlook não mostra WebP).
+LOGO_URL = "https://renatovalente5.github.io/franjakids/assets/marca/logotipo-320.png"
+# As origens que podem chamar /checkout e /encomenda: a pré-visualização e o build local
+# (127.0.0.1:8985 e localhost:8985), que saem quando houver domínio.
+ALLOWED_ORIGINS = "https://renatovalente5.github.io,http://127.0.0.1:8985,http://localhost:8985"
+STORE_NAME = "Franja Kids"
+# A conta do Instagram (sem @): é o contacto dos emails (https://ig.me/m/<conta>).
+STORE_INSTAGRAM = "franjakids"
+# O email da loja: recebe «Nova encomenda», «Encomenda paga» e os falhados, e é o reply-to dos
+# emails ao cliente. Vazio enquanto a cliente não o der — e sem ele não se manda nada à loja.
+STORE_EMAIL = ""
+# O remetente. onboarding@resend.dev só entrega ao dono da conta do Resend (o Renato): quando houver
+# domínio verificado no Resend, passa a «Franja Kids <encomendas@franjakids.com>».
+MAIL_FROM = "Franja Kids <onboarding@resend.dev>"
+# A versão da API da Stripe, fixada (a mesma do Armazém dos Pneus e da LF Mobile). Não subir sem ler
+# o changelog: o ui_mode «hosted_page» é desta versão.
+STRIPE_API_VERSION = "2026-07-29.dahlia"
+# MODO = "encomenda" força o modo «encomenda» mesmo com o catálogo em «online» (travão de
+# emergência). Por omissão não está definido: vale o catálogo.
+
+# ---------------------------------------------------------------------------------------------
+# SEGREDOS — nunca aqui (o repositório é público). Instalar com, por exemplo:
+#   < ~/Websites/franjakids/_cliente/segredos/PAINEL_SEGREDO wrangler secret put PAINEL_SEGREDO --config …
+#   PAINEL_SEGREDO        o mesmo do Worker do painel (openssl rand -hex 32)
+#   STRIPE_SECRET_KEY     rk_live_… da conta da cliente (quando a houver)
+#   STRIPE_WEBHOOK_SECRET whsec_… do endpoint /stripe/webhook
+#   RESEND_API_KEY        re_… da conta do Resend com o domínio verificado
+# ---------------------------------------------------------------------------------------------

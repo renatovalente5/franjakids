@@ -14,7 +14,10 @@ import { inicio, linha, produto, carrinho, finalizar, obrigado, procurar, sobre,
 import { paginasDeTexto } from './textos.mjs';
 
 const SAIDA = RAIZ + '_site/';
-const API = (process.argv.find((a) => a.startsWith('--api='))?.slice(6) ?? process.env.API_URL ?? 'https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev').replace(/\/$/, '');
+/* O Worker das encomendas (docs/ENCOMENDAS.md). Sem ele (a pré-visualização, enquanto o Worker não está no
+   ar), o finalizar confere tudo e acaba no aviso «Quase a abrir», sem enviar nada. Quando estiver:
+   --api=https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev */
+const API = (process.argv.find((a) => a.startsWith('--api='))?.slice(6) ?? process.env.API_URL ?? '').replace(/\/$/, '');
 
 // ── O conteúdo, tal e qual está nos ficheiros ──
 const jsons = (pasta) => readdirSync(RAIZ + pasta).filter((f) => f.endsWith('.json')).sort();

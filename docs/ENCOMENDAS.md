@@ -5,8 +5,10 @@ para cada uma se construir sem ver as outras.
 
 - **O site** (este repositório): `assets/js/site.js` guarda o carrinho no browser, lê os preços do
   catálogo publicado (`assets/catalogo.json`, a forma está em `src/build.mjs`, `paraCarrinho`) e fala
-  com o Worker em `document.body.dataset.api` (o `--api=` do build; por omissão
-  `https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev`).
+  com o Worker em `document.body.dataset.api` (o `--api=` do build:
+  `https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev`). Sem `--api` (a
+  pré-visualização, enquanto o Worker não está no ar) o finalizar confere tudo e acaba no aviso
+  «Quase a abrir», sem enviar nada.
 - **O Worker das encomendas** (`worker/encomendas/`, nome `franjakids-encomendas`): recebe a
   encomenda, refaz as contas do seu lado com o catálogo publicado e com as MESMAS regras do site
   (importa `src/lib/regras.mjs`: `conferirEscolha`, `portesDe`, `nifValido`, `emailValido`…),
@@ -213,3 +215,20 @@ os emails: o Outlook não mostra WebP), `ALLOWED_ORIGINS`, `MAIL_FROM`, `STORE_E
 `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `PAINEL_SEGREDO`. Bindings: KV `ORDERS`, rate limit
 `TRAVAO_CHECKOUT`. `wrangler deploy --config worker/encomendas/wrangler.toml` sempre com `--config`
 (memória: wrangler-autoconfig-pasta-mae).
+
+## 8. O que o Worker fixou (9 nov 2026)
+
+O que este contrato não dizia, decidido no Worker pelo lado mais seguro (a lista inteira, com o
+porquê, está na secção «Decisões» do `worker/encomendas/README.md`):
+
+- `avisos` = `{ <momento>: { em, cliente, loja } }`, com `'enviado'`, `'falhou'`, `'sem chave'`,
+  `'sem email'`, `'sem destinatário'` ou `'não se aplica'`.
+- Anular (ou marcar paga) uma encomenda `pendente` fecha a página da Stripe
+  (`POST /checkout/sessions/<id>/expire`).
+- Um pagamento que chega a uma encomenda já `anulada` não a põe `paga`: fica uma linha no histórico e
+  um email só à loja, a dizer que é preciso devolver o dinheiro na Stripe.
+- `stripe.metodo` é o meio usado (lido da cobrança: `card`, `mb_way`), não o primeiro aceite.
+- O catálogo publicado tem versão: o Worker só lê a `v: 2` (outra dá 503 e a `/painel/saude` diz
+  porquê). Mudar a forma do catálogo no `build.mjs` = subir a versão nos dois sítios.
+- A mensagem do cartão e as notas acima de 240 e 600 caracteres recusam-se (400), não se cortam; o
+  corpo do pedido pode ir até 64 KiB (50 linhas personalizadas).

@@ -1,0 +1,9 @@
+{
+  "name": "franjakids-encomendas",
+  "private": true,
+  "type": "module",
+  "description": "O Worker das encomendas da Franja Kids (Cloudflare). Sem dependências: fetch puro; as regras dos preços vêm de src/lib/regras.mjs.",
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  }
+}

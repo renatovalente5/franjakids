@@ -1,0 +1,3 @@
+# O que o wrangler escreve ao lado do wrangler.toml (wrangler dev, deploy --dry-run).
+.wrangler/
+node_modules/

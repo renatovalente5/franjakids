@@ -55,6 +55,9 @@ teste('conferirEscolha: o tamanho e a cor são precisos; o preço soma os acrés
   assert.equal(R.conferirEscolha(bg, { tamanho: '1 mês', cor: 'Rosa', personalizar: true, texto: 'x'.repeat(16) }, cat).campo, 'texto');
   // o texto escrito sem marcar a caixa não se cobra nem se guarda
   assert.equal(R.conferirEscolha(bg, { tamanho: '1 mês', cor: 'Rosa', texto: 'Clara' }, cat).unidade_cents, 1690);
+  // um nome feito só de invisíveis não é um nome (o trim não os tira)
+  assert.equal(R.conferirEscolha(bg, { tamanho: '1 mês', cor: 'Rosa', personalizar: true, texto: '\u200B\u2060\uFEFF' }, cat).campo, 'texto');
+  assert.equal(R.conferirEscolha(bg, { tamanho: '1 mês', cor: 'Rosa', personalizar: true, texto: 'Cla\u200Bra' }, cat).texto, 'Clara');
 });
 teste('conferirEscolha: uma escolha que falta vale a primeira sem acréscimo; uma que não existe recusa', () => {
   const b = produto('body-dad-mini');
@@ -195,8 +198,19 @@ teste('pré-visualização: a ficha com escolhas, a sem preço pede por mensagem
   const fin = pagina('finalizar/index.html');
   assert.match(fin, />Enviar encomenda</);
   assert.match(fin, /value="ilhas"/);
+  // sem o Worker das encomendas no ar, o finalizar acaba no aviso «Quase a abrir»
+  assert.match(fin, /id="pre-visualizacao"/);
+  assert.match(pagina('index.html'), /data-api=""/);
   assert.ok(fs.existsSync(path.join(SAIDA, 'obrigado/index.html')));
   assert.match(pagina('termos/index.html'), /\[por confirmar: NIF\]/);
+});
+teste('com o Worker das encomendas (--api): o finalizar envia, sem o aviso, e o catálogo leva a morada', () => {
+  repor();
+  const r = construir(['--api=https://franjakids-encomendas.exemplo.workers.dev/']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(pagina('finalizar/index.html'), /id="pre-visualizacao"/);
+  assert.match(pagina('index.html'), /data-api="https:\/\/franjakids-encomendas\.exemplo\.workers\.dev"/);
+  assert.equal(JSON.parse(pagina('assets/catalogo.json')).api, 'https://franjakids-encomendas.exemplo.workers.dev');
 });
 teste('produção sem os dados legais: pára, com as razões em anotações para o painel', () => {
   repor();

@@ -387,8 +387,10 @@ export function conferirEscolha(a, escolha = {}, cat = null) {
   }
   const pedidas = eObjecto(e.opcoes) ? e.opcoes : {};
   for (const g of opcoesDe(a)) {
-    let v = g.valores.find((x) => x.nome === pedidas[g.nome]);
-    if (!v && !ausente(pedidas[g.nome])) return { ok: false, campo: 'opcoes', mensagem: `«${pedidas[g.nome]}» já não é uma escolha de «${nome}». Escolhe outra vez.` };
+    // só as chaves do próprio pedido («constructor» não é uma escolha)
+    const pedida = Object.hasOwn(pedidas, g.nome) ? pedidas[g.nome] : undefined;
+    let v = g.valores.find((x) => x.nome === pedida);
+    if (!v && !ausente(pedida)) return { ok: false, campo: 'opcoes', mensagem: `«${pedida}» já não é uma escolha de «${nome}». Escolhe outra vez.` };
     if (!v) v = g.valores.find((x) => !x.suplemento) || g.valores[0];
     escolhas.push(`${g.nome}: ${v.nome}`);
     cents += centimos(v.suplemento);
@@ -397,7 +399,9 @@ export function conferirEscolha(a, escolha = {}, cat = null) {
   let texto = '';
   let personalizada = false;
   if (ps) {
-    const t = typeof e.texto === 'string' ? e.texto.replace(/\s+/g, ' ').trim() : '';
+    /* Os invisíveis (espaços de largura zero, marcas de direcção) saem antes do trim, que não os tira:
+       um nome feito só deles não é um nome, e não se cobra (memória trim-nao-tira-invisiveis). */
+    const t = typeof e.texto === 'string' ? e.texto.replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim() : '';
     if (ps.opcional) {
       if (e.personalizar === true) {
         if (!t) return { ok: false, campo: 'texto', mensagem: `Escreve «${ps.rotulo}» de «${nome}», ou tira a personalização.` };

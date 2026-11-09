@@ -191,7 +191,7 @@
         if (!r && !primeiro) primeiro = $('input', f);
       }
       if (campo && !blocoTexto.hidden) {
-        const vazio = !campo.value.trim();
+        const vazio = !campo.value.replace(/\p{Cf}/gu, '').trim();
         const precisa = campo.hasAttribute('data-obrigatorio') || caixa?.checked;
         let msg = '';
         if (precisa && vazio) msg = 'Escreve o texto para personalizarmos.';
@@ -207,7 +207,7 @@
         tamanho: valorDe(grupos.find((f) => f.dataset.campo === 'tamanho') || document.createElement('i')),
         cor: valorDe(grupos.find((f) => f.dataset.campo === 'cor') || document.createElement('i')),
         opcoes: Object.fromEntries(grupos.filter((f) => !f.dataset.campo).map((f) => [f.dataset.opcao, valorDe(f)]).filter(([, v]) => v)),
-        texto: campo && !blocoTexto.hidden ? campo.value.trim().replace(/\s+/g, ' ') : '',
+        texto: campo && !blocoTexto.hidden ? campo.value.replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim() : '',
         personalizar: !!caixa?.checked,
         qtd: Math.min(MAX_QTD, Math.max(1, parseInt(qtd.value, 10) || 1)),
       };
@@ -354,6 +354,8 @@
 
       const itens = await desenhar();
       if (!itens) return;
+      // a pré-visualização, sem o Worker das encomendas no ar: confere tudo e não envia nada
+      if (!API) { $('#pre-visualizacao')?.showModal(); return; }
       const cp = v('codigo-postal');
       const pedido = {
         linhas: itens.map((i) => ({ produto: i.slug, ...(i.tamanho ? { tamanho: i.tamanho } : {}), ...(i.cor ? { cor: i.cor } : {}), opcoes: i.opcoes || {}, personalizar: !!i.personalizar, texto: i.texto || '', qtd: i.qtd })),

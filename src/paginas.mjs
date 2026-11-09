@@ -283,7 +283,7 @@ export function carrinho({ loja }) {
   };
 }
 
-export function finalizar({ loja, termosUrl }) {
+export function finalizar({ loja, termosUrl, api }) {
   const pagaAgora = online(loja);
   // em modo «online» só as entregas com portes (não se cobra o que não se sabe)
   const zonas = loja.entrega.zonas.filter((z) => !pagaAgora || typeof z.portes === 'number');
@@ -340,7 +340,13 @@ export function finalizar({ loja, termosUrl }) {
     <button class="botao botao--cheio" type="submit" data-enviar>${pagaAgora ? esc(BOTAO_ENCOMENDA) : 'Enviar encomenda'}</button>
     <p class="pagamentos">${pagaAgora ? '<span>MB WAY</span><span>Cartão</span><span>Pagamento seguro pela Stripe</span>' : '<span>O pagamento combinamos contigo depois de confirmarmos a encomenda</span>'}</p>
   </aside>
-</form>`,
+</form>${api ? '' : `
+<dialog class="caixa" id="pre-visualizacao" aria-labelledby="t-pre">
+  <h2 id="t-pre">Quase a abrir</h2>
+  <p>Esta é a pré-visualização da loja: as encomendas pelo site ligam-se quando a conta da Franja Kids estiver pronta.</p>
+  <p>Até lá, as encomendas fazem-se por <a href="https://ig.me/m/${loja.instagram}">mensagem no Instagram</a>.</p>
+  <button class="botao botao--cheio" type="button" data-fechar autofocus>Percebi</button>
+</dialog>`}`,
   };
 }
 

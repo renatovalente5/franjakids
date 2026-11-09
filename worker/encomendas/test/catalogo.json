@@ -1,0 +1,302 @@
+{
+  "v": 2,
+  "modo": "encomenda",
+  "api": "https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev",
+  "zonas": [
+    {
+      "id": "continente",
+      "nome": "Portugal continental",
+      "portes": 3.9,
+      "morada": true
+    },
+    {
+      "id": "ilhas",
+      "nome": "Açores e Madeira",
+      "portes": null,
+      "morada": true
+    },
+    {
+      "id": "estrangeiro",
+      "nome": "Fora de Portugal",
+      "portes": null,
+      "morada": true
+    },
+    {
+      "id": "mao",
+      "nome": "Entrega em mão em Valongo",
+      "portes": 0,
+      "morada": false
+    }
+  ],
+  "gratisAPartirDe": 50,
+  "termos": "http://127.0.0.1:8985/termos/",
+  "obrigado": "http://127.0.0.1:8985/obrigado/",
+  "finalizar": "http://127.0.0.1:8985/finalizar/",
+  "produtos": {
+    "t-shirt-eu-posso-ser-tudo": {
+      "nome": "T-shirt «Eu posso ser tudo o que eu quiser»",
+      "url": "/produtos/t-shirt-eu-posso-ser-tudo/",
+      "foto": "/assets/img/t-shirt-eu-posso-ser-tudo-1-7d98a48afe-360.webp",
+      "preco": 12,
+      "tamanhos": [
+        "2 anos",
+        "4 anos",
+        "6 anos",
+        "8 anos",
+        "10 anos",
+        "12 anos",
+        "14 anos"
+      ],
+      "cores": [],
+      "opcoes": [
+        {
+          "nome": "Desenho",
+          "valores": [
+            {
+              "nome": "Menina",
+              "suplemento": 0
+            },
+            {
+              "nome": "Menino",
+              "suplemento": 0
+            }
+          ]
+        }
+      ],
+      "personalizacao": {
+        "rotulo": "Nome",
+        "pista": "Opcional",
+        "max": 20,
+        "obrigatoria": false,
+        "opcional": null,
+        "suplemento": 0
+      }
+    },
+    "t-shirt-sonha-grande": {
+      "nome": "T-shirt «Sonha grande, brilha ainda mais»",
+      "url": "/produtos/t-shirt-sonha-grande/",
+      "foto": "/assets/img/t-shirt-sonha-grande-1-f91638679d-360.webp",
+      "preco": 12,
+      "tamanhos": [
+        "2 anos",
+        "4 anos",
+        "6 anos",
+        "8 anos",
+        "10 anos",
+        "12 anos",
+        "14 anos"
+      ],
+      "cores": [],
+      "opcoes": [],
+      "personalizacao": {
+        "rotulo": "Nome",
+        "pista": "Opcional",
+        "max": 20,
+        "obrigatoria": false,
+        "opcional": null,
+        "suplemento": 0
+      }
+    },
+    "t-shirt-nada-e-impossivel": {
+      "nome": "T-shirt «Nada é impossível»",
+      "url": "/produtos/t-shirt-nada-e-impossivel/",
+      "foto": "/assets/img/t-shirt-nada-e-impossivel-1-63723b27ee-360.webp",
+      "preco": 12,
+      "tamanhos": [
+        "2 anos",
+        "4 anos",
+        "6 anos",
+        "8 anos",
+        "10 anos",
+        "12 anos",
+        "14 anos"
+      ],
+      "cores": [],
+      "opcoes": [],
+      "personalizacao": {
+        "rotulo": "Nome",
+        "pista": "Opcional",
+        "max": 20,
+        "obrigatoria": false,
+        "opcional": null,
+        "suplemento": 0
+      }
+    },
+    "t-shirt-promovido-a-irmao": {
+      "nome": "T-shirt «Fui promovido a irmão mais velho»",
+      "url": "/produtos/t-shirt-promovido-a-irmao/",
+      "foto": "/assets/img/t-shirt-promovido-a-irmao-1-876ec80c6f-360.webp",
+      "preco": 12,
+      "tamanhos": [
+        "2 anos",
+        "4 anos",
+        "6 anos",
+        "8 anos",
+        "10 anos",
+        "12 anos",
+        "14 anos"
+      ],
+      "cores": [],
+      "opcoes": [
+        {
+          "nome": "Texto",
+          "valores": [
+            {
+              "nome": "Irmão mais velho",
+              "suplemento": 0
+            },
+            {
+              "nome": "Irmã mais velha",
+              "suplemento": 0
+            }
+          ]
+        }
+      ],
+      "personalizacao": {
+        "rotulo": "Data ou nome",
+        "pista": "Opcional",
+        "max": 30,
+        "obrigatoria": false,
+        "opcional": null,
+        "suplemento": 0
+      }
+    },
+    "t-shirt-adulto": {
+      "nome": "T-shirt de adulto personalizada",
+      "url": "/produtos/t-shirt-adulto/",
+      "foto": "/assets/img/t-shirt-adulto-1-3c1200400f-360.webp",
+      "preco": 15,
+      "tamanhos": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "cores": [
+        {
+          "nome": "Branco"
+        },
+        {
+          "nome": "Preto"
+        },
+        {
+          "nome": "Azul-escuro"
+        }
+      ],
+      "opcoes": [],
+      "personalizacao": {
+        "rotulo": "Frase ou nome",
+        "pista": "Diz-nos a ideia; mandamos a pré-visualização",
+        "max": 80,
+        "obrigatoria": true,
+        "opcional": null,
+        "suplemento": 0
+      }
+    },
+    "babygrow-com-nome": {
+      "nome": "Babygrow",
+      "url": "/produtos/babygrow-com-nome/",
+      "foto": "/assets/img/babygrow-com-nome-1-72407008c8-360.webp",
+      "preco": 16.9,
+      "tamanhos": [
+        "0 meses",
+        "1 mês",
+        "3 meses"
+      ],
+      "cores": [
+        {
+          "nome": "Rosa",
+          "foto": "babygrow-com-nome-1"
+        },
+        {
+          "nome": "Azul",
+          "foto": "babygrow-com-nome-2"
+        },
+        {
+          "nome": "Cinzento",
+          "foto": "babygrow-com-nome-3"
+        }
+      ],
+      "opcoes": [],
+      "personalizacao": {
+        "rotulo": "Nome a bordar",
+        "pista": "Até 15 letras",
+        "max": 15,
+        "obrigatoria": false,
+        "opcional": "Bordar um nome",
+        "suplemento": 3
+      }
+    },
+    "manta-remalhada": {
+      "nome": "Manta remalhada",
+      "url": "/produtos/manta-remalhada/",
+      "foto": "/assets/img/manta-remalhada-1-5ebc506d72-360.webp",
+      "preco": 21.9,
+      "tamanhos": [],
+      "cores": [
+        {
+          "nome": "Rosa maquilhagem"
+        },
+        {
+          "nome": "Areia"
+        },
+        {
+          "nome": "Azul cobalto"
+        }
+      ],
+      "opcoes": [],
+      "personalizacao": null
+    },
+    "box-franja": {
+      "nome": "Box Franja",
+      "url": "/produtos/box-franja/",
+      "foto": "/assets/img/box-franja-1-bc14c16cb3-360.webp",
+      "preco": 30,
+      "tamanhos": [],
+      "cores": [
+        {
+          "nome": "Rosa",
+          "foto": "box-franja-1"
+        },
+        {
+          "nome": "Azul",
+          "foto": "box-franja-2"
+        },
+        {
+          "nome": "Pérola",
+          "foto": "box-franja-3"
+        },
+        {
+          "nome": "Branco",
+          "foto": "box-franja-4"
+        }
+      ],
+      "opcoes": [],
+      "personalizacao": {
+        "rotulo": "Nome do bebé",
+        "pista": "Gravado na escova e na placa",
+        "max": 20,
+        "obrigatoria": false,
+        "opcional": "Personalizar com o nome",
+        "suplemento": 8
+      }
+    },
+    "caixa-surpresa": {
+      "nome": "Caixa surpresa personalizada",
+      "url": "/produtos/caixa-surpresa/",
+      "foto": "/assets/img/caixa-surpresa-1-9d9f5d5fe1-360.webp",
+      "preco": 3.5,
+      "tamanhos": [],
+      "cores": [],
+      "opcoes": [],
+      "personalizacao": {
+        "rotulo": "Frase da tampa",
+        "pista": "Por exemplo: Vais ser avó",
+        "max": 120,
+        "obrigatoria": true,
+        "opcional": null,
+        "suplemento": 0
+      }
+    }
+  }
+}
