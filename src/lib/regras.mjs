@@ -670,7 +670,10 @@ export function problemasDaLoja(d, { producao = false } = {}) {
   linha('slogan', 'marca', TAMANHOS.slogan, 'Frase da marca');
   linha('descricao', 'marca', TAMANHOS.descricao, 'Descrição para o Google', { obrigatorio: true });
   linha('producao', 'entrega', TAMANHOS.producao, 'Tempo de produção', { obrigatorio: true });
-  if (!vazio(d.instagram) && !(typeof d.instagram === 'string' && RE_INSTAGRAM.test(d.instagram))) avisa('instagram', 'marca', 'instagram', 'O Instagram é só o nome da conta, sem @ nem endereço (ex.: franjakids).');
+  /* Todas as páginas levam o Instagram (o rodapé, os contactos, o «Pedir por mensagem» dos produtos sem
+     preço): sem ele as ligações partiam-se. */
+  if (vazio(d.instagram)) bloqueia('instagram:vazio', 'marca', 'instagram', 'Falta o Instagram da loja: todas as páginas levam a ligação para lá e para as mensagens.');
+  else if (!(typeof d.instagram === 'string' && RE_INSTAGRAM.test(d.instagram))) avisa('instagram', 'marca', 'instagram', 'O Instagram é só o nome da conta, sem @ nem endereço (ex.: franjakids).');
 
   // --- entrega ------------------------------------------------------------------------
   const e = d.entrega;
@@ -687,7 +690,10 @@ export function problemasDaLoja(d, { producao = false } = {}) {
         if (z.id === 'mao' && typeof z.portes === 'number' && z.portes > 0) avisa(`${onde}.portes:mao`, 'entrega', `${onde}.portes`, 'A entrega em mão é sem custo: deixe 0.');
       });
       const continente = zonas[0];
-      if (ausente(continente.portes) || continente.portes === '') legal('entrega.zonas.0.portes', 'entrega', 'entrega.zonas.0.portes', 'Faltam os portes para Portugal continental: o site diz «por confirmar» e a lei pede-os antes da encomenda (DL 24/2014, art. 4.º).');
+      /* Chave própria (:vazio): a do campo, sem mais nada, é a do aviso «os portes são só o número». Com a
+         mesma chave, um valor mau escrito ali não contava como novo para o Worker do painel, porque o
+         HEAD já tinha o lembrete (achado pelo painel, 9 nov 2026). */
+      if (ausente(continente.portes) || continente.portes === '') legal('entrega.zonas.0.portes:vazio', 'entrega', 'entrega.zonas.0.portes', 'Faltam os portes para Portugal continental: o site diz «por confirmar» e a lei pede-os antes da encomenda (DL 24/2014, art. 4.º).');
     }
     const g = e.gratisAPartirDe;
     if (!ausente(g) && g !== '' && !numeroEm(g, LIMITES.gratis)) avisa('entrega.gratisAPartirDe', 'entrega', 'entrega.gratisAPartirDe', 'O valor dos portes grátis é só o número, sem € (ex.: 50), ou fica vazio (sem portes grátis).');

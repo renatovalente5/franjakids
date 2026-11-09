@@ -86,6 +86,15 @@ teste('temSuplementos: «desde» com acréscimos nas escolhas ou na personaliza�
   assert.ok(R.temSuplementos(produto('body-dad-mini')));
   assert.ok(!R.temSuplementos(produto('manta-remalhada')));
 });
+teste('chaves: o lembrete dos portes por escrever não é o aviso de um valor mau; o Instagram em branco pára', () => {
+  const loja = lerEnsaio('loja.json');
+  const chaves = (o) => R.problemasDaLoja(o).map((p) => `${p.classe}:${p.chave}`);
+  assert.ok(chaves(loja).includes('avisa:loja:entrega.zonas.0.portes:vazio'));
+  const mau = structuredClone(loja); mau.entrega.zonas[0].portes = '3,50 €';
+  assert.ok(chaves(mau).includes('avisa:loja:entrega.zonas.0.portes') && !chaves(mau).includes('avisa:loja:entrega.zonas.0.portes:vazio'));
+  assert.ok(chaves({ ...loja, instagram: '' }).includes('bloqueia:loja:instagram:vazio'));
+  assert.ok(chaves({ ...loja, instagram: '@franjakids' }).includes('avisa:loja:instagram'));
+});
 teste('mudancasBloqueadas: a marca, o concelho, as zonas e a estrutura do catálogo não mudam', () => {
   const loja = lerEnsaio('loja.json');
   assert.deepEqual(R.mudancasBloqueadas(loja, structuredClone(loja), 'loja'), []);
@@ -108,7 +117,7 @@ teste('problemas: o conteúdo de ensaio não pára a pré-visualização; em pro
   const dados = { loja: lerEnsaio('loja.json'), catalogo, fotos: lerEnsaio('fotos.json'), artigos: Object.fromEntries(['babygrow-com-nome', 'body-preparem-o-colinho'].map((s) => [s, produto(s)])) };
   assert.equal(R.problemas(dados).filter((p) => p.classe === 'bloqueia').length, 0);
   const prod = R.problemas(dados, { producao: true });
-  assert.deepEqual(new Set(prod.filter((p) => p.classe === 'bloqueia').map((p) => p.chave)), new Set(['loja:empresa.nome:producao', 'loja:empresa.morada:producao', 'loja:empresa.nif:producao', 'loja:empresa.email:producao', 'loja:entrega.zonas.0.portes:producao']));
+  assert.deepEqual(new Set(prod.filter((p) => p.classe === 'bloqueia').map((p) => p.chave)), new Set(['loja:empresa.nome:producao', 'loja:empresa.morada:producao', 'loja:empresa.nif:producao', 'loja:empresa.email:producao', 'loja:entrega.zonas.0.portes:vazio:producao']));
   const n = R.neutralizar(dados, prod);
   assert.equal(n.artigos['body-preparem-o-colinho'].publicado, false);
   assert.notEqual(n.artigos['babygrow-com-nome'].publicado, false);
