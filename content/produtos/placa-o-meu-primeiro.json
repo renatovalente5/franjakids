@@ -1,0 +1,40 @@
+{
+  "nome": "Placa de madeira «O meu primeiro…»",
+  "categoria": "placas",
+  "ocasioes": [
+    "papa",
+    "mama",
+    "natal"
+  ],
+  "preco": null,
+  "resumo": "Para as fotografias das primeiras datas: Dia do Pai, Dia da Mãe, aniversário ou Natal.",
+  "fotos": [
+    "placa-o-meu-primeiro-1"
+  ],
+  "opcoes": [
+    {
+      "nome": "Data",
+      "valores": [
+        {
+          "nome": "Dia do Pai",
+          "suplemento": 0
+        },
+        {
+          "nome": "Dia da Mãe",
+          "suplemento": 0
+        },
+        {
+          "nome": "Aniversário",
+          "suplemento": 0
+        },
+        {
+          "nome": "Natal",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "destaque": false,
+  "publicado": true,
+  "ordem": 380
+}

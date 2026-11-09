@@ -1,0 +1,37 @@
+{
+  "nome": "Body «Toda a princesa precisa de uma fada-madrinha»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "padrinhos"
+  ],
+  "preco": null,
+  "resumo": "Para pedir à tia, à prima ou à amiga que seja a fada-madrinha.",
+  "fotos": [
+    "body-fada-madrinha-1"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome da madrinha",
+    "pista": "Por exemplo: Titia Ângela",
+    "max": 30,
+    "obrigatoria": true
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 90
+}

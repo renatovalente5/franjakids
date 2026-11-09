@@ -1,0 +1,28 @@
+{
+  "nome": "Manta remalhada",
+  "categoria": "mantas-e-toalhas",
+  "ocasioes": [],
+  "preco": 21.9,
+  "resumo": "90 × 90 cm, de malha macia, para o berço, o carrinho e o colo.",
+  "fotos": [
+    "manta-remalhada-1",
+    "manta-remalhada-2"
+  ],
+  "cores": [
+    {
+      "nome": "Rosa maquilhagem"
+    },
+    {
+      "nome": "Areia"
+    },
+    {
+      "nome": "Azul cobalto"
+    }
+  ],
+  "detalhes": [
+    "90 × 90 cm"
+  ],
+  "destaque": false,
+  "publicado": true,
+  "ordem": 340
+}

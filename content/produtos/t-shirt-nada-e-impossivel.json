@@ -1,0 +1,19 @@
+{
+  "nome": "T-shirt «Nada é impossível»",
+  "categoria": "t-shirts",
+  "ocasioes": [],
+  "preco": 12,
+  "resumo": "Uma estrela e uma frase para levar para a escola.",
+  "fotos": [
+    "t-shirt-nada-e-impossivel-1"
+  ],
+  "tamanhos": "crianca",
+  "personalizacao": {
+    "rotulo": "Nome",
+    "pista": "Opcional",
+    "max": 20
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 230
+}

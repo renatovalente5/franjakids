@@ -1,0 +1,50 @@
+{
+  "nome": "Body «Mini» e t-shirt «Dad»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "papa",
+    "familia"
+  ],
+  "preco": 14.9,
+  "resumo": "Tal pai, tal mini. O ano muda para o do nascimento do bebé.",
+  "fotos": [
+    "body-dad-mini-1"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    },
+    {
+      "nome": "Peças",
+      "valores": [
+        {
+          "nome": "Só o body",
+          "suplemento": 0
+        },
+        {
+          "nome": "Body e t-shirt Dad",
+          "suplemento": 15
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Ano e tamanho da t-shirt do pai",
+    "pista": "Por exemplo: est. 2026, t-shirt L",
+    "max": 40
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 130
+}

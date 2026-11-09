@@ -1,0 +1,51 @@
+{
+  "nome": "Camisola com carapuço e nome",
+  "categoria": "camisolas",
+  "ocasioes": [
+    "familia",
+    "irmaos"
+  ],
+  "preco": null,
+  "resumo": "Cardada por dentro, quentinha e com carapuço. Para crianças e adultos, em várias cores.",
+  "fotos": [
+    "camisola-com-nome-1",
+    "camisola-com-nome-2",
+    "camisola-com-nome-3"
+  ],
+  "tamanhos": "camisola",
+  "cores": [
+    {
+      "nome": "Rosa"
+    },
+    {
+      "nome": "Fúcsia"
+    },
+    {
+      "nome": "Azul"
+    },
+    {
+      "nome": "Azul-escuro"
+    },
+    {
+      "nome": "Branco"
+    },
+    {
+      "nome": "Preto"
+    },
+    {
+      "nome": "Vermelho"
+    },
+    {
+      "nome": "Cinzento"
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome ou frase",
+    "pista": "Exactamente como queres que fique",
+    "max": 30,
+    "obrigatoria": true
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 260
+}

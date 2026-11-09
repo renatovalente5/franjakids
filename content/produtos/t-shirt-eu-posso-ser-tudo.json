@@ -1,0 +1,34 @@
+{
+  "nome": "T-shirt «Eu posso ser tudo o que eu quiser»",
+  "categoria": "t-shirts",
+  "ocasioes": [],
+  "preco": 12,
+  "resumo": "Com uma menina ou um menino rodeados de profissões. Juntamos o nome, se quiseres.",
+  "fotos": [
+    "t-shirt-eu-posso-ser-tudo-1"
+  ],
+  "tamanhos": "crianca",
+  "opcoes": [
+    {
+      "nome": "Desenho",
+      "valores": [
+        {
+          "nome": "Menina",
+          "suplemento": 0
+        },
+        {
+          "nome": "Menino",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome",
+    "pista": "Opcional",
+    "max": 20
+  },
+  "destaque": true,
+  "publicado": true,
+  "ordem": 210
+}

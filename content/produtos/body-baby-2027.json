@@ -1,0 +1,37 @@
+{
+  "nome": "Body «Baby 2027»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "bebe-a-caminho"
+  ],
+  "preco": null,
+  "resumo": "O ano em que chega o bebé, com o apelido da família se quiseres.",
+  "fotos": [
+    "body-baby-2027-1",
+    "body-baby-2027-2"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Apelido ou ano",
+    "pista": "Opcional. Por exemplo: Alves 2027",
+    "max": 30
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 30
+}

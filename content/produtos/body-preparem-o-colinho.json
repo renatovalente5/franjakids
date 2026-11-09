@@ -1,0 +1,37 @@
+{
+  "nome": "Body «Preparem o colinho»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "bebe-a-caminho",
+    "familia"
+  ],
+  "preco": null,
+  "resumo": "A forma mais doce de dizer que vem aí um bebé. Juntamos a data ou um nome, se quiseres.",
+  "fotos": [
+    "body-preparem-o-colinho-1"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Data ou nome",
+    "pista": "Opcional. Por exemplo: chego em julho 2027",
+    "max": 40
+  },
+  "destaque": true,
+  "publicado": true,
+  "ordem": 10
+}

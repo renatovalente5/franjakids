@@ -1,0 +1,38 @@
+{
+  "nome": "Body «Aceitas ser minha madrinha?»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "padrinhos"
+  ],
+  "preco": null,
+  "resumo": "O pedido mais especial, com o nome da madrinha e a data do batizado.",
+  "fotos": [
+    "body-aceitas-ser-minha-madrinha-1",
+    "body-aceitas-ser-minha-madrinha-2"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome da madrinha e data",
+    "pista": "Por exemplo: Prima Lili, 04/07/2026",
+    "max": 50,
+    "obrigatoria": true
+  },
+  "destaque": true,
+  "publicado": true,
+  "ordem": 80
+}

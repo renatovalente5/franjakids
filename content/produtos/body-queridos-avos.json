@@ -1,0 +1,38 @@
+{
+  "nome": "Body «Queridos avós, preparem o colinho»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "avos",
+    "bebe-a-caminho"
+  ],
+  "preco": null,
+  "resumo": "Para dar a notícia aos avós e aos bisavós. Também fazemos «Bisa» e «Vovó».",
+  "fotos": [
+    "body-queridos-avos-1",
+    "body-queridos-avos-2"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Para quem",
+    "pista": "Opcional. Por exemplo: Vovó e Vovô",
+    "max": 40
+  },
+  "destaque": true,
+  "publicado": true,
+  "ordem": 60
+}

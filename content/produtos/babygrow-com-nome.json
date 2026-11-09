@@ -1,0 +1,37 @@
+{
+  "nome": "Babygrow",
+  "categoria": "babygrows",
+  "ocasioes": [],
+  "preco": 16.9,
+  "resumo": "Algodão macio, com a etiqueta Franja Kids. Bordamos o nome por mais 3 €.",
+  "fotos": [
+    "babygrow-com-nome-1",
+    "babygrow-com-nome-2",
+    "babygrow-com-nome-3"
+  ],
+  "tamanhos": "babygrow",
+  "cores": [
+    {
+      "nome": "Rosa",
+      "foto": "babygrow-com-nome-1"
+    },
+    {
+      "nome": "Azul",
+      "foto": "babygrow-com-nome-2"
+    },
+    {
+      "nome": "Cinzento",
+      "foto": "babygrow-com-nome-3"
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome a bordar",
+    "pista": "Até 15 letras",
+    "max": 15,
+    "opcional": "Bordar um nome",
+    "suplemento": 3
+  },
+  "destaque": true,
+  "publicado": true,
+  "ordem": 290
+}

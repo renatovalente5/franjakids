@@ -387,3 +387,15 @@ dialog::backdrop { background: rgb(46 30 22 / .35); }
 .ficha__lista { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: .9375rem; }
 .ficha__lista dt { font-weight: 700; }
 .ficha__lista dd { margin: 0; color: var(--tinta-suave); }
+
+/* ── Obrigado ── */
+.obrigado > * + * { margin-top: 16px; }
+.obrigado h1:focus { outline: none; }
+.obrigado__linhas { max-width: 560px; border-top: 1px solid rgba(74, 52, 40, .15); }
+.obrigado__linhas li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid rgba(74, 52, 40, .15); }
+.obrigado__linhas small { display: block; margin-top: 2px; font-size: .875rem; color: var(--tinta-suave); }
+.obrigado__linhas b { white-space: nowrap; }
+.obrigado__totais { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; max-width: 560px; }
+.obrigado__totais dt { color: var(--tinta-suave); }
+.obrigado__totais dd { margin: 0; text-align: right; font-weight: 600; }
+.obrigado__totais dt:last-of-type, .obrigado__totais dd:last-of-type { color: var(--tinta); font-weight: 700; font-size: 1.125rem; }

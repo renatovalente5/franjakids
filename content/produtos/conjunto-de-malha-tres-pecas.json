@@ -1,0 +1,53 @@
+{
+  "nome": "Conjunto de malha: casaco, gorro e luvas",
+  "categoria": "conjuntos",
+  "ocasioes": [],
+  "preco": null,
+  "resumo": "Três peças de malha para os dias frios, em sete cores.",
+  "fotos": [
+    "conjunto-de-malha-tres-pecas-1",
+    "conjunto-de-malha-tres-pecas-2",
+    "conjunto-de-malha-tres-pecas-3",
+    "conjunto-de-malha-tres-pecas-4",
+    "conjunto-de-malha-tres-pecas-5",
+    "conjunto-de-malha-tres-pecas-6",
+    "conjunto-de-malha-tres-pecas-7"
+  ],
+  "cores": [
+    {
+      "nome": "Azul",
+      "foto": "conjunto-de-malha-tres-pecas-1"
+    },
+    {
+      "nome": "Cinzento",
+      "foto": "conjunto-de-malha-tres-pecas-2"
+    },
+    {
+      "nome": "Cru",
+      "foto": "conjunto-de-malha-tres-pecas-3"
+    },
+    {
+      "nome": "Rosa",
+      "foto": "conjunto-de-malha-tres-pecas-4"
+    },
+    {
+      "nome": "Bege",
+      "foto": "conjunto-de-malha-tres-pecas-5"
+    },
+    {
+      "nome": "Vermelho",
+      "foto": "conjunto-de-malha-tres-pecas-6"
+    },
+    {
+      "nome": "Rosa velho",
+      "foto": "conjunto-de-malha-tres-pecas-7"
+    }
+  ],
+  "detalhes": [
+    "Casaco, gorro com pompom e luvas",
+    "Tamanho único"
+  ],
+  "destaque": false,
+  "publicado": true,
+  "ordem": 300
+}

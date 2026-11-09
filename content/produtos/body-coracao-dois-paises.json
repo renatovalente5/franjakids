@@ -1,0 +1,51 @@
+{
+  "nome": "Body «Coração de dois países»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "entre-paises"
+  ],
+  "preco": null,
+  "resumo": "Um coração com as duas bandeiras, ou os dois mapas ligados por um caminho.",
+  "fotos": [
+    "body-coracao-dois-paises-1",
+    "body-coracao-dois-paises-2"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    },
+    {
+      "nome": "Desenho",
+      "valores": [
+        {
+          "nome": "Coração com bandeiras",
+          "suplemento": 0
+        },
+        {
+          "nome": "Mapas ligados",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Os dois países",
+    "pista": "Por exemplo: Portugal e Brasil",
+    "max": 40,
+    "obrigatoria": true
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 170
+}

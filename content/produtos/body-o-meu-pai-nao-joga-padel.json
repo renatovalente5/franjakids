@@ -1,0 +1,36 @@
+{
+  "nome": "Body «Sou a prova de que o meu pai não joga padel o tempo todo»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "papa"
+  ],
+  "preco": null,
+  "resumo": "Para o pai do padel, do ténis ou do futebol: trocamos o desporto.",
+  "fotos": [
+    "body-o-meu-pai-nao-joga-padel-1"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Desporto",
+    "pista": "Por exemplo: padel, ténis, futebol",
+    "max": 20
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 120
+}

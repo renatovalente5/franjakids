@@ -1,0 +1,46 @@
+{
+  "nome": "Box Franja",
+  "categoria": "box-franja",
+  "ocasioes": [
+    "bebe-a-caminho"
+  ],
+  "preco": 30,
+  "resumo": "Tudo para os primeiros dias, numa caixa. Com o nome do bebé gravado por mais 8 €.",
+  "fotos": [
+    "box-franja-1",
+    "box-franja-2",
+    "box-franja-3",
+    "box-franja-4"
+  ],
+  "cores": [
+    {
+      "nome": "Rosa",
+      "foto": "box-franja-1"
+    },
+    {
+      "nome": "Azul",
+      "foto": "box-franja-2"
+    },
+    {
+      "nome": "Pérola",
+      "foto": "box-franja-3"
+    },
+    {
+      "nome": "Branco",
+      "foto": "box-franja-4"
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome do bebé",
+    "pista": "Gravado na escova e na placa",
+    "max": 20,
+    "opcional": "Personalizar com o nome",
+    "suplemento": 8
+  },
+  "detalhes": [
+    "Carapins, manta, doudou, prendedor de chupeta, placa «Olá mundo» e escova de cabelo"
+  ],
+  "destaque": true,
+  "publicado": true,
+  "ordem": 360
+}

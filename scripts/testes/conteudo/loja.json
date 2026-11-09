@@ -1,0 +1,44 @@
+{
+  "nome": "Franja Kids",
+  "slogan": "Personalizamos momentos especiais.",
+  "descricao": "Roupa e presentes personalizados para bebés, crianças e família: bodies, t-shirts, camisolas, babygrows e a Box Franja, com o nome ou a frase que escolheres.",
+  "instagram": "franjakids",
+  "producao": "1 a 2 semanas",
+  "entrega": {
+    "gratisAPartirDe": 50,
+    "prazoContinente": "2 dias úteis",
+    "concelho": "Valongo",
+    "zonas": [
+      {
+        "id": "continente",
+        "nome": "Portugal continental",
+        "portes": null
+      },
+      {
+        "id": "ilhas",
+        "nome": "Açores e Madeira",
+        "portes": null
+      },
+      {
+        "id": "estrangeiro",
+        "nome": "Fora de Portugal",
+        "portes": null
+      },
+      {
+        "id": "mao",
+        "nome": "Entrega em mão em Valongo",
+        "portes": 0
+      }
+    ]
+  },
+  "pagamentos": {
+    "modo": "encomenda"
+  },
+  "empresa": {
+    "nome": null,
+    "nif": null,
+    "morada": null,
+    "email": null,
+    "telefone": null
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "nome": "Body com nome",
+  "categoria": "bodies",
+  "ocasioes": [],
+  "preco": null,
+  "resumo": "O nome do bebé na letra e na cor que escolheres, com ou sem desenho.",
+  "fotos": [
+    "body-com-nome-1",
+    "body-com-nome-2"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome",
+    "pista": "Exactamente como queres que fique",
+    "max": 30,
+    "obrigatoria": true
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 190
+}

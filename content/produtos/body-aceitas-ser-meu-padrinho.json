@@ -1,0 +1,38 @@
+{
+  "nome": "Body «Aceitas ser meu padrinho?»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "padrinhos"
+  ],
+  "preco": null,
+  "resumo": "Para o padrinho, ou para os dois de uma vez.",
+  "fotos": [
+    "body-aceitas-ser-meu-padrinho-1",
+    "body-aceitas-ser-meu-padrinho-2"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome do padrinho (ou dos padrinhos)",
+    "pista": "Por exemplo: Primo Diogo",
+    "max": 40,
+    "obrigatoria": true
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 100
+}

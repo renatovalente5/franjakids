@@ -1,0 +1,366 @@
+{
+  "babetes-promovidos-1": {
+    "alt": "Babetes com «Promovidos a tios», «Promovidos a avós» e «Promovida a bisavó»",
+    "foco": "50% 45%"
+  },
+  "babetes-promovidos-2": {
+    "alt": "Babetes com «Promovida a titia», «Promovida a prima» e «Promovidos a vovós»",
+    "foco": "50% 45%"
+  },
+  "babygrow-com-nome-1": {
+    "alt": "Babygrow branco com gola cor-de-rosa e o nome «Clara»",
+    "foco": "50% 45%"
+  },
+  "babygrow-com-nome-2": {
+    "alt": "Babygrow branco com gola azul, um elefante bordado e o nome «Asher»",
+    "foco": "50% 45%"
+  },
+  "babygrow-com-nome-3": {
+    "alt": "Babygrow cinzento com o nome «Lourenço»",
+    "foco": "50% 45%"
+  },
+  "body-a-melhor-mae-do-mundo-1": {
+    "alt": "Body com «A melhor mãe do mundo é a minha» e um globo",
+    "foco": "50% 45%"
+  },
+  "body-a-melhor-mae-do-mundo-2": {
+    "alt": "Body com «Desde o primeiro instante escolhi-te para seres a minha mamã»",
+    "foco": "50% 45%"
+  },
+  "body-aceitas-ser-meu-padrinho-1": {
+    "alt": "Body com «Primo Diogo, aceitas ser meu padrinho?»",
+    "foco": "50% 45%"
+  },
+  "body-aceitas-ser-meu-padrinho-2": {
+    "alt": "Body com «Chica e Tony, ainda não nasci mas já vos escolhi. Aceitam ser os meus padrinhos?»",
+    "foco": "50% 45%"
+  },
+  "body-aceitas-ser-minha-madrinha-1": {
+    "alt": "Body com «Prima Lili, aceitas ser minha madrinha?» e a data",
+    "foco": "50% 45%"
+  },
+  "body-aceitas-ser-minha-madrinha-2": {
+    "alt": "Body com «Tenho um grande pedido para te fazer: queres ser a minha madrinha?» e um ursinho",
+    "foco": "50% 45%"
+  },
+  "body-baby-2027-1": {
+    "alt": "Body com «Baby 2027» em letras douradas",
+    "foco": "50% 45%"
+  },
+  "body-baby-2027-2": {
+    "alt": "Body com «Baby Alves 2027», personalizado com o apelido",
+    "foco": "50% 45%"
+  },
+  "body-com-nome-1": {
+    "alt": "Body de manga comprida com o nome «Raul» em letra manuscrita azul",
+    "foco": "50% 45%"
+  },
+  "body-com-nome-2": {
+    "alt": "Body com o nome «Lucas Miguel» e um ursinho numa lua",
+    "foco": "50% 45%"
+  },
+  "body-coracao-dois-paises-1": {
+    "alt": "Body com um coração metade bandeira de Portugal, metade bandeira do Brasil",
+    "foco": "50% 45%"
+  },
+  "body-coracao-dois-paises-2": {
+    "alt": "Body com os mapas de Portugal e do Brasil ligados por um caminho de coração",
+    "foco": "50% 45%"
+  },
+  "body-dad-mini-1": {
+    "alt": "Body branco «Mini» e t-shirt azul-escura «Dad», os dois com «est. 2026»",
+    "foco": "50% 45%"
+  },
+  "body-entre-dois-paises-1": {
+    "alt": "Body com «Entre o samba e o fado eu nasci» e as bandeiras do Brasil e de Portugal",
+    "foco": "50% 45%"
+  },
+  "body-entre-dois-paises-2": {
+    "alt": "Body com «Entre o forró e o fado eu nasci»",
+    "foco": "50% 45%"
+  },
+  "body-entre-dois-paises-3": {
+    "alt": "Body com «Entre o pão de queijo e o croissant eu nasci» e as bandeiras do Brasil e de França",
+    "foco": "50% 45%"
+  },
+  "body-fada-madrinha-1": {
+    "alt": "Body com «Toda a princesa precisa de uma fada-madrinha. Titia Ângela, queres ser a minha?»",
+    "foco": "50% 45%"
+  },
+  "body-familia-preparem-o-colinho-1": {
+    "alt": "Body de manga comprida com «Família, preparem o colinho, pois estou a caminho!»",
+    "foco": "50% 45%"
+  },
+  "body-familia-preparem-o-colinho-2": {
+    "alt": "Body com «Família, preparem o colinho porque estou a caminho» e um bebé desenhado",
+    "foco": "50% 45%"
+  },
+  "body-o-meu-pai-nao-joga-padel-1": {
+    "alt": "Body com «Sou a prova de que o meu pai não joga padel o tempo todo» e uma raquete",
+    "foco": "50% 45%"
+  },
+  "body-o-meu-primeiro-natal-1": {
+    "alt": "Body com «O meu primeiro Natal» ao lado de uma placa de madeira",
+    "foco": "50% 45%"
+  },
+  "body-o-nosso-maior-sonho-1": {
+    "alt": "Body com «O nosso maior sonho chega em 2027» e o desenho de um casal",
+    "foco": "50% 45%"
+  },
+  "body-o-sonho-da-mae-1": {
+    "alt": "Body com «O sonho da mãe + o desejo do pai + o pedido da mana = bebé a caminho»",
+    "foco": "50% 45%"
+  },
+  "body-o-sonho-da-mae-2": {
+    "alt": "Body com «O sonho da mãe + o desejo do pai + o pedido da mana = bebé a caminho» e uma data",
+    "foco": "50% 45%"
+  },
+  "body-papa-dois-coracoes-1": {
+    "alt": "Body com «Papá, dentro da mamã agora batem dois corações apaixonados por ti»",
+    "foco": "50% 45%"
+  },
+  "body-prepara-o-colinho-avo-1": {
+    "alt": "Body com «Prepara o colinho, avó, chego em 2027» e o desenho de uma avó com um bebé",
+    "foco": "50% 45%"
+  },
+  "body-prepara-o-colinho-avo-2": {
+    "alt": "Body com «Preparem os colinhos, avós, chego em 2027»",
+    "foco": "50% 45%"
+  },
+  "body-preparem-o-colinho-1": {
+    "alt": "Body branco com «Preparem o colinho» e um coração vermelho",
+    "foco": "50% 45%"
+  },
+  "body-promovida-a-irma-1": {
+    "alt": "Body com «Promovida a irmã mais fixe» e a data 04/07/2026",
+    "foco": "50% 45%"
+  },
+  "body-queridos-avos-1": {
+    "alt": "Body com «Queridos avós, preparem o colinho porque estou a caminho»",
+    "foco": "50% 45%"
+  },
+  "body-queridos-avos-2": {
+    "alt": "Body com «Queridos avós, preparem o colinho porque estou a caminho» num tabuleiro de vime",
+    "foco": "50% 45%"
+  },
+  "body-tios-preparem-o-colinho-1": {
+    "alt": "Body com «Tios, preparem o colinho porque estou a caminho»",
+    "foco": "50% 45%"
+  },
+  "body-tios-preparem-o-colinho-2": {
+    "alt": "Body com «Tios e primos, preparem o colinho que estou a caminho»",
+    "foco": "50% 45%"
+  },
+  "bolsa-primeira-roupinha-1": {
+    "alt": "Bolsa branca com acabamento azul e «A minha primeira roupinha» bordado",
+    "foco": "50% 45%"
+  },
+  "bolsa-primeira-roupinha-2": {
+    "alt": "Bolsa branca com acabamento cor-de-rosa",
+    "foco": "50% 45%"
+  },
+  "bolsa-primeira-roupinha-3": {
+    "alt": "Bolsa branca com acabamento pérola",
+    "foco": "50% 45%"
+  },
+  "box-franja-1": {
+    "alt": "Box Franja cor-de-rosa, com manta, carapins, escova, placa de madeira e roca de croché",
+    "foco": "50% 45%"
+  },
+  "box-franja-2": {
+    "alt": "Box Franja azul",
+    "foco": "50% 45%"
+  },
+  "box-franja-3": {
+    "alt": "Box Franja pérola",
+    "foco": "50% 45%"
+  },
+  "box-franja-4": {
+    "alt": "Box Franja branca",
+    "foco": "50% 45%"
+  },
+  "caixa-surpresa-1": {
+    "alt": "Caixa de cartão com «Abram devagar… Prometemos que vão sorrir… É amor!» na tampa",
+    "foco": "50% 45%"
+  },
+  "caixa-surpresa-2": {
+    "alt": "Caixa com «Vais ser avó» na tampa e um body lá dentro",
+    "foco": "50% 45%"
+  },
+  "camisola-com-nome-1": {
+    "alt": "Duas camisolas cor-de-rosa com carapuço com os nomes «Juliana» e «Carolina»",
+    "foco": "50% 45%"
+  },
+  "camisola-com-nome-2": {
+    "alt": "Camisola branca com «Promovida a irmã mais velha»",
+    "foco": "50% 45%"
+  },
+  "camisola-com-nome-3": {
+    "alt": "Camisolas azul e cor-de-rosa com os nomes «Gustavo» e «Carolina»",
+    "foco": "50% 45%"
+  },
+  "camisola-papa-mini-1": {
+    "alt": "Duas camisolas azul-escuras com carapuço, «Papa» e «Mini»",
+    "foco": "50% 45%"
+  },
+  "cat-bodies": {
+    "alt": "Body de manga comprida com o nome «Raul» em letra manuscrita azul",
+    "foco": "50% 45%"
+  },
+  "cat-box": {
+    "alt": "Box Franja com escova e placa de madeira gravadas com o nome «Salvador», roca de croché e mantinha",
+    "foco": "50% 50%"
+  },
+  "cat-conjuntos": {
+    "alt": "Conjunto de malha azul de três peças: casaco, gorro com pompom e luvas",
+    "foco": "50% 50%"
+  },
+  "conjunto-de-malha-tres-pecas-1": {
+    "alt": "Conjunto de malha azul: casaco, gorro com pompom e luvas",
+    "foco": "50% 45%"
+  },
+  "conjunto-de-malha-tres-pecas-2": {
+    "alt": "Conjunto de malha cinzento",
+    "foco": "50% 45%"
+  },
+  "conjunto-de-malha-tres-pecas-3": {
+    "alt": "Conjunto de malha cru",
+    "foco": "50% 45%"
+  },
+  "conjunto-de-malha-tres-pecas-4": {
+    "alt": "Conjunto de malha cor-de-rosa",
+    "foco": "50% 45%"
+  },
+  "conjunto-de-malha-tres-pecas-5": {
+    "alt": "Conjunto de malha bege",
+    "foco": "50% 45%"
+  },
+  "conjunto-de-malha-tres-pecas-6": {
+    "alt": "Conjunto de malha vermelho",
+    "foco": "50% 45%"
+  },
+  "conjunto-de-malha-tres-pecas-7": {
+    "alt": "Conjunto de malha rosa velho",
+    "foco": "50% 45%"
+  },
+  "conjunto-de-natal-1": {
+    "alt": "Dois conjuntos de Natal aos quadrados vermelhos, de menino e de menina, numa escada de bambu",
+    "foco": "50% 45%"
+  },
+  "conjunto-primavera-verao-1": {
+    "alt": "Conjunto de malha azul de três peças",
+    "foco": "50% 45%"
+  },
+  "conjunto-primavera-verao-2": {
+    "alt": "Conjunto rosa velho de três peças",
+    "foco": "50% 45%"
+  },
+  "conjunto-primavera-verao-3": {
+    "alt": "Conjunto lilás de três peças",
+    "foco": "50% 45%"
+  },
+  "donas": {
+    "alt": "As duas amigas que fazem a Franja Kids, lado a lado e a sorrir",
+    "foco": "50% 30%"
+  },
+  "ig-coracao": {
+    "alt": "Body com um coração metade bandeira de Portugal e metade bandeira do Brasil",
+    "foco": "50% 45%"
+  },
+  "ig-forro-fado": {
+    "alt": "Body «Entre o forró e o fado eu nasci» com as bandeiras do Brasil e de Portugal",
+    "foco": "50% 45%"
+  },
+  "ig-maior-sonho": {
+    "alt": "Body com «O nosso maior sonho chega em 2027» e um desenho de dois pais",
+    "foco": "50% 45%"
+  },
+  "ig-mapa": {
+    "alt": "Body com os mapas de Portugal e do Brasil ligados por um caminho de coração",
+    "foco": "50% 50%"
+  },
+  "ig-sonho": {
+    "alt": "Body com «O sonho da mãe + o desejo do pai + o pedido da mana = bebé a caminho»",
+    "foco": "50% 45%"
+  },
+  "manta-remalhada-1": {
+    "alt": "Mantas de malha empilhadas em rosa, coral, azul e areia",
+    "foco": "50% 45%"
+  },
+  "manta-remalhada-2": {
+    "alt": "Manta areia dobrada num cesto, com um conjunto de malha creme",
+    "foco": "50% 45%"
+  },
+  "mercadinho": {
+    "alt": "A banca da Franja Kids no Mercadinho de Natal, com roupa de bebé e as donas atrás",
+    "foco": "50% 50%"
+  },
+  "ocasiao-avos": {
+    "alt": "Body com «Queridos avós, preparem o colinho porque estou a caminho» e um bebé desenhado",
+    "foco": "50% 45%"
+  },
+  "ocasiao-entre-paises": {
+    "alt": "Body com «Entre o samba e o fado eu nasci» e as bandeiras do Brasil e de Portugal",
+    "foco": "50% 45%"
+  },
+  "ocasiao-gravidez": {
+    "alt": "Body com «Baby 2027» em letras douradas",
+    "foco": "50% 45%"
+  },
+  "ocasiao-irmaos": {
+    "alt": "Body com «Promovida a irmã mais fixe» e a data de nascimento",
+    "foco": "50% 45%"
+  },
+  "ocasiao-mama": {
+    "alt": "Body com «A melhor mãe do mundo é a minha»",
+    "foco": "50% 40%"
+  },
+  "ocasiao-natal": {
+    "alt": "Dois conjuntos de Natal aos quadrados vermelhos, um de menino e um vestido de menina, pendurados numa escada de bambu",
+    "foco": "50% 45%"
+  },
+  "ocasiao-padrinhos": {
+    "alt": "Body com «Prima Lili, aceitas ser minha madrinha?» e a data",
+    "foco": "50% 45%"
+  },
+  "ocasiao-papa": {
+    "alt": "Body com «Papá, dentro da mamã agora batem dois corações apaixonados por ti»",
+    "foco": "50% 40%"
+  },
+  "placa-o-meu-primeiro-1": {
+    "alt": "Placas de madeira «O meu primeiro Dia do Pai», «Dia da Mãe» e «Aniversário»",
+    "foco": "50% 45%"
+  },
+  "t-shirt-adulto-1": {
+    "alt": "T-shirt branca de adulto com uma frase em letra manuscrita",
+    "foco": "50% 45%"
+  },
+  "t-shirt-adulto-2": {
+    "alt": "T-shirt azul-escura «Dad» ao lado do body «Mini»",
+    "foco": "50% 45%"
+  },
+  "t-shirt-eu-posso-ser-tudo-1": {
+    "alt": "T-shirt com «Eu posso ser tudo o que eu quiser» e uma menina rodeada de profissões",
+    "foco": "50% 45%"
+  },
+  "t-shirt-nada-e-impossivel-1": {
+    "alt": "T-shirt com «Nada é impossível» e uma estrela",
+    "foco": "50% 45%"
+  },
+  "t-shirt-promovido-a-irmao-1": {
+    "alt": "T-shirt com «Fui promovido a irmão mais velho» em letras azuis",
+    "foco": "50% 45%"
+  },
+  "t-shirt-sonha-grande-1": {
+    "alt": "T-shirt com «Sonha grande, brilha ainda mais» e um arco-íris",
+    "foco": "50% 45%"
+  },
+  "toalha-de-banho-com-nome-1": {
+    "alt": "Toalha de banho com capuz cor-de-rosa e fralda a condizer, com o nome «Maria Clara»",
+    "foco": "50% 45%"
+  },
+  "vais-ser-avo": {
+    "alt": "Caixa de cartão com «Vais ser avó» escrito na tampa e, lá dentro, um body personalizado",
+    "foco": "50% 55%"
+  }
+}

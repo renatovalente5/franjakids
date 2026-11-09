@@ -1,0 +1,24 @@
+{
+  "nome": "Babete «Promovidos a…»",
+  "categoria": "babetes",
+  "ocasioes": [
+    "avos",
+    "padrinhos",
+    "familia"
+  ],
+  "preco": null,
+  "resumo": "Promovidos a avós, a tios, a padrinhos ou a bisavós: um babete para cada um.",
+  "fotos": [
+    "babetes-promovidos-1",
+    "babetes-promovidos-2"
+  ],
+  "personalizacao": {
+    "rotulo": "Promovidos a…",
+    "pista": "Por exemplo: avós",
+    "max": 30,
+    "obrigatoria": true
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 280
+}

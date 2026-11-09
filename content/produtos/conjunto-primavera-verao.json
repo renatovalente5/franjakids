@@ -1,0 +1,33 @@
+{
+  "nome": "Conjunto de três peças, primavera-verão",
+  "categoria": "conjuntos",
+  "ocasioes": [],
+  "preco": null,
+  "resumo": "100% algodão, leve e suave, em três cores.",
+  "fotos": [
+    "conjunto-primavera-verao-1",
+    "conjunto-primavera-verao-2",
+    "conjunto-primavera-verao-3"
+  ],
+  "cores": [
+    {
+      "nome": "Azul",
+      "foto": "conjunto-primavera-verao-1"
+    },
+    {
+      "nome": "Rosa velho",
+      "foto": "conjunto-primavera-verao-2"
+    },
+    {
+      "nome": "Lilás",
+      "foto": "conjunto-primavera-verao-3"
+    }
+  ],
+  "detalhes": [
+    "100% algodão",
+    "Pode levar o nome bordado"
+  ],
+  "destaque": false,
+  "publicado": true,
+  "ordem": 310
+}

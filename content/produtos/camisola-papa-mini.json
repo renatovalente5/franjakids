@@ -1,0 +1,36 @@
+{
+  "nome": "Camisolas «Papa» e «Mini»",
+  "categoria": "camisolas",
+  "ocasioes": [
+    "papa",
+    "familia"
+  ],
+  "preco": null,
+  "resumo": "Para o pai e o filho (ou a filha) andarem a condizer.",
+  "fotos": [
+    "camisola-papa-mini-1"
+  ],
+  "tamanhos": "camisola",
+  "cores": [
+    {
+      "nome": "Azul-escuro"
+    },
+    {
+      "nome": "Preto"
+    },
+    {
+      "nome": "Cinzento"
+    },
+    {
+      "nome": "Branco"
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Tamanho da outra camisola",
+    "pista": "Cada camisola é um artigo; diz-nos o tamanho da outra",
+    "max": 30
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 270
+}

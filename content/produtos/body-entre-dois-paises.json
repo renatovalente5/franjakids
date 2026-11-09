@@ -1,0 +1,39 @@
+{
+  "nome": "Body «Entre o samba e o fado eu nasci»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "entre-paises"
+  ],
+  "preco": null,
+  "resumo": "Para os bebés de duas terras. Trocamos os países, as bandeiras e a frase.",
+  "fotos": [
+    "body-entre-dois-paises-1",
+    "body-entre-dois-paises-2",
+    "body-entre-dois-paises-3"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Os dois países",
+    "pista": "Por exemplo: Brasil e Portugal",
+    "max": 40,
+    "obrigatoria": true
+  },
+  "destaque": true,
+  "publicado": true,
+  "ordem": 160
+}

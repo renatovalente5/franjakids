@@ -1,0 +1,36 @@
+{
+  "nome": "Body «O meu primeiro Natal»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "natal"
+  ],
+  "preco": null,
+  "resumo": "Para a primeira fotografia de Natal. Também fazemos a primeira Páscoa e o primeiro Halloween.",
+  "fotos": [
+    "body-o-meu-primeiro-natal-1"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome ou ano",
+    "pista": "Opcional",
+    "max": 30
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 180
+}

@@ -1,14 +1,16 @@
 // Peças comuns do gerador: caminhos, escapes, fotografias, ícones e preços.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const RAIZ = fileURLToPath(new URL('..', import.meta.url));
-export const BASE = (process.env.BASE || '').replace(/\/$/, '');
-export const SITE_URL = (process.env.SITE_URL || 'http://127.0.0.1:8985').replace(/\/$/, '');
-export const PRODUCAO = process.env.PRODUCAO === '1';
+// --base=/franjakids --site=https://… --producao (ou as variáveis BASE, SITE_URL e PRODUCAO=1)
+const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
+export const BASE = (arg('base') ?? process.env.BASE ?? '').replace(/\/$/, '');
+export const SITE_URL = (arg('site') ?? process.env.SITE_URL ?? 'http://127.0.0.1:8985').replace(/\/$/, '');
+export const PRODUCAO = process.argv.includes('--producao') || process.env.PRODUCAO === '1';
 
-export const ler = (f) => JSON.parse(readFileSync(RAIZ + f, 'utf8'));
-export const FOTOS = ler('assets/fotos/fotos.json');
+export const lerTexto = (f) => readFileSync(RAIZ + f, 'utf8');
+export const ler = (f) => JSON.parse(lerTexto(f));
 
 export const url = (caminho = '/') => BASE + caminho;
 export const absoluto = (caminho = '/') => SITE_URL + BASE + caminho;
@@ -20,16 +22,35 @@ export function euro(n) {
   return n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 }
 
+// ── Fotografias ──
+// As versões web (scripts/imagens.py → .cache/imagens/manifesto.json) e a descrição e o foco de
+// cada uma (content/fotos.json). O build.mjs carrega-as antes de gerar as páginas.
+export const MANIFESTO = RAIZ + '.cache/imagens/manifesto.json';
+export const FOTOS = {};
+export function carregarFotos(indice) {
+  if (!existsSync(MANIFESTO)) throw new Error('faltam as imagens: correr python3 scripts/imagens.py');
+  const m = JSON.parse(readFileSync(MANIFESTO, 'utf8')).fotos;
+  for (const [nome, v] of Object.entries(m)) {
+    if (!indice[nome]) continue;
+    FOTOS[nome] = { ...v, alt: indice[nome].alt, foco: indice[nome].foco || '50% 50%' };
+  }
+  return FOTOS;
+}
+const ficheiroDe = (f, nome, w, fmt) => url(`/assets/img/${nome}-${f.resumo}-${w}.${fmt}`);
+// a versão JPEG (o cartão de partilha e o JSON-LD: o WhatsApp não lê AVIF)
+export const fotoJpg = (nome) => { const f = FOTOS[nome]; return f ? SITE_URL + ficheiroDe(f, nome, f.jpg, 'jpg') : null; };
+// a miniatura do carrinho e da gaveta (a de 360, em WebP)
+export const fotoPequena = (nome) => { const f = FOTOS[nome]; return f ? ficheiroDe(f, nome, f.larguras[0], 'webp') : ''; };
+
 export function foto(nome, { sizes = '100vw', classe = '', prioridade = false, alt } = {}) {
   const f = FOTOS[nome];
   if (!f) throw new Error('fotografia em falta: ' + nome);
-  const set = (ext) => f.larguras.map((w) => `${url(`/assets/fotos/${nome}-${w}.${ext}`)} ${w}w`).join(', ');
+  const set = (fmt) => f.larguras.map((w) => `${ficheiroDe(f, nome, w, fmt)} ${w}w`).join(', ');
   const meio = f.larguras[Math.min(1, f.larguras.length - 1)];
   const texto = alt === undefined ? f.alt : alt;
   return `<picture${classe ? ` class="${classe}"` : ''}>`
-    + `<source type="image/avif" srcset="${set('avif')}" sizes="${sizes}">`
-    + `<source type="image/webp" srcset="${set('webp')}" sizes="${sizes}">`
-    + `<img src="${url(`/assets/fotos/${nome}-${meio}.jpg`)}" srcset="${set('jpg')}" sizes="${sizes}" width="${f.w}" height="${f.h}" alt="${esc(texto)}"`
+    + (f.formatos.includes('avif') ? `<source type="image/avif" srcset="${set('avif')}" sizes="${sizes}">` : '')
+    + `<img src="${ficheiroDe(f, nome, meio, 'webp')}" srcset="${set('webp')}" sizes="${sizes}" width="${f.largura}" height="${f.altura}" alt="${esc(texto)}"`
     + ` style="object-position:${f.foco}"${prioridade ? ' fetchpriority="high"' : ' loading="lazy"'}>`
     + `</picture>`;
 }
@@ -63,10 +84,6 @@ export function icone(nome, classe = 'icone') {
   return `<svg class="${classe}" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TRACOS[nome]}</svg>`;
 }
 
-// Cores das amostras (os nomes vêm das legendas do Instagram).
-export const CORES = {
-  'Rosa': '#F2B8C6', 'Rosa bebé': '#F7CFD8', 'Rosa velho': '#C98B8E', 'Rosa seco': '#D4A5A5', 'Rosa maquilhagem': '#E8B4A6',
-  'Fúcsia': '#D63A7C', 'Azul': '#9CC3E4', 'Azul bebé': '#BFD9EF', 'Azul cobalto': '#2F5DA8', 'Azul-escuro': '#1F2A44',
-  'Cinzento': '#B9B9B9', 'Cru': '#F1E9D6', 'Bege': '#D9C3A0', 'Areia': '#E2CFAE', 'Pérola': '#EFE6DA', 'Branco': '#FFFFFF',
-  'Preto': '#1E1E1E', 'Vermelho': '#C8313A', 'Lilás': '#C3AEDB', 'Verde': '#A9C3A0',
-};
+// O que ainda não foi dito (os dados legais, os portes): na pré-visualização, um marcador à vista;
+// em produção as regras param a publicação antes de chegar aqui.
+export const porConfirmar = (o_que) => `[por confirmar: ${o_que}]`;

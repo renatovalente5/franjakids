@@ -1,0 +1,38 @@
+{
+  "nome": "Body «Família, preparem o colinho»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "bebe-a-caminho",
+    "familia"
+  ],
+  "preco": null,
+  "resumo": "Para contar à família toda de uma vez. As cores, a letra e o desenho mudam ao teu gosto.",
+  "fotos": [
+    "body-familia-preparem-o-colinho-1",
+    "body-familia-preparem-o-colinho-2"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Data, nome ou frase",
+    "pista": "Opcional",
+    "max": 60
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 20
+}

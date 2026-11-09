@@ -1,0 +1,186 @@
+{
+  "linhas": [
+    {
+      "id": "personalizados",
+      "nome": "Personalizados",
+      "frase": "Bodies, t-shirts e camisolas com o nome, a data ou a frase que escolheres.",
+      "foto": "cat-bodies",
+      "categorias": [
+        "bodies",
+        "t-shirts",
+        "camisolas",
+        "babetes"
+      ]
+    },
+    {
+      "id": "bebe",
+      "nome": "Bebé",
+      "frase": "Babygrows, conjuntos de malha e de algodão, mantas e o que faz falta nos primeiros dias.",
+      "foto": "cat-conjuntos",
+      "categorias": [
+        "babygrows",
+        "conjuntos",
+        "mantas-e-toalhas",
+        "primeira-roupinha"
+      ]
+    },
+    {
+      "id": "presentes",
+      "nome": "Presentes",
+      "frase": "A Box Franja, caixas para surpresas e recordações para guardar.",
+      "foto": "cat-box",
+      "categorias": [
+        "box-franja",
+        "caixas",
+        "placas"
+      ]
+    }
+  ],
+  "categorias": {
+    "bodies": "Bodies",
+    "t-shirts": "T-shirts",
+    "camisolas": "Camisolas",
+    "babetes": "Babetes",
+    "babygrows": "Babygrows",
+    "conjuntos": "Conjuntos",
+    "mantas-e-toalhas": "Mantas e toalhas",
+    "primeira-roupinha": "Primeira roupinha",
+    "box-franja": "Box Franja",
+    "caixas": "Caixas surpresa",
+    "placas": "Placas"
+  },
+  "ocasioes": [
+    {
+      "id": "bebe-a-caminho",
+      "nome": "Bebé a caminho",
+      "foto": "ocasiao-gravidez"
+    },
+    {
+      "id": "avos",
+      "nome": "Avós",
+      "foto": "ocasiao-avos"
+    },
+    {
+      "id": "padrinhos",
+      "nome": "Padrinhos",
+      "foto": "ocasiao-padrinhos"
+    },
+    {
+      "id": "papa",
+      "nome": "Papá",
+      "foto": "ocasiao-papa"
+    },
+    {
+      "id": "mama",
+      "nome": "Mamã",
+      "foto": "ocasiao-mama"
+    },
+    {
+      "id": "irmaos",
+      "nome": "Irmãos",
+      "foto": "ocasiao-irmaos"
+    },
+    {
+      "id": "entre-paises",
+      "nome": "Entre países",
+      "foto": "ocasiao-entre-paises"
+    },
+    {
+      "id": "natal",
+      "nome": "Natal",
+      "foto": "ocasiao-natal"
+    },
+    {
+      "id": "familia",
+      "nome": "Tios e primos",
+      "foto": null
+    }
+  ],
+  "tamanhos": {
+    "body": {
+      "nome": "Bodies (0 aos 24 meses)",
+      "valores": [
+        "0-3 meses",
+        "3-6 meses",
+        "6-9 meses",
+        "9-12 meses",
+        "12-18 meses",
+        "18-24 meses"
+      ]
+    },
+    "crianca": {
+      "nome": "Criança (2 aos 14 anos)",
+      "valores": [
+        "2 anos",
+        "4 anos",
+        "6 anos",
+        "8 anos",
+        "10 anos",
+        "12 anos",
+        "14 anos"
+      ]
+    },
+    "adulto": {
+      "nome": "Adulto (S a XL)",
+      "valores": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ]
+    },
+    "camisola": {
+      "nome": "Camisolas (2 anos a XL)",
+      "valores": [
+        "2 anos",
+        "4 anos",
+        "6 anos",
+        "8 anos",
+        "10 anos",
+        "12 anos",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ]
+    },
+    "babygrow": {
+      "nome": "Babygrow (0 a 3 meses)",
+      "valores": [
+        "0 meses",
+        "1 mês",
+        "3 meses"
+      ]
+    },
+    "natal": {
+      "nome": "Natal (6 a 18 meses)",
+      "valores": [
+        "6 meses",
+        "12 meses",
+        "18 meses"
+      ]
+    }
+  },
+  "cores": {
+    "Rosa": "#F2B8C6",
+    "Rosa bebé": "#F7CFD8",
+    "Rosa velho": "#C98B8E",
+    "Rosa seco": "#D4A5A5",
+    "Rosa maquilhagem": "#E8B4A6",
+    "Fúcsia": "#D63A7C",
+    "Azul": "#9CC3E4",
+    "Azul bebé": "#BFD9EF",
+    "Azul cobalto": "#2F5DA8",
+    "Azul-escuro": "#1F2A44",
+    "Cinzento": "#B9B9B9",
+    "Cru": "#F1E9D6",
+    "Bege": "#D9C3A0",
+    "Areia": "#E2CFAE",
+    "Pérola": "#EFE6DA",
+    "Branco": "#FFFFFF",
+    "Preto": "#1E1E1E",
+    "Vermelho": "#C8313A",
+    "Lilás": "#C3AEDB",
+    "Verde": "#A9C3A0"
+  }
+}

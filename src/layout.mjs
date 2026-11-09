@@ -1,6 +1,6 @@
 // O esqueleto de todas as páginas: cabeça, topo, rodapé e a gaveta do carrinho.
 import { livroReclamacoes } from '../legal-comum/index.mjs';
-import { url, absoluto, esc, icone, logotipo, PRODUCAO } from './util.mjs';
+import { url, absoluto, esc, icone, logotipo, fotoJpg, PRODUCAO } from './util.mjs';
 
 export const MENU = [
   ['Personalizados', '/personalizados/'],
@@ -10,9 +10,9 @@ export const MENU = [
   ['Sobre nós', '/sobre/'],
 ];
 
-export function pagina({ loja, versao, caminho, titulo, descricao, corpo, imagem, jsonld = [], semRodape = false }) {
+export function pagina({ loja, versao, api = '', caminho, titulo, descricao, corpo, imagem, jsonld = [], semRodape = false }) {
   const tituloCompleto = caminho === '/' ? `${loja.nome} · Roupa e presentes personalizados` : `${titulo} · ${loja.nome}`;
-  const og = imagem ? absoluto(`/assets/fotos/${imagem}-720.jpg`) : absoluto('/assets/marca/logotipo-640.png');
+  const og = (imagem && fotoJpg(imagem)) || absoluto('/assets/marca/logotipo-640.png');
   const lista = (classe) => MENU.map(([t, h]) => `<li><a href="${url(h)}"${caminho.startsWith(h) ? ' aria-current="page"' : ''}>${t}</a></li>`).join('');
   return `<!doctype html>
 <html lang="pt-PT">
@@ -38,7 +38,7 @@ ${PRODUCAO ? '' : '<meta name="robots" content="noindex, nofollow">\n'}<link rel
 <link rel="stylesheet" href="${url('/assets/css/site.css')}?v=${versao}">
 ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j)}</script>`).join('\n')}
 </head>
-<body data-base="${BASE_ATTR()}">
+<body data-base="${BASE_ATTR()}" data-api="${esc(api)}">
 <a class="saltar" href="#conteudo">Saltar para o conteúdo</a>
 <header class="topo">
   <div class="contentor topo__barra">

@@ -1,0 +1,29 @@
+{
+  "nome": "Bolsa «A minha primeira roupinha»",
+  "categoria": "primeira-roupinha",
+  "ocasioes": [],
+  "preco": null,
+  "resumo": "Para levar a primeira roupinha para a maternidade, e guardar depois.",
+  "fotos": [
+    "bolsa-primeira-roupinha-1",
+    "bolsa-primeira-roupinha-2",
+    "bolsa-primeira-roupinha-3"
+  ],
+  "cores": [
+    {
+      "nome": "Azul",
+      "foto": "bolsa-primeira-roupinha-1"
+    },
+    {
+      "nome": "Rosa",
+      "foto": "bolsa-primeira-roupinha-2"
+    },
+    {
+      "nome": "Pérola",
+      "foto": "bolsa-primeira-roupinha-3"
+    }
+  ],
+  "destaque": false,
+  "publicado": true,
+  "ordem": 330
+}

@@ -1,17 +1,23 @@
-// Franja Kids — menu, filtros, ficha do produto, carrinho e finalizar. Sem dependências.
+// Franja Kids — menu, filtros, ficha do produto, carrinho, finalizar e obrigado. Sem dependências.
+// O carrinho guarda só o que se escolheu; os preços vêm sempre do catálogo publicado
+// (assets/catalogo.json), com a mesma conta do Worker das encomendas (src/lib/regras.mjs,
+// conferirEscolha) — e o Worker refaz tudo do seu lado antes de aceitar a encomenda.
 (() => {
   const BASE = document.body.dataset.base || '';
-  const CHAVE = 'franja:carrinho:v1';
+  const API = document.body.dataset.api || '';
+  const CHAVE = 'franja:carrinho:v2';
+  const MAX_QTD = 20;
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const euro = (n) => n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const anunciar = (t) => { const a = $('[data-anuncio]'); if (a) { a.textContent = ''; setTimeout(() => { a.textContent = t; }, 50); } };
+  const cents = (v) => Math.round(v * 100);
 
   // ── Carrinho guardado no browser ──
-  const ler = () => { try { return JSON.parse(localStorage.getItem(CHAVE)) || []; } catch { return []; } };
+  const ler = () => { try { const v = JSON.parse(localStorage.getItem(CHAVE)); return Array.isArray(v) ? v : []; } catch { return []; } };
   const gravar = (itens) => { try { localStorage.setItem(CHAVE, JSON.stringify(itens)); } catch { /* sem armazenamento: o carrinho dura só esta página */ } contar(); };
-  const chaveDe = (i) => JSON.stringify([i.slug, i.escolhas, i.texto || '', !!i.personalizar]);
+  const chaveDe = (i) => JSON.stringify([i.slug, i.tamanho || '', i.cor || '', i.opcoes || {}, i.texto || '', !!i.personalizar]);
   function contar() {
     const n = ler().reduce((s, i) => s + i.qtd, 0);
     $$('[data-carrinho-conta]').forEach((el) => { el.textContent = n; el.hidden = !n; });
@@ -21,22 +27,38 @@
   addEventListener('pageshow', (e) => { if (e.persisted) { contar(); if ($('[data-carrinho]')) desenharCarrinho(); } });
 
   let catalogo = null;
-  const obterCatalogo = async () => catalogo || (catalogo = await fetch(BASE + '/assets/catalogo.json').then((r) => r.json()));
-  const precoDe = (i, cat) => {
-    const p = cat[i.slug];
-    if (!p || p.preco == null) return null;
-    let v = p.preco;
-    for (const [o, valor] of Object.entries(i.escolhas || {})) v += p.sup?.[o]?.[valor] || 0;
-    if (p.pers?.opcional && i.personalizar) v += p.pers.suplemento;
-    return Math.round(v * 100) / 100;
+  const obterCatalogo = async (fresco = false) => {
+    if (catalogo && !fresco) return catalogo;
+    catalogo = await fetch(BASE + '/assets/catalogo.json', fresco ? { cache: 'no-store' } : {}).then((r) => r.json());
+    return catalogo;
   };
-  const fotoDe = (p) => `<picture><img src="${BASE}/assets/fotos/${p.foto}-360.jpg" alt="" width="360" height="450" loading="lazy"></picture>`;
-  const escolhasDe = (i) => Object.entries(i.escolhas || {}).map(([k, v]) => `${esc(k)}: ${esc(v)}`).join(' · ');
-  const textoDe = (i, p) => (i.texto ? `<p class="item__texto">${esc(p.pers?.rotulo || 'Personalização')}: «${esc(i.texto)}»</p>` : '');
+  /* O preço de uma unidade, em cêntimos, ou null se o produto já não se vende ou a escolha já não
+     existe (o produto mudou no painel): essas linhas saem do carrinho. */
+  const unidade = (i, cat) => {
+    const p = cat.produtos[i.slug];
+    if (!p || typeof p.preco !== 'number') return null;
+    if (p.tamanhos.length && !p.tamanhos.includes(i.tamanho)) return null;
+    if (p.cores.length && !p.cores.some((c) => c.nome === i.cor)) return null;
+    let v = cents(p.preco);
+    for (const g of p.opcoes) {
+      const escolhido = (i.opcoes || {})[g.nome];
+      const valor = g.valores.find((x) => x.nome === escolhido) || (escolhido == null ? g.valores.find((x) => !x.suplemento) : null);
+      if (!valor) return null;
+      v += cents(valor.suplemento);
+    }
+    if (p.personalizacao?.opcional && i.personalizar) v += cents(p.personalizacao.suplemento);
+    return v;
+  };
+  const validos = (cat) => ler().filter((i) => unidade(i, cat) != null);
+  const fotoDe = (p) => `<picture><img src="${esc(p.foto)}" alt="" width="360" height="480" loading="lazy"></picture>`;
+  const escolhasDe = (i, p) => [i.tamanho && `Tamanho: ${i.tamanho}`, i.cor && `Cor: ${i.cor}`, ...Object.entries(i.opcoes || {}).map(([k, v]) => `${k}: ${v}`)]
+    .filter(Boolean).map(esc).join(' · ') + (p.personalizacao?.opcional && i.personalizar ? ` · ${esc(p.personalizacao.opcional)}` : '');
+  const textoDe = (i, p) => (i.texto ? `<p class="item__texto">${esc(p.personalizacao?.rotulo || 'Personalização')}: «${esc(i.texto)}»</p>` : '');
   const progresso = (el, subtotal, limite) => {
-    if (!el || !limite) return;
+    if (!el) return;
+    if (typeof limite !== 'number') { el.innerHTML = ''; return; }
     const falta = Math.max(0, limite - subtotal);
-    el.innerHTML = (falta ? `<span>Faltam <strong>${euro(falta)}</strong> para portes grátis.</span>` : '<span><strong>Tens portes grátis.</strong></span>')
+    el.innerHTML = (falta ? `<span>Faltam <strong>${euro(falta)}</strong> para portes grátis no continente.</span>` : '<span><strong>Tens portes grátis no continente.</strong></span>')
       + `<span class="progresso__barra" aria-hidden="true"><span style="width:${Math.min(100, (subtotal / limite) * 100)}%"></span></span>`;
   };
 
@@ -125,10 +147,10 @@
     const qtd = $('[data-quantidade] input', ficha);
     const total = $('[data-total]', ficha);
     const unitario = () => {
-      let v = dados.preco || 0;
-      $$('input[type="radio"]:checked', ficha).forEach((r) => { v += Number(r.dataset.suplemento) || 0; });
-      if (caixa?.checked) v += Number(caixa.dataset.suplemento) || 0;
-      return Math.round(v * 100) / 100;
+      let v = cents(dados.preco || 0);
+      $$('input[type="radio"]:checked', ficha).forEach((r) => { v += cents(Number(r.dataset.suplemento) || 0); });
+      if (caixa?.checked) v += cents(Number(caixa.dataset.suplemento) || 0);
+      return v / 100;
     };
     const actualizar = () => {
       $$('[data-opcao]', ficha).forEach((f) => { const r = $('input:checked', f); $('[data-escolhido]', f).textContent = r ? '· ' + r.value : ''; });
@@ -143,7 +165,7 @@
       if (e.target === caixa) { blocoTexto.hidden = !caixa.checked; if (caixa.checked) campo.focus(); }
       actualizar();
     });
-    const contar = () => {
+    const contarLetras = () => {
       if (!campo) return true;
       const max = Number(campo.dataset.max);
       const n = [...campo.value].length;
@@ -153,10 +175,10 @@
       c.classList.toggle('campo__contador--erro', passou);
       return !passou;
     };
-    campo?.addEventListener('input', () => { contar(); campo.removeAttribute('aria-invalid'); $('#texto-erro').textContent = ''; });
-    contar();
+    campo?.addEventListener('input', () => { contarLetras(); campo.removeAttribute('aria-invalid'); $('#texto-erro').textContent = ''; });
+    contarLetras();
     $('[data-menos]', ficha)?.addEventListener('click', () => { qtd.value = Math.max(1, (parseInt(qtd.value, 10) || 1) - 1); actualizar(); });
-    $('[data-mais]', ficha)?.addEventListener('click', () => { qtd.value = Math.min(20, (parseInt(qtd.value, 10) || 1) + 1); actualizar(); });
+    $('[data-mais]', ficha)?.addEventListener('click', () => { qtd.value = Math.min(MAX_QTD, (parseInt(qtd.value, 10) || 1) + 1); actualizar(); });
     qtd?.addEventListener('input', actualizar);
     actualizar();
 
@@ -165,7 +187,7 @@
       let primeiro = null;
       for (const f of $$('[data-opcao][data-obrigatoria]', ficha)) {
         const r = $('input:checked', f);
-        $('[data-erro]', f).textContent = r ? '' : `Escolhe ${f.dataset.opcao === 'Tamanho' ? 'o tamanho' : 'uma opção'}.`;
+        $('[data-erro]', f).textContent = r ? '' : `Escolhe ${f.dataset.campo === 'tamanho' ? 'o tamanho' : f.dataset.campo === 'cor' ? 'a cor' : 'uma opção'}.`;
         if (!r && !primeiro) primeiro = $('input', f);
       }
       if (campo && !blocoTexto.hidden) {
@@ -173,21 +195,26 @@
         const precisa = campo.hasAttribute('data-obrigatorio') || caixa?.checked;
         let msg = '';
         if (precisa && vazio) msg = 'Escreve o texto para personalizarmos.';
-        else if (!contar()) msg = `Usa no máximo ${campo.dataset.max} caracteres.`;
+        else if (!contarLetras()) msg = `Usa no máximo ${campo.dataset.max} caracteres.`;
         $('#texto-erro').textContent = msg;
         if (msg) { campo.setAttribute('aria-invalid', 'true'); primeiro ||= campo; }
       }
       if (primeiro) { primeiro.focus(); return; }
+      const valorDe = (f) => $('input:checked', f)?.value;
+      const grupos = $$('[data-opcao]', ficha);
       const item = {
         slug: dados.slug,
-        escolhas: Object.fromEntries($$('[data-opcao]', ficha).map((f) => [f.dataset.opcao, $('input:checked', f)?.value]).filter(([, v]) => v)),
+        tamanho: valorDe(grupos.find((f) => f.dataset.campo === 'tamanho') || document.createElement('i')),
+        cor: valorDe(grupos.find((f) => f.dataset.campo === 'cor') || document.createElement('i')),
+        opcoes: Object.fromEntries(grupos.filter((f) => !f.dataset.campo).map((f) => [f.dataset.opcao, valorDe(f)]).filter(([, v]) => v)),
         texto: campo && !blocoTexto.hidden ? campo.value.trim().replace(/\s+/g, ' ') : '',
         personalizar: !!caixa?.checked,
-        qtd: Math.min(20, Math.max(1, parseInt(qtd.value, 10) || 1)),
+        qtd: Math.min(MAX_QTD, Math.max(1, parseInt(qtd.value, 10) || 1)),
       };
+      for (const k of ['tamanho', 'cor']) if (!item[k]) delete item[k];
       const itens = ler();
       const igual = itens.find((i) => chaveDe(i) === chaveDe(item));
-      if (igual) igual.qtd = Math.min(20, igual.qtd + item.qtd); else itens.push(item);
+      if (igual) igual.qtd = Math.min(MAX_QTD, igual.qtd + item.qtd); else itens.push(item);
       gravar(itens);
       anunciar(`Juntámos ao carrinho: ${dados.nome}.`);
       await abrirGaveta(item);
@@ -198,11 +225,12 @@
     const g = $('#gaveta');
     if (!g) return;
     const cat = await obterCatalogo();
-    const p = cat[item.slug];
-    const preco = precoDe(item, cat);
-    $('[data-gaveta-corpo]', g).innerHTML = `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3>${esc(p.nome)}</h3><p class="item__escolhas">${escolhasDe(item)}${item.qtd > 1 ? ' · ' + item.qtd + ' unidades' : ''}</p>${textoDe(item, p)}</div><p class="item__preco">${preco == null ? '' : euro(preco * item.qtd)}</p></div>`;
-    const subtotal = ler().reduce((s, i) => s + (precoDe(i, cat) || 0) * i.qtd, 0);
-    progresso($('[data-progresso]', g), subtotal, Number($('[data-portes-gratis]')?.dataset.portesGratis) || 50);
+    const p = cat.produtos[item.slug];
+    const u = unidade(item, cat);
+    if (!p || u == null) return;
+    $('[data-gaveta-corpo]', g).innerHTML = `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3>${esc(p.nome)}</h3><p class="item__escolhas">${escolhasDe(item, p)}${item.qtd > 1 ? ' · ' + item.qtd + ' unidades' : ''}</p>${textoDe(item, p)}</div><p class="item__preco">${euro((u * item.qtd) / 100)}</p></div>`;
+    const subtotal = validos(cat).reduce((s, i) => s + unidade(i, cat) * i.qtd, 0) / 100;
+    progresso($('[data-progresso]', g), subtotal, cat.gratisAPartirDe);
     g.showModal();
   }
 
@@ -210,7 +238,7 @@
   async function desenharCarrinho() {
     const raiz = $('[data-carrinho]');
     const cat = await obterCatalogo();
-    const itens = ler().filter((i) => cat[i.slug] && cat[i.slug].preco != null);
+    const itens = validos(cat);
     const lista = $('[data-itens]', raiz);
     const resumo = $('[data-resumo]', raiz);
     if (!itens.length) {
@@ -219,38 +247,38 @@
       return;
     }
     lista.innerHTML = itens.map((i, k) => {
-      const p = cat[i.slug];
-      return `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3><a href="${BASE}/produtos/${i.slug}/">${esc(p.nome)}</a></h3><p class="item__escolhas">${escolhasDe(i)}${p.pers?.opcional && i.personalizar ? ' · com nome' : ''}</p>${textoDe(i, p)}
+      const p = cat.produtos[i.slug];
+      return `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3><a href="${esc(p.url)}">${esc(p.nome)}</a></h3><p class="item__escolhas">${escolhasDe(i, p)}</p>${textoDe(i, p)}
         <div class="item__accoes"><div class="quantidade"><button type="button" data-menos="${k}" aria-label="Diminuir a quantidade">−</button><input type="text" inputmode="numeric" value="${i.qtd}" aria-label="Quantidade" data-qtd="${k}"><button type="button" data-mais="${k}" aria-label="Aumentar a quantidade">+</button></div><button class="item__remover" type="button" data-remover="${k}">Remover</button></div></div>
-        <p class="item__preco">${euro(precoDe(i, cat) * i.qtd)}</p></div>`;
+        <p class="item__preco">${euro((unidade(i, cat) * i.qtd) / 100)}</p></div>`;
     }).join('');
-    const subtotal = itens.reduce((s, i) => s + precoDe(i, cat) * i.qtd, 0);
+    const subtotal = itens.reduce((s, i) => s + unidade(i, cat) * i.qtd, 0) / 100;
     $('[data-subtotal]', raiz).textContent = euro(subtotal);
-    $('[data-portes]', raiz).textContent = subtotal >= Number(raiz.dataset.portesGratis) ? 'Grátis' : 'No passo seguinte';
-    progresso($('[data-progresso]', raiz), subtotal, Number(raiz.dataset.portesGratis));
+    $('[data-portes]', raiz).textContent = 'No passo seguinte';
+    progresso($('[data-progresso]', raiz), subtotal, cat.gratisAPartirDe);
     resumo.hidden = false;
   }
   const raizCarrinho = $('[data-carrinho]');
   if (raizCarrinho) {
     desenharCarrinho();
+    // as linhas que já não se vendem saem do carrinho guardado (os índices são os da lista desenhada)
+    const mexer = async (fn) => { const cat = await obterCatalogo(); const itens = validos(cat); fn(itens); gravar(itens); desenharCarrinho(); };
     raizCarrinho.addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (!b) return;
-      const itens = ler();
       const k = Number(b.dataset.menos ?? b.dataset.mais ?? b.dataset.remover);
-      if (Number.isNaN(k) || !itens[k]) return;
-      if ('remover' in b.dataset) { const [fora] = itens.splice(k, 1); anunciar(`Removido: ${fora.slug.replace(/-/g, ' ')}.`); }
-      else if ('menos' in b.dataset) itens[k].qtd = Math.max(1, itens[k].qtd - 1);
-      else itens[k].qtd = Math.min(20, itens[k].qtd + 1);
-      gravar(itens);
-      desenharCarrinho();
+      if (Number.isNaN(k)) return;
+      mexer((itens) => {
+        if (!itens[k]) return;
+        if ('remover' in b.dataset) { const [fora] = itens.splice(k, 1); anunciar(`Removido: ${catalogo.produtos[fora.slug]?.nome || ''}.`); }
+        else if ('menos' in b.dataset) itens[k].qtd = Math.max(1, itens[k].qtd - 1);
+        else itens[k].qtd = Math.min(MAX_QTD, itens[k].qtd + 1);
+      });
     });
     raizCarrinho.addEventListener('change', (e) => {
       if (!e.target.matches('[data-qtd]')) return;
-      const itens = ler();
-      itens[Number(e.target.dataset.qtd)].qtd = Math.min(20, Math.max(1, parseInt(e.target.value, 10) || 1));
-      gravar(itens);
-      desenharCarrinho();
+      const k = Number(e.target.dataset.qtd);
+      mexer((itens) => { if (itens[k]) itens[k].qtd = Math.min(MAX_QTD, Math.max(1, parseInt(e.target.value, 10) || 1)); });
     });
   }
 
@@ -258,21 +286,28 @@
   const form = $('[data-finalizar]');
   if (form) {
     const tituloOriginal = document.title;
-    const desenhar = async () => {
-      const cat = await obterCatalogo();
-      const itens = ler().filter((i) => cat[i.slug] && cat[i.slug].preco != null);
+    const botao = $('[data-enviar]', form);
+    const erroEnvio = $('[data-erro-envio]', form);
+    let totalMostrado = null;
+    const zonaEscolhida = () => $('input[name="envio"]:checked', form);
+    const desenhar = async (fresco = false) => {
+      const cat = await obterCatalogo(fresco);
+      const itens = validos(cat);
       if (!itens.length) { location.replace(BASE + '/carrinho/'); return; }
-      $('[data-itens-resumo]', form).innerHTML = itens.map((i) => { const p = cat[i.slug]; return `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3>${esc(p.nome)}${i.qtd > 1 ? ' × ' + i.qtd : ''}</h3><p class="item__escolhas">${escolhasDe(i)}</p>${textoDe(i, p)}</div><p class="item__preco">${euro(precoDe(i, cat) * i.qtd)}</p></div>`; }).join('');
-      const subtotal = itens.reduce((s, i) => s + precoDe(i, cat) * i.qtd, 0);
-      const envio = $('input[name="envio"]:checked', form);
-      const gratis = subtotal >= Number(form.dataset.portesGratis);
-      const preco = envio.dataset.preco === '' ? null : Number(envio.dataset.preco);
-      const portes = preco === 0 || (gratis && envio.value === 'ctt') ? 0 : preco;
-      $('[data-subtotal]', form).textContent = euro(subtotal);
-      $('[data-portes]', form).textContent = portes === 0 ? 'Grátis' : portes == null ? 'A confirmar' : euro(portes);
-      $('[data-total]', form).textContent = portes == null ? `${euro(subtotal)} + portes` : euro(subtotal + portes);
-      $('[data-aviso-personalizado]', form).hidden = !itens.some((i) => cat[i.slug].semDevolucao || i.personalizar);
-      $('[data-morada]', form).hidden = envio.value === 'valongo';
+      $('[data-itens-resumo]', form).innerHTML = itens.map((i) => { const p = cat.produtos[i.slug]; return `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3>${esc(p.nome)}${i.qtd > 1 ? ' × ' + i.qtd : ''}</h3><p class="item__escolhas">${escolhasDe(i, p)}</p>${textoDe(i, p)}</div><p class="item__preco">${euro((unidade(i, cat) * i.qtd) / 100)}</p></div>`; }).join('');
+      const artigos = itens.reduce((s, i) => s + unidade(i, cat) * i.qtd, 0);
+      const zona = cat.zonas.find((z) => z.id === zonaEscolhida().value);
+      let portes = zona && typeof zona.portes === 'number' ? cents(zona.portes) : null;
+      if (portes != null && zona.id === 'continente' && typeof cat.gratisAPartirDe === 'number' && artigos >= cents(cat.gratisAPartirDe)) portes = 0;
+      totalMostrado = portes == null ? artigos : artigos + portes;
+      $('[data-subtotal]', form).textContent = euro(artigos / 100);
+      $('[data-portes]', form).textContent = portes === 0 ? 'Grátis' : portes == null ? 'A confirmar' : euro(portes / 100);
+      $('[data-total]', form).textContent = portes == null ? `${euro(artigos / 100)} + portes` : euro(totalMostrado / 100);
+      $('[data-aviso-personalizado]', form).hidden = !itens.some((i) => i.texto);
+      const z = zonaEscolhida().value;
+      $('[data-morada]', form).hidden = z === 'mao';
+      $('[data-pais]', form).hidden = z !== 'estrangeiro';
+      return itens;
     };
     desenhar();
     form.addEventListener('change', (e) => {
@@ -280,8 +315,17 @@
       if (e.target.matches('[data-oferta]')) $('[data-mensagem]', form).hidden = !e.target.checked;
       if (e.target.matches('input')) { e.target.removeAttribute('aria-invalid'); const err = $('#' + (e.target.id || e.target.name) + '-erro'); if (err) err.textContent = ''; }
     });
-    form.addEventListener('submit', (e) => {
+    const mostrarErros = (erros) => {
+      const caixa = $('[data-resumo-erros]', form);
+      $('ul', caixa).innerHTML = erros.map(([id, m]) => `<li><a href="#${id === 'termos' ? 'termos-erro' : id}">${esc(m)}</a></li>`).join('');
+      caixa.hidden = false;
+      document.title = 'Erro: ' + tituloOriginal;
+      caixa.focus();
+    };
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (botao.disabled) return;
+      erroEnvio.textContent = '';
       const erros = [];
       const verificar = (id, ok, msg) => {
         const el = form.elements[id];
@@ -292,26 +336,88 @@
         erros.push([id, msg]);
       };
       const v = (id) => (form.elements[id]?.value || '').trim();
+      const zona = zonaEscolhida().value;
+      verificar('nome', !!v('nome'), 'Escreve o teu nome.');
       verificar('email', /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v('email')), 'Escreve um email como nome@exemplo.pt.');
       verificar('telemovel', v('telemovel').replace(/\D/g, '').length >= 9, 'Escreve o telemóvel com 9 algarismos.');
-      if (!$('[data-morada]', form).hidden) {
-        verificar('nome', !!v('nome'), 'Escreve o nome de quem recebe.');
+      verificar('nif', !v('nif') || /^\d{9}$/.test(v('nif').replace(/\s/g, '')), 'O NIF tem 9 algarismos (ou deixa em branco).');
+      if (zona !== 'mao') {
         verificar('morada', !!v('morada'), 'Escreve a morada.');
-        verificar('codigo-postal', /^\d{4}-?\d{3}$/.test(v('codigo-postal')) || $('input[name="envio"]:checked', form).value === 'estrangeiro', 'Escreve o código postal como 4440-000.');
+        verificar('codigo-postal', zona === 'estrangeiro' ? !!v('codigo-postal') : /^\d{4}-?\d{3}$/.test(v('codigo-postal')), zona === 'estrangeiro' ? 'Escreve o código postal.' : 'Escreve o código postal como 4440-000.');
         verificar('localidade', !!v('localidade'), 'Escreve a localidade.');
+        if (zona === 'estrangeiro') verificar('pais', !!v('pais'), 'Escreve o país.');
       }
       verificar('termos', form.elements.termos.checked, 'Para encomendar, aceita os termos e condições.');
-      const caixa = $('[data-resumo-erros]', form);
-      if (erros.length) {
-        $('ul', caixa).innerHTML = erros.map(([id, m]) => `<li><a href="#${id === 'termos' ? 'termos-erro' : id}">${esc(m)}</a></li>`).join('');
-        caixa.hidden = false;
-        document.title = 'Erro: ' + tituloOriginal;
-        caixa.focus();
-        return;
-      }
-      caixa.hidden = true;
+      if (erros.length) { mostrarErros(erros); return; }
+      $('[data-resumo-erros]', form).hidden = true;
       document.title = tituloOriginal;
-      $('#pre-visualizacao').showModal();
+
+      const itens = await desenhar();
+      if (!itens) return;
+      const cp = v('codigo-postal');
+      const pedido = {
+        linhas: itens.map((i) => ({ produto: i.slug, ...(i.tamanho ? { tamanho: i.tamanho } : {}), ...(i.cor ? { cor: i.cor } : {}), opcoes: i.opcoes || {}, personalizar: !!i.personalizar, texto: i.texto || '', qtd: i.qtd })),
+        entrega: zona,
+        cliente: {
+          nome: v('nome'), email: v('email'), telefone: v('telemovel'),
+          ...(v('nif') ? { nif: v('nif').replace(/\s/g, '') } : {}),
+          ...(zona !== 'mao' ? { morada: v('morada'), codigoPostal: zona === 'estrangeiro' ? cp : cp.replace(/^(\d{4})(\d{3})$/, '$1-$2'), localidade: v('localidade') } : {}),
+          ...(zona === 'estrangeiro' ? { pais: v('pais') } : {}),
+        },
+        oferta: !!form.elements.oferta.checked,
+        ...(form.elements.oferta.checked && v('mensagem') ? { mensagem: v('mensagem') } : {}),
+        ...(v('notas') ? { notas: v('notas') } : {}),
+        termos: true,
+        total_cents: totalMostrado,
+      };
+      botao.disabled = true;
+      const textoBotao = botao.textContent;
+      botao.textContent = 'A enviar…';
+      try {
+        const r = await fetch(API + '/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedido) });
+        const resposta = await r.json().catch(() => ({}));
+        if (r.ok && resposta.url) { location.assign(resposta.url); return; }
+        if (r.ok && resposta.encomenda) {
+          gravar([]);
+          location.assign(`${BASE}/obrigado/?e=${encodeURIComponent(resposta.encomenda)}&c=${encodeURIComponent(resposta.chave)}`);
+          return;
+        }
+        if (r.status === 409) { await desenhar(true); erroEnvio.textContent = resposta.erro || 'Os preços mudaram. Confirma o total e envia outra vez.'; }
+        else if (r.status === 400 && resposta.campo && form.elements[{ codigoPostal: 'codigo-postal', telefone: 'telemovel' }[resposta.campo] || resposta.campo]) {
+          const id = { codigoPostal: 'codigo-postal', telefone: 'telemovel' }[resposta.campo] || resposta.campo;
+          verificar(id, false, resposta.erro);
+          mostrarErros(erros);
+        } else erroEnvio.textContent = resposta.erro || 'Não conseguimos enviar a encomenda. Tenta outra vez daqui a pouco, ou manda-nos mensagem.';
+      } catch {
+        erroEnvio.textContent = 'Não conseguimos enviar a encomenda (sem ligação?). Tenta outra vez daqui a pouco.';
+      }
+      botao.disabled = false;
+      botao.textContent = textoBotao;
     });
+  }
+
+  // ── Obrigado: o resumo da encomenda (sem dados pessoais: o Worker só devolve o que a pessoa já sabe) ──
+  const obrigado = $('[data-obrigado]');
+  if (obrigado) {
+    const q = new URLSearchParams(location.search);
+    const corpo = $('[data-obrigado-corpo]', obrigado);
+    const id = q.get('e');
+    const pedido = id && q.get('c') ? `e=${encodeURIComponent(id)}&c=${encodeURIComponent(q.get('c'))}` : q.get('s') ? `s=${encodeURIComponent(q.get('s'))}` : '';
+    if (q.get('s')) gravar([]);  // voltou da Stripe: o carrinho já foi
+    const simples = (n) => `<p>Recebemos a tua encomenda${n ? ` <strong>${esc(n)}</strong>` : ''}. Mandámos-te um email com o resumo; se não o vires, espreita o spam.</p>`;
+    if (!pedido || !API) corpo.innerHTML = simples(id);
+    else {
+      fetch(`${API}/encomenda?${pedido}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((e) => {
+        const linhas = e.linhas.map((l) => `<li><span>${esc(l.nome)}${l.qtd > 1 ? ' × ' + l.qtd : ''}${l.escolhas?.length ? `<small>${l.escolhas.map(esc).join(' · ')}</small>` : ''}</span><b>${euro(l.total_cents / 100)}</b></li>`).join('');
+        const pago = ['paga', 'pronta', 'enviada', 'levantada'].includes(e.estado);
+        const proximo = e.modo === 'online'
+          ? (pago ? 'O pagamento entrou. Antes de produzirmos, mandamos-te a pré-visualização para aprovares.' : 'Assim que o pagamento entrar, avisamos-te por email.')
+          : 'Vamos confirmar a encomenda e combinar contigo o pagamento. Antes de produzirmos, mandamos-te a pré-visualização para aprovares.';
+        corpo.innerHTML = `<p>${e.cliente?.nome ? `${esc(e.cliente.nome)}, recebemos` : 'Recebemos'} a tua encomenda <strong>${esc(e.encomenda)}</strong>.</p><p>${proximo}</p>
+          <ul class="obrigado__linhas">${linhas}</ul>
+          <dl class="obrigado__totais"><dt>Artigos</dt><dd>${euro(e.artigos_cents / 100)}</dd><dt>Portes</dt><dd>${e.portes_por_confirmar ? 'A confirmar' : e.portes_cents ? euro(e.portes_cents / 100) : 'Grátis'}</dd><dt>Total</dt><dd>${euro(e.total_cents / 100)}${e.portes_por_confirmar ? ' + portes' : ''}</dd></dl>`;
+      }).catch(() => { corpo.innerHTML = simples(id); });
+    }
+    $('h1', obrigado).focus();
   }
 })();

@@ -1,0 +1,36 @@
+{
+  "nome": "Body «O nosso maior sonho chega em 2027»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "bebe-a-caminho"
+  ],
+  "preco": null,
+  "resumo": "Para anunciar a gravidez com a data em que o sonho chega.",
+  "fotos": [
+    "body-o-nosso-maior-sonho-1"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Ano ou mês",
+    "pista": "Opcional",
+    "max": 30
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 40
+}

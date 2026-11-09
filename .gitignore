@@ -5,3 +5,4 @@ propostas/capturas/
 propostas/*/index.html
 propostas/index.html
 .DS_Store
+.cache/

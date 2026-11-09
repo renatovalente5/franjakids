@@ -1,0 +1,36 @@
+{
+  "nome": "T-shirt de adulto personalizada",
+  "categoria": "t-shirts",
+  "ocasioes": [
+    "familia",
+    "papa",
+    "mama"
+  ],
+  "preco": 15,
+  "resumo": "Para combinar com os mais pequenos: a frase, o nome ou o desenho que quiseres.",
+  "fotos": [
+    "t-shirt-adulto-1",
+    "t-shirt-adulto-2"
+  ],
+  "tamanhos": "adulto",
+  "cores": [
+    {
+      "nome": "Branco"
+    },
+    {
+      "nome": "Preto"
+    },
+    {
+      "nome": "Azul-escuro"
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Frase ou nome",
+    "pista": "Diz-nos a ideia; mandamos a pré-visualização",
+    "max": 80,
+    "obrigatoria": true
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 250
+}

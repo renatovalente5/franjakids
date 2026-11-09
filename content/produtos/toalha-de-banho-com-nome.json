@@ -1,0 +1,39 @@
+{
+  "nome": "Toalha de banho com capuz e nome",
+  "categoria": "mantas-e-toalhas",
+  "ocasioes": [],
+  "preco": null,
+  "resumo": "Toalha de 80 × 80 cm com capuz e a fralda a condizer, com o nome bordado.",
+  "fotos": [
+    "toalha-de-banho-com-nome-1"
+  ],
+  "cores": [
+    {
+      "nome": "Rosa bebé"
+    },
+    {
+      "nome": "Rosa seco"
+    },
+    {
+      "nome": "Azul bebé"
+    },
+    {
+      "nome": "Azul cobalto"
+    },
+    {
+      "nome": "Verde"
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome a bordar",
+    "pista": "Até 15 letras",
+    "max": 15,
+    "obrigatoria": true
+  },
+  "detalhes": [
+    "Toalha 80 × 80 cm e fralda 60 × 60 cm"
+  ],
+  "destaque": false,
+  "publicado": true,
+  "ordem": 350
+}

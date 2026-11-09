@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "imagens": "python3 scripts/imagens.py",
     "build": "node src/build.mjs",
-    "imagens": "python3 ferramentas/imagens.py"
+    "test": "PYTHON=python3 node scripts/testar.mjs"
   }
 }

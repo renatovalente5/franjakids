@@ -1,0 +1,38 @@
+{
+  "nome": "Body «O sonho da mãe + o desejo do pai»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "bebe-a-caminho",
+    "irmaos"
+  ],
+  "preco": null,
+  "resumo": "A conta mais bonita: o sonho da mãe, o desejo do pai e, se houver, o pedido dos manos.",
+  "fotos": [
+    "body-o-sonho-da-mae-1",
+    "body-o-sonho-da-mae-2"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Quem mais entra na conta",
+    "pista": "Opcional. Por exemplo: o pedido da mana",
+    "max": 40
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 50
+}

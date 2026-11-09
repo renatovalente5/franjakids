@@ -1,0 +1,37 @@
+{
+  "nome": "Body «A melhor mãe do mundo é a minha»",
+  "categoria": "bodies",
+  "ocasioes": [
+    "mama"
+  ],
+  "preco": null,
+  "resumo": "Para o primeiro Dia da Mãe, ou para qualquer dia.",
+  "fotos": [
+    "body-a-melhor-mae-do-mundo-1",
+    "body-a-melhor-mae-do-mundo-2"
+  ],
+  "tamanhos": "body",
+  "opcoes": [
+    {
+      "nome": "Manga",
+      "valores": [
+        {
+          "nome": "Manga curta",
+          "suplemento": 0
+        },
+        {
+          "nome": "Manga comprida",
+          "suplemento": 0
+        }
+      ]
+    }
+  ],
+  "personalizacao": {
+    "rotulo": "Nome ou data",
+    "pista": "Opcional",
+    "max": 30
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 140
+}

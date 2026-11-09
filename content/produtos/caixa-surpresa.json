@@ -1,0 +1,24 @@
+{
+  "nome": "Caixa surpresa personalizada",
+  "categoria": "caixas",
+  "ocasioes": [
+    "bebe-a-caminho",
+    "avos",
+    "padrinhos"
+  ],
+  "preco": 3.5,
+  "resumo": "Uma caixa de cartão com a tua frase na tampa, para entregar a notícia.",
+  "fotos": [
+    "caixa-surpresa-1",
+    "caixa-surpresa-2"
+  ],
+  "personalizacao": {
+    "rotulo": "Frase da tampa",
+    "pista": "Por exemplo: Vais ser avó",
+    "max": 120,
+    "obrigatoria": true
+  },
+  "destaque": false,
+  "publicado": true,
+  "ordem": 370
+}
