@@ -253,3 +253,23 @@ test('miudezas: os euros e a data por extenso na hora de Lisboa (a do Intl)', ()
   e2.criada_em = '2026-07-31T23:30:00.000Z';
   assert.match(mensagens(env, 'registada', e2).cliente.html, /· 1 de agosto de 2026/, 'às 23:30 UTC de verão já é dia 1 em Lisboa');
 });
+
+/* A CLOUDFLARE (Email Sending, o binding EMAIL) vem antes do Resend: com ele, o email sai por ele, com o
+   remetente partido em { email, name } e a resposta para a loja; uma recusa dá 'falhou'. */
+test('com o binding EMAIL da Cloudflare: sai por ele, com o remetente e o reply-to certos; uma recusa é «falhou»', async () => {
+  const { enviar, remetenteDe } = await import('../email.js');
+  assert.deepEqual(remetenteDe({ MAIL_FROM: 'Franja Kids <encomendas@franjakids.com>' }), { email: 'encomendas@franjakids.com', name: 'Franja Kids' });
+  assert.deepEqual(remetenteDe({ MAIL_FROM: 'encomendas@franjakids.com' }), { email: 'encomendas@franjakids.com' });
+  const enviados = [];
+  const EMAIL = { send: async (m) => { enviados.push(m); return { messageId: 'm1' }; } };
+  const r = await avisar(envFalso({ EMAIL, MAIL_FROM: 'Franja Kids <encomendas@franjakids.com>', STORE_EMAIL: 'loja@exemplo.pt', RESEND_API_KEY: 're_nao_usar' }), 'registada', enc);
+  assert.equal(r.cliente, 'enviado');
+  assert.equal(r.loja, 'enviado');
+  assert.equal(enviados.length, 2);
+  const aoCliente = enviados.find((m) => m.to === 'maria@exemplo.pt');
+  assert.deepEqual(aoCliente.from, { email: 'encomendas@franjakids.com', name: 'Franja Kids' });
+  assert.equal(aoCliente.replyTo, 'loja@exemplo.pt');
+  assert.ok(aoCliente.text && aoCliente.html && aoCliente.subject.includes('FK-20261109-7K2Q9M'));
+  const recusa = await avisar(envFalso({ EMAIL: { send: async () => { const e = new Error('não'); e.code = 'E_SENDER_NOT_VERIFIED'; throw e; } }, MAIL_FROM: 'x@franjakids.com' }), 'pronta', { ...enc, entrega: 'mao' });
+  assert.equal(recusa.cliente, 'falhou');
+});

@@ -51,7 +51,7 @@ async function saude(env) {
     modo: null,
     stripe: Boolean(env.STRIPE_SECRET_KEY),
     webhook: Boolean(env.STRIPE_WEBHOOK_SECRET),
-    email: Boolean(env.RESEND_API_KEY),
+    email: Boolean((env.EMAIL && typeof env.EMAIL.send === 'function') || env.RESEND_API_KEY),
     dona: Boolean(env.STORE_EMAIL),
     catalogo: 'ok',
   };

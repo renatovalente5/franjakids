@@ -185,15 +185,16 @@ lista traz também `pagina`, `paginas`, `total` e, em cada resumo, `linhas_a_mai
 
 O segredo `PAINEL_SEGREDO` é o mesmo nos dois Workers (um `wrangler secret put` em cada).
 
-## 6. Emails (Resend, `RESEND_API_KEY`; sem a chave não se manda nada e a encomenda fica na mesma)
+## 6. Emails (pela Cloudflare, o binding `EMAIL`; ou pelo Resend, `RESEND_API_KEY`; sem nenhum não se manda nada e a encomenda fica na mesma)
 
 Texto e HTML, em português de Portugal e no tratamento do site (tu), curtos, com o logótipo no topo
 (`LOGO_URL`, o PNG do site), o número da encomenda, as linhas com as escolhas e o texto da
 personalização, o total, a entrega e o contacto da loja; sem «obrigação de pagar»; com o aviso dos 14
 dias para o que não é personalizado e a ligação a `/trocas-e-devolucoes/` (DL 24/2014, art. 4.º e
 5.º: a confirmação em suporte duradouro leva as condições). Remetente `MAIL_FROM` (um endereço do
-domínio, quando o houver; até lá `onboarding@resend.dev` só chega ao Renato — por isso os emails são
-opcionais).
+domínio: `encomendas@franjakids.com`, pelo Email Sending da Cloudflare desde 10 nov 2026 — o domínio
+está nele, com os registos no `cf-bounce` e o DMARC, e a conta no Workers Paid deixa mandar a qualquer
+pessoa; o Resend fica como plano B).
 
 | momento | ao cliente | à loja (`STORE_EMAIL`) |
 |---|---|---|

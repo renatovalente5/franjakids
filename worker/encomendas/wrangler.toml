@@ -30,6 +30,13 @@ name = "TRAVAO_CHECKOUT"
 namespace_id = "1103"
 simple = { limit = 5, period = 60 }
 
+# Os emails das encomendas pela Cloudflare (Email Sending: o domínio franjakids.com está nele desde 10 nov
+# 2026, com os registos no cf-bounce e o DMARC; a conta está no Workers Paid, que deixa mandar a qualquer
+# pessoa — 3000 por mês incluídos na conta). Só sai de encomendas@franjakids.com.
+[[send_email]]
+name = "EMAIL"
+allowed_sender_addresses = ["encomendas@franjakids.com"]
+
 [vars]
 # O site no domínio (franjakids.com, desde 10 nov 2026). O catálogo vem de SITE_URL/assets/catalogo.json
 # (CATALOGO_URL só se for outro sítio). Este Worker vive no workers.dev, fora da zona: lê o site do
@@ -46,9 +53,9 @@ STORE_INSTAGRAM = "franjakids"
 # O email da loja: recebe «Nova encomenda», «Encomenda paga» e os falhados, e é o reply-to dos
 # emails ao cliente. Vazio enquanto a cliente não o der — e sem ele não se manda nada à loja.
 STORE_EMAIL = ""
-# O remetente. onboarding@resend.dev só entrega ao dono da conta do Resend (o Renato): quando houver
-# domínio verificado no Resend, passa a «Franja Kids <encomendas@franjakids.com>».
-MAIL_FROM = "Franja Kids <onboarding@resend.dev>"
+# O remetente (o binding EMAIL só deixa este endereço; o Resend, se um dia voltar, teria de ter o
+# domínio verificado).
+MAIL_FROM = "Franja Kids <encomendas@franjakids.com>"
 # A versão da API da Stripe, fixada (a mesma do Armazém dos Pneus e da LF Mobile). Não subir sem ler
 # o changelog: o ui_mode «hosted_page» é desta versão.
 STRIPE_API_VERSION = "2026-07-29.dahlia"

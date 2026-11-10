@@ -1,4 +1,4 @@
-/* OS EMAILS DAS ENCOMENDAS (Resend, RESEND_API_KEY). Texto E HTML com os mesmos factos, curtos, em
+/* OS EMAILS DAS ENCOMENDAS (pela Cloudflare, o binding EMAIL; ou pelo Resend, RESEND_API_KEY: ver enviar()). Texto E HTML com os mesmos factos, curtos, em
  * português de Portugal e no tratamento do site (tu), com o logótipo no topo (LOGO_URL), o número
  * da encomenda, cada linha com as escolhas e o texto da personalização, o total, a entrega e o
  * contacto da loja. Ao cliente vai também o aviso da livre resolução, com a ligação a
@@ -333,8 +333,28 @@ export function mensagens(env, aviso, enc, extras = {}) {
 
 /* ---------------------------------------------------------------- o envio */
 
+/* O REMETENTE: «Nome <endereço>» (MAIL_FROM) partido para o binding da Cloudflare, que quer
+   { email, name }. Um MAIL_FROM só com o endereço também serve. */
+export function remetenteDe(env) {
+  const v = String(env.MAIL_FROM || '').trim();
+  const m = /^(.*?)\s*<([^<>\s]+@[^<>\s]+)>$/.exec(v);
+  return m ? { email: m[2], name: m[1].replace(/^"|"$/g, '').trim() || undefined } : { email: v };
+}
+
+/* POR ONDE SAI UM EMAIL: pela Cloudflare (Email Sending, o binding EMAIL do wrangler.toml; o domínio
+   franjakids.com está nele desde 10 nov 2026, e o plano Workers Paid da conta deixa mandar a qualquer
+   pessoa), e só sem ele pelo Resend (RESEND_API_KEY). Sem nenhum dos dois não se manda nada. */
 export async function enviar(env, { para, assunto, texto, html, responderA }) {
-  if (!env.RESEND_API_KEY) { console.log('email não enviado (sem RESEND_API_KEY):', assunto); return 'sem chave'; }
+  if (env.EMAIL && typeof env.EMAIL.send === 'function') {
+    try {
+      await env.EMAIL.send({ from: remetenteDe(env), to: para, subject: assunto, text: texto, html: html || undefined, replyTo: responderA || undefined });
+      return 'enviado';
+    } catch (e) {
+      console.error('a Cloudflare recusou o email', e && e.code, assunto, e && e.message);
+      return 'falhou';
+    }
+  }
+  if (!env.RESEND_API_KEY) { console.log('email não enviado (sem o EMAIL da Cloudflare nem RESEND_API_KEY):', assunto); return 'sem chave'; }
   try {
     const r = await fetch(RESEND, {
       method: 'POST',
