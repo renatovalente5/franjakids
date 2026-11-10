@@ -1,29 +1,30 @@
-# Constrói o site da Franja Kids e publica-o na Cloudflare, no domínio — QUANDO O HOUVER.
+# Constrói o site da Franja Kids e publica-o na Cloudflare, em https://franjakids.com (desde 10 nov 2026).
 #
-# O site é o Worker «franjakids-site» (wrangler.jsonc): os ficheiros que o build escreve em _site/,
-# nos Custom Domains do domínio e do www (o www vai para o domínio sem www: worker/www.js). Os termos
-# do GitHub Pages proíbem lá uma loja; por isso a loja a sério vive aqui, e o Pages fica com a
-# pré-visualização (pre-visualizacao.yml).
+# O site é o Worker «franjakids-site» (wrangler.jsonc): os ficheiros que o build escreve em _site/, nos
+# Custom Domains franjakids.com e www.franjakids.com (o www vai para o domínio sem www: worker/www.js).
+# Os termos do GitHub Pages não deixam lá uma loja: a pré-visualização antiga reencaminha para o
+# domínio (reencaminhar-pre-visualizacao.yml).
 #
-# AINDA NÃO CORRE SOZINHO: só à mão (workflow_dispatch). Falta o domínio e faltam os dados legais (o
-# nome ou firma, o NIF, a morada, o email, os portes do continente), e o --producao RECUSA publicar
-# enquanto faltarem (src/lib/regras.mjs). Quando o domínio existir: comprar, pôr a zona na
-# Cloudflare, ligar os Custom Domains com um `wrangler deploy --config wrangler.jsonc` à mão (uma
-# vez), passar o `on:` para push como no pre-visualizacao.yml (e este passa a pôr lá uma página que
-# reencaminha para o domínio), e pôr no painel SITE_WORKFLOW = "publicar.yml" e SITE_PRODUCAO = "1".
+# AINDA SEM O GOOGLE E SEM ENCOMENDAS (como a Mimices de 16 a 19 out 2026): constrói-se sem --producao
+# (noindex, e os dados legais que faltam à vista como «[por confirmar: …]») e sem --api (o finalizar
+# acaba no aviso «Quase a abrir»). Quando a cliente puser no painel a firma, o NIF, a morada, o email e
+# os portes do continente: «Construir» passa a `node src/build.mjs --producao --site=https://franjakids.com
+# --api=https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev`, e o SITE_PRODUCAO do painel
+# passa a "1". O --producao RECUSA publicar enquanto faltar um dado que a lei pede (src/lib/regras.mjs).
 #
-# O PAINEL (renatovalente5/franjakids-painel) acompanhará este workflow: o job «publicar» acabado bem
-# quer dizer «publicado»; o nome do passo que falha aparece à dona (por isso os nomes são em
-# português); as razões de uma publicação parada são as anotações ::error do build.
+# O PAINEL (renatovalente5/franjakids-painel) acompanha este workflow: o job «publicar» acabado bem quer
+# dizer «publicado»; o nome do passo que falha aparece à dona (por isso os nomes são em português); as
+# razões de uma publicação parada são as anotações ::error do gerador.
 #
-# Precisa do segredo CLOUDFLARE_API_TOKEN e da variável CLOUDFLARE_ACCOUNT_ID. O token é do Renato,
-# com Account › Workers Scripts: Edit e Account › Account Settings: Read, e NADA das zonas: os
-# Custom Domains ligam-se uma vez, à mão, e este workflow publica sem rotas (ver o passo «Preparar o
-# site»). Sem o token a publicação FALHA, de propósito: melhor um CI vermelho do que edições que
-# nunca chegam ao site.
+# Precisa do segredo CLOUDFLARE_API_TOKEN e da variável CLOUDFLARE_ACCOUNT_ID. O token é do Renato, com
+# Account › Workers Scripts: Edit e Account › Account Settings: Read, e NADA das zonas: os Custom Domains
+# ligaram-se uma vez, à mão, e este workflow publica sem rotas (ver o passo «Preparar o site»). Sem o
+# token a publicação FALHA, de propósito: melhor um CI vermelho do que edições que nunca chegam ao site.
 name: Publicar o site na Cloudflare
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions: {}
@@ -65,7 +66,7 @@ jobs:
         env:
           PYTHON: python # o do setup-python, com o Pillow (as imagens do conteúdo de ensaio)
       - name: Construir
-        run: node src/build.mjs --producao --site=https://franjakids.com
+        run: node src/build.mjs --site=https://franjakids.com
       # O que o job «publicar» precisa, num ficheiro só: o site, o script do www e a configuração do
       # Worker. O job «publicar» não faz checkout: nenhum código do repositório corre ao lado do token.
       - name: Embrulhar o site

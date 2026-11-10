@@ -15,14 +15,12 @@ compatibility_date = "2026-09-01"
 [observability]
 enabled = true
 
-# As encomendas (encomenda.js diz as chaves). POR CRIAR — o título na Cloudflare é
-# «franjakids-encomendas-ORDERS» (o «ORDERS» sem prefixo é o do Armazém dos Pneus, o
-# «lfmobile-encomendas-ORDERS» é o da LF Mobile). Criar com:
-#   wrangler kv namespace create franjakids-encomendas-ORDERS --config ~/Websites/franjakids/worker/encomendas/wrangler.toml
-# e pôr aqui o id que ele escrever. Com o marcador, um deploy falha (não há namespace com este id).
+# As encomendas (encomenda.js diz as chaves). O título na Cloudflare é «franjakids-encomendas-ORDERS»
+# (o «ORDERS» sem prefixo é o do Armazém dos Pneus, o «lfmobile-encomendas-ORDERS» é o da LF Mobile).
+# Criado a 10 nov 2026 com `wrangler kv namespace create franjakids-encomendas-ORDERS`.
 [[kv_namespaces]]
 binding = "ORDERS"
-id = "POR-CRIAR"
+id = "3afbbc5cd6fd441c8584df75faeafb2c"
 
 # O travão do /checkout que vale em TODAS as localizações da Cloudflare (o de memória, em index.js,
 # só vale no seu isolate): 5 pedidos por minuto por IP. O namespace_id é único na conta: 1001 e 1002
@@ -33,15 +31,15 @@ namespace_id = "1103"
 simple = { limit = 5, period = 60 }
 
 [vars]
-# A pré-visualização no GitHub Pages; passa ao domínio quando o houver (franjakids.com), e com ele o
-# logótipo e as origens. O catálogo vem de SITE_URL/assets/catalogo.json (CATALOGO_URL só se for
-# outro sítio).
-SITE_URL = "https://renatovalente5.github.io/franjakids"
+# O site no domínio (franjakids.com, desde 10 nov 2026). O catálogo vem de SITE_URL/assets/catalogo.json
+# (CATALOGO_URL só se for outro sítio). Este Worker vive no workers.dev, fora da zona: lê o site do
+# domínio sem a restrição dos pedidos entre Workers da mesma zona (memória worker-na-mesma-zona).
+SITE_URL = "https://franjakids.com"
 # O logótipo no topo dos emails: o PNG do site (o Outlook não mostra WebP).
-LOGO_URL = "https://renatovalente5.github.io/franjakids/assets/marca/logotipo-320.png"
-# As origens que podem chamar /checkout e /encomenda: a pré-visualização e o build local
-# (127.0.0.1:8985 e localhost:8985), que saem quando houver domínio.
-ALLOWED_ORIGINS = "https://renatovalente5.github.io,http://127.0.0.1:8985,http://localhost:8985"
+LOGO_URL = "https://franjakids.com/assets/marca/logotipo-320.png"
+# As origens que podem chamar /checkout e /encomenda: o domínio e o build local (127.0.0.1:8985 e
+# localhost:8985, para os testes no Mac).
+ALLOWED_ORIGINS = "https://franjakids.com,http://127.0.0.1:8985,http://localhost:8985"
 STORE_NAME = "Franja Kids"
 # A conta do Instagram (sem @): é o contacto dos emails (https://ig.me/m/<conta>).
 STORE_INSTAGRAM = "franjakids"
