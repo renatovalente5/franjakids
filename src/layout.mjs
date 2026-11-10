@@ -1,6 +1,25 @@
 // O esqueleto de todas as páginas: cabeça, topo, rodapé e a gaveta do carrinho.
 import { livroReclamacoes } from '../legal-comum/index.mjs';
-import { url, absoluto, esc, icone, logotipo, fotoJpg, PRODUCAO } from './util.mjs';
+import { url, absoluto, esc, icone, logotipo, fotoJpg, PRODUCAO, FOTOS } from './util.mjs';
+import { TITULO_INICIO } from './seo.mjs';
+
+/* O que diz aos motores de busca: na pré-visualização (sem --producao), nada entra (noindex, nofollow, e o
+   robots.txt fecha tudo); em produção entra tudo menos as páginas com `indexar: false` (noindex, follow: o
+   Google segue as ligações delas, e elas ficam fora do sitemap). */
+const robots = (indexar) => (!PRODUCAO ? '<meta name="robots" content="noindex, nofollow">\n' : indexar ? '' : '<meta name="robots" content="noindex, follow">\n');
+
+/* O cartão de partilha: a fotografia da página em JPEG (o WhatsApp não lê AVIF), com as medidas e a descrição. */
+function imagemDePartilha(imagem) {
+  const f = imagem && FOTOS[imagem];
+  if (!f) return `<meta property="og:image" content="${absoluto('/assets/marca/logotipo-640.png')}">\n<meta property="og:image:alt" content="Franja Kids">`;
+  return `<meta property="og:image" content="${fotoJpg(imagem)}">
+<meta property="og:image:width" content="${f.jpg}">
+<meta property="og:image:height" content="${Math.round((f.jpg * f.altura) / f.largura)}">
+<meta property="og:image:alt" content="${esc(f.alt)}">`;
+}
+
+/* JSON-LD dentro de um <script>: um «</script>» num nome fechava-o antes do tempo. */
+const ld = (j) => `<script type="application/ld+json">${JSON.stringify(j).replace(/</g, '\\u003c')}</script>`;
 
 export const MENU = [
   ['Personalizados', '/personalizados/'],
@@ -10,9 +29,11 @@ export const MENU = [
   ['Sobre nós', '/sobre/'],
 ];
 
-export function pagina({ loja, versao, api = '', caminho, titulo, descricao, corpo, imagem, jsonld = [], semRodape = false }) {
-  const tituloCompleto = caminho === '/' ? `${loja.nome} · Roupa e presentes personalizados` : `${titulo} · ${loja.nome}`;
-  const og = (imagem && fotoJpg(imagem)) || absoluto('/assets/marca/logotipo-640.png');
+export function pagina({ loja, versao, api = '', caminho, titulo, tituloSeo, descricao, corpo, imagem, jsonld = [], semRodape = false, indexar = true }) {
+  // um nome comprido (os produtos têm os nomes que a dona escreve) vai sem « · Franja Kids»: o Google corta
+  // o título a ~60 caracteres e já mostra o nome do site por cima do resultado
+  const base = tituloSeo || titulo;
+  const tituloCompleto = caminho === '/' ? `${loja.nome} · ${TITULO_INICIO}` : `${base} · ${loja.nome}`.length > 65 ? base : `${base} · ${loja.nome}`;
   const lista = (classe) => MENU.map(([t, h]) => `<li><a href="${url(h)}"${caminho.startsWith(h) ? ' aria-current="page"' : ''}>${t}</a></li>`).join('');
   return `<!doctype html>
 <html lang="pt-PT">
@@ -23,7 +44,7 @@ export function pagina({ loja, versao, api = '', caminho, titulo, descricao, cor
 <style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }</style>
 <title>${esc(tituloCompleto)}</title>
 <meta name="description" content="${esc(descricao || loja.descricao)}">
-${PRODUCAO ? '' : '<meta name="robots" content="noindex, nofollow">\n'}<link rel="canonical" href="${absoluto(caminho)}">
+${robots(indexar)}<link rel="canonical" href="${absoluto(caminho)}">
 <meta name="theme-color" content="#F7EEDF">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="pt_PT">
@@ -31,14 +52,15 @@ ${PRODUCAO ? '' : '<meta name="robots" content="noindex, nofollow">\n'}<link rel
 <meta property="og:title" content="${esc(tituloCompleto)}">
 <meta property="og:description" content="${esc(descricao || loja.descricao)}">
 <meta property="og:url" content="${absoluto(caminho)}">
-<meta property="og:image" content="${og}">
+${imagemDePartilha(imagem)}
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="${url('/assets/marca/icone-32.png')}" sizes="32x32">
 <link rel="apple-touch-icon" href="${url('/assets/marca/icone-180.png')}">
 <link rel="preload" href="${url('/assets/fontes/varela-round-400.woff2')}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="${url('/assets/fontes/figtree-400-700.woff2')}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${url('/assets/fontes/fontes.css')}">
 <link rel="stylesheet" href="${url('/assets/css/site.css')}?v=${versao}">
-${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j)}</script>`).join('\n')}
+${jsonld.map(ld).join('\n')}
 </head>
 <body data-base="${BASE_ATTR()}" data-api="${esc(api)}">
 <a class="saltar" href="#conteudo">Saltar para o conteúdo</a>

@@ -1,4 +1,4 @@
-// Franja Kids — menu, filtros, ficha do produto, carrinho, finalizar e obrigado. Sem dependências.
+// Franja Kids — menu, ficha do produto, carrinho, finalizar e obrigado. Sem dependências.
 // O carrinho guarda só o que se escolheu; os preços vêm sempre do catálogo publicado
 // (assets/catalogo.json), com a mesma conta do Worker das encomendas (src/lib/regras.mjs,
 // conferirEscolha) — e o Worker refaz tudo do seu lado antes de aceitar a encomenda.
@@ -117,40 +117,19 @@
     d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('[data-fechar]')) d.close(); });
   });
 
-  // ── Filtros das linhas da loja (mudam no sítio; o endereço guarda a escolha) ──
+  // ── Endereços antigos dos filtros ──
+  // As categorias e as ocasiões eram filtros (/personalizados/?categoria=bodies); agora são páginas
+  // (/personalizados/bodies/, /ocasioes/avos/). Uma ligação antiga vai para a página, pela pastilha que a tem.
   const filtros = $('[data-filtros]');
-  if (filtros) {
-    const grelha = $('[data-grelha]');
-    const itens = $$('li', grelha);
-    const estado = { categoria: '', ocasiao: '' };
+  // a pastilha da página onde se está fica à vista na fila dela (no telemóvel as filas rolam para o lado)
+  if (filtros) for (const a of $$('.pastilha[aria-current="page"]', filtros)) {
+    const fila = a.parentElement;
+    fila.scrollLeft += a.getBoundingClientRect().left - fila.getBoundingClientRect().left - (fila.clientWidth - a.offsetWidth) / 2;
+  }
+  if (filtros && location.search) {
     const q = new URLSearchParams(location.search);
-    for (const k of Object.keys(estado)) if ($(`[data-filtro="${k}"][data-valor="${CSS.escape(q.get(k) || '')}"]`, filtros)) estado[k] = q.get(k) || '';
-    const aplicar = (escrever) => {
-      $$('[data-filtro]', filtros).forEach((b) => b.setAttribute('aria-pressed', String(estado[b.dataset.filtro] === b.dataset.valor)));
-      let n = 0;
-      let k = 0;
-      for (const li of itens) {
-        const ok = (!estado.categoria || li.dataset.categoria === estado.categoria) && (!estado.ocasiao || li.dataset.ocasiao.split(' ').includes(estado.ocasiao));
-        // os que voltam com o filtro entram outra vez (a animação recomeça quando deixam de estar escondidos)
-        if (ok && li.hidden) li.style.setProperty('--d', String(Math.min(k++, 8)));
-        li.hidden = !ok; n += ok;
-      }
-      $('[data-contagem]').textContent = `${n} ${n === 1 ? 'artigo' : 'artigos'}`;
-      $('[data-vazio]').hidden = n > 0;
-      if (escrever) {
-        const p = new URLSearchParams();
-        for (const [k, v] of Object.entries(estado)) if (v) p.set(k, v);
-        history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
-      }
-    };
-    filtros.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-filtro]');
-      if (!b) return;
-      estado[b.dataset.filtro] = b.dataset.valor;
-      aplicar(true);
-    });
-    $('[data-limpar]')?.addEventListener('click', () => { estado.categoria = ''; estado.ocasiao = ''; aplicar(true); });
-    aplicar(false);
+    const ir = ['categoria', 'ocasiao'].map((k) => q.get(k) && $(`a[data-${k}="${CSS.escape(q.get(k))}"]`, filtros)).find(Boolean);
+    if (ir) location.replace(ir.href);
   }
 
   // ── Procurar ──

@@ -19,6 +19,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import * as R from '../src/lib/regras.mjs';
+import * as SEO from '../src/seo.mjs';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PYTHON = process.env.PYTHON || 'python3';
@@ -167,11 +168,12 @@ const paginas = () => fs.readdirSync(SAIDA, { recursive: true }).filter((f) => f
 const legal = (o) => { o.empresa = { nome: 'Franja Kids, Lda.', nif: '123456789', morada: 'Rua de Ensaio, 1, 4440-000 Valongo', email: 'ola@franjakids.com', telefone: null }; o.entrega.zonas[0].portes = 3.5; };
 
 console.log('construções');
-teste('pré-visualização: constrói, noindex em todas as páginas, robots fechado, sem lixo nas páginas', () => {
+teste('pré-visualização: constrói, noindex em todas as páginas (o robots.txt deixa lê-lo), sem lixo nas páginas', () => {
   repor();
   const r = construir(['--base=/franjakids', '--site=https://renatovalente5.github.io']);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(fs.readFileSync(path.join(SAIDA, 'robots.txt'), 'utf8'), /Disallow: \//);
+  // o robots.txt não fecha nada: um «Disallow» escondia o noindex ao Google
+  assert.equal(fs.readFileSync(path.join(SAIDA, 'robots.txt'), 'utf8'), 'User-agent: *\nAllow: /\n');
   for (const [f, h] of paginas()) {
     assert.match(h, /name="robots" content="noindex/, f);
     assert.doesNotMatch(h, /undefined|NaN|\[object Object\]/, f);
@@ -216,6 +218,26 @@ teste('pré-visualização: a ficha com escolhas, a sem preço pede por mensagem
   assert.ok(fs.existsSync(path.join(SAIDA, 'obrigado/index.html')));
   assert.match(pagina('termos/index.html'), /\[por confirmar: NIF\]/);
 });
+teste('pré-visualização: categorias e ocasiões com produtos são páginas, ligadas pelas pastilhas; as vazias não existem', () => {
+  const B = '/franjakids';
+  for (const c of ['personalizados/bodies', 'bebe/babygrows', 'bebe/mantas-e-toalhas', 'presentes/box-franja', 'ocasioes/papa', 'ocasioes/familia', 'ocasioes/bebe-a-caminho']) assert.ok(fs.existsSync(path.join(SAIDA, c, 'index.html')), c);
+  for (const c of ['personalizados/t-shirts', 'presentes/caixas', 'ocasioes/avos', 'ocasioes/natal']) assert.ok(!fs.existsSync(path.join(SAIDA, c)), c);
+  const l = pagina('personalizados/index.html');
+  assert.match(l, new RegExp(`<a class="pastilha" href="${B}/personalizados/" aria-current="page">Tudo</a>`));
+  assert.match(l, new RegExp(`<a class="pastilha" href="${B}/personalizados/bodies/" data-categoria="bodies">Bodies</a>`));
+  assert.match(l, new RegExp(`<a class="pastilha" href="${B}/ocasioes/papa/" data-ocasiao="papa">`));
+  assert.doesNotMatch(l, /t-shirts\//);
+  const b = pagina('personalizados/bodies/index.html');
+  assert.match(b, /data-categoria="bodies" aria-current="page">Bodies</);
+  assert.match(b, /<h1 id="t-linha">Bodies<\/h1>/);
+  assert.match(b, new RegExp(`<ol class="migalhas"><li><a href="${B}/">Início</a></li><li><a href="${B}/personalizados/">Personalizados</a></li><li aria-current="page">Bodies</li></ol>`));
+  assert.equal((b.match(/<a class="cartao"/g) || []).length, 2);
+  // a ocasião junta os produtos de todas as linhas (um body e a Box Franja)
+  assert.equal((pagina('ocasioes/bebe-a-caminho/index.html').match(/<a class="cartao"/g) || []).length, 2);
+  // a ficha aponta para a página da categoria, e nenhuma página tem um filtro com «?»
+  assert.match(pagina('produtos/body-dad-mini/index.html'), new RegExp(`<a href="${B}/personalizados/bodies/">Bodies</a>`));
+  for (const [f, h] of paginas()) assert.doesNotMatch(h, /\?(categoria|ocasiao)=/, f);
+});
 teste('com o Worker das encomendas (--api): o finalizar envia, sem o aviso, e o catálogo leva a morada', () => {
   repor();
   const r = construir(['--api=https://franjakids-encomendas.exemplo.workers.dev/']);
@@ -240,11 +262,69 @@ teste('produção com os dados legais: aberta ao Google, sem marcadores, o produ
   assert.ok(!fs.existsSync(path.join(SAIDA, 'produtos/body-preparem-o-colinho')));
   assert.doesNotMatch(fs.readFileSync(path.join(SAIDA, 'sitemap.xml'), 'utf8'), /body-preparem-o-colinho/);
   for (const [f, h] of paginas()) {
-    assert.doesNotMatch(h, /name="robots" content="noindex/, f);
     assert.doesNotMatch(h, /\[por confirmar/, f);
     assert.doesNotMatch(h, /body-preparem-o-colinho/, f);
   }
   assert.match(pagina('envios/index.html'), /Portugal continental: 3,50 €/);
+});
+teste('produção: fora do Google só as páginas de serviço, as legais e as listagens de um produto; o sitemap é o resto', () => {
+  // (a construção do teste anterior: produção com os dados legais)
+  assert.match(fs.readFileSync(path.join(SAIDA, 'robots.txt'), 'utf8'), /^User-agent: \*\nAllow: \/\nSitemap: https:\/\/franjakids\.com\/sitemap\.xml\n$/);
+  const FORA = ['carrinho/', 'finalizar/', 'obrigado/', 'procurar/', 'termos/', 'privacidade/', '404.html', 'presentes/box-franja/', 'ocasioes/papa/'];
+  const mapa = fs.readFileSync(path.join(SAIDA, 'sitemap.xml'), 'utf8');
+  const noMapa = new Set([...mapa.matchAll(/<loc>https:\/\/franjakids\.com\/([^<]*)<\/loc>/g)].map(([, c]) => c));
+  const titulos = new Set();
+  for (const [f, h] of paginas()) {
+    const c = f.replace(/index\.html$/, '');
+    const fora = /<meta name="robots" content="noindex, follow">/.test(h);
+    if (FORA.includes(c)) assert.ok(fora, `${f}: devia ter noindex, follow`);
+    assert.doesNotMatch(h, /noindex, nofollow/, f);
+    assert.equal(noMapa.has(c), !fora && c !== '404.html', `${f}: no sitemap ${noMapa.has(c)}, noindex ${fora}`);
+    if (fora) continue;
+    // o que entra no Google: um título que cabe e não se repete, e uma descrição com tamanho de descrição
+    const t = h.match(/<title>([^<]*)<\/title>/)[1];
+    const d = h.match(/<meta name="description" content="([^"]*)"/)[1];
+    assert.ok(t.length <= 65 && !titulos.has(t), `${f}: o título «${t}»`);
+    titulos.add(t);
+    assert.ok(d.length >= 50 && d.length <= 160, `${f}: a descrição tem ${d.length}: ${d}`);
+  }
+  assert.ok(noMapa.has('') && noMapa.has('produtos/box-franja/') && noMapa.has('como-funciona/'));
+});
+teste('produção: os dados estruturados da loja, do site e dos produtos (para as fichas de comerciante do Google)', () => {
+  const lds = (h) => [...h.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map(([, j]) => JSON.parse(j));
+  const inicio = lds(pagina('index.html'));
+  assert.ok(inicio.some((j) => j['@type'] === 'WebSite' && j.name === 'Franja Kids'));
+  const loja = inicio.find((j) => j['@type'] === 'OnlineStore');
+  assert.equal(loja.legalName, 'Franja Kids, Lda.');
+  assert.equal(loja.vatID, 'PT123456789');
+  assert.equal(loja.hasMerchantReturnPolicy.merchantReturnDays, 14);
+  const box = lds(pagina('produtos/box-franja/index.html'));
+  const prod = box.find((j) => j['@type'] === 'Product');
+  assert.equal(prod.offers.price, '30.00');
+  assert.equal(prod.offers.priceCurrency, 'EUR');
+  assert.equal(prod.offers.availability, 'https://schema.org/InStock');
+  assert.equal(prod.offers.itemCondition, 'https://schema.org/NewCondition');
+  assert.ok(prod.image.length >= 1 && prod.image.every((u) => /^https:\/\/franjakids\.com\/assets\/img\/.+\.jpg$/.test(u)));
+  assert.deepEqual(box.find((j) => j['@type'] === 'BreadcrumbList').itemListElement.map((i) => i.name), ['Início', 'Presentes', 'Box Franja', 'Box Franja']);
+  // todos os JSON-LD se lêem, e nenhum diz MadeToOrder (que o Google não aceita)
+  for (const [f, h] of paginas()) { assert.doesNotMatch(h, /MadeToOrder/, f); lds(h); }
+  // a privacidade diz quem guarda o quê: a Cloudflare (alojamento, DNS, encomendas, emails) e não o GitHub nem a Resend
+  const priv = pagina('privacidade/index.html');
+  assert.match(priv, /Cloudflare, Inc\.<\/strong> \(EUA\) — alojamento e entrega do site[^<]*DNS do domínio; guardar as encomendas feitas no site e passá-las para nós; envio dos emails das encomendas/);
+  assert.doesNotMatch(priv, /GitHub|Resend|por indicar/);
+});
+teste('SEO: os títulos e as frases escritas à mão cabem, e cobrem as linhas, as categorias e as ocasiões', () => {
+  for (const [grupo, mapa, campo] of [['linhas', SEO.LINHAS, 'descricao'], ['categorias', SEO.CATEGORIAS, 'frase'], ['ocasioes', SEO.OCASIOES, 'frase']]) {
+    for (const [id, v] of Object.entries(mapa)) {
+      assert.ok(`${v.titulo} · Franja Kids`.length <= 65, `${grupo}/${id}: o título passa de 65`);
+      assert.ok(v[campo].length >= 50 && v[campo].length <= 160, `${grupo}/${id}: ${campo} com ${v[campo].length}`);
+    }
+  }
+  assert.deepEqual(Object.keys(SEO.LINHAS).sort(), catalogo.linhas.map((l) => l.id).sort());
+  assert.deepEqual(Object.keys(SEO.CATEGORIAS).sort(), Object.keys(catalogo.categorias).sort());
+  assert.deepEqual(Object.keys(SEO.OCASIOES).sort(), catalogo.ocasioes.map((o) => o.id).sort());
+  assert.ok(`Franja Kids · ${SEO.TITULO_INICIO}`.length <= 65);
+  assert.equal(SEO.resumir('a '.repeat(100), 20), 'a a a a a a a a a…');
 });
 teste('modo online: o botão é «Encomendar e pagar» e as entregas sem portes não aparecem', () => {
   repor();
@@ -287,6 +367,29 @@ teste('imagens: uma fotografia sem descrição pára, com a anotação', () => {
   fs.rmSync(path.join(COPIA, 'media/fotos/sem-descricao.jpg'));
   assert.notEqual(r.status, 0);
   assert.match(r.stdout, /::error title=Fotografias::a fotografia «sem-descricao» não tem descrição/);
+});
+
+teste('sitemap: a data de cada página é a do último commit que mudou o que ela mostra; sem o git, não há data', () => {
+  repor();
+  let r = construir(['--site=https://franjakids.com']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(fs.readFileSync(path.join(SAIDA, 'sitemap.xml'), 'utf8'), /<lastmod>/);
+  const git = (args, data) => spawnSync('git', ['-c', 'user.name=Ensaio', '-c', 'user.email=ensaio@exemplo.pt', '-c', 'commit.gpgsign=false', ...args], { cwd: COPIA, encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_DATE: data, GIT_COMMITTER_DATE: data } });
+  assert.equal(git(['init', '-q']).status, 0);
+  git(['add', '-A']);
+  assert.equal(git(['commit', '-qm', 'tudo'], '2026-01-02T10:00:00Z').status, 0);
+  mexer('produtos/manta-remalhada.json', (o) => { o.resumo = 'Outro resumo, só para mudar a data desta manta.'; });
+  git(['add', '-A']);
+  assert.equal(git(['commit', '-qm', 'a manta'], '2026-03-04T10:00:00Z').status, 0);
+  r = construir(['--site=https://franjakids.com']);
+  assert.equal(r.status, 0, r.stderr);
+  const mapa = fs.readFileSync(path.join(SAIDA, 'sitemap.xml'), 'utf8');
+  const data = (c) => mapa.match(new RegExp(`<loc>https://franjakids\\.com${c}</loc><lastmod>([^<]+)</lastmod>`))?.[1] ?? '';
+  assert.match(data('/produtos/manta-remalhada/'), /^2026-03-04T10:00:00/);
+  assert.match(data('/bebe/'), /^2026-03-04T10:00:00/, 'a linha mostra a manta');
+  assert.match(data('/produtos/box-franja/'), /^2026-01-02T10:00:00/);
+  assert.match(data('/como-funciona/'), /^2026-01-02T10:00:00/);
+  fs.rmSync(path.join(COPIA, '.git'), { recursive: true, force: true });
 });
 
 fs.rmSync(tmp, { recursive: true, force: true });

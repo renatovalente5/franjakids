@@ -6,11 +6,12 @@
 // um que «neutraliza» esconde só aquele produto; os avisos não param nada.
 import { mkdirSync, rmSync, writeFileSync, cpSync, readFileSync, readdirSync, copyFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { procurarFrasesProibidas } from '../legal-comum/index.mjs';
 import * as R from './lib/regras.mjs';
 import { RAIZ, BASE, SITE_URL, PRODUCAO, lerTexto, absoluto, url, carregarFotos, FOTOS, fotoPequena } from './util.mjs';
 import { pagina } from './layout.mjs';
-import { inicio, linha, produto, carrinho, finalizar, obrigado, procurar, sobre, naoEncontrada } from './paginas.mjs';
+import { inicio, linha, listagensComProdutos, produto, carrinho, finalizar, obrigado, procurar, sobre, naoEncontrada } from './paginas.mjs';
 import { paginasDeTexto } from './textos.mjs';
 
 const SAIDA = RAIZ + '_site/';
@@ -75,6 +76,7 @@ const ctx = { loja, catalogo, cat, produtos, api: API };
 const lista = [
   inicio(ctx),
   ...catalogo.linhas.map((l) => linha(ctx, l)),
+  ...listagensComProdutos(ctx),
   ...produtos.map((p) => produto(ctx, p)),
   carrinho(ctx),
   finalizar({ ...ctx, termosUrl: '/termos/' }),
@@ -97,19 +99,17 @@ for (const pg of lista) {
   writeFileSync(SAIDA + ficheiro, html[ficheiro]);
 }
 
-// Ligações internas: cada página e cada filtro (?categoria=, ?ocasiao=) têm de existir.
+// Ligações internas: cada página tem de existir, e nenhuma ligação leva «?» (as categorias e as ocasiões são
+// páginas: um filtro com «?» o Google não lê, e já não há nenhum).
 const caminhos = new Set(lista.map((p) => p.caminho));
-const filtrosDe = Object.fromEntries(catalogo.linhas.map((l) => [`/${l.id}/`, { categoria: new Set(l.categorias), ocasiao: l.id === 'personalizados' ? new Set(cat.ocasioes) : new Set() }]));
+if (caminhos.size !== lista.length) erros.push('há duas páginas com o mesmo endereço: ' + lista.map((p) => p.caminho).filter((c, i, t) => t.indexOf(c) !== i).join(', '));
 for (const [f, h] of Object.entries(html)) {
   for (const [, alvo] of h.matchAll(/href="([^"]+)"/g)) {
     if (!alvo.startsWith(BASE + '/') || alvo.startsWith(BASE + '/assets/')) continue;
     const resto = alvo.slice(BASE.length);
     const caminho = resto.split(/[?#]/)[0];
-    const q = resto.includes('?') ? resto.split('?')[1].split('#')[0] : '';
     if (!caminhos.has(caminho)) erros.push(`${f}: ligação para uma página que não existe: ${caminho}`);
-    if (q) for (const [k, v] of new URLSearchParams(q)) {
-      if (!filtrosDe[caminho]?.[k]?.has(v)) erros.push(`${f}: filtro inexistente ${caminho}?${k}=${v}`);
-    }
+    if (resto.includes('?')) erros.push(`${f}: ligação com «?»: ${resto}`);
   }
   for (const r of procurarFrasesProibidas(h.replace(/<[^>]+>/g, ' '))) erros.push(`${f}: frase proibida «${r.frase}»`);
 }
@@ -147,9 +147,27 @@ const paraCarrinho = {
   }])),
 };
 writeFileSync(SAIDA + 'assets/catalogo.json', JSON.stringify(paraCarrinho));
-writeFileSync(SAIDA + 'robots.txt', PRODUCAO ? `User-agent: *\nAllow: /\nSitemap: ${absoluto('/sitemap.xml')}\n` : 'User-agent: *\nDisallow: /\n');
-const hoje = new Date().toISOString().slice(0, 10);
-writeFileSync(SAIDA + 'sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${lista.filter((p) => !p.caminho.endsWith('.html') && !['/carrinho/', '/finalizar/', '/obrigado/'].includes(p.caminho)).map((p) => `<url><loc>${absoluto(p.caminho)}</loc><lastmod>${hoje}</lastmod></url>`).join('\n')}\n</urlset>\n`);
+/* O robots.txt deixa sempre ler: na pré-visualização, o que a fecha é o noindex de cada página. Um «Disallow: /»
+   escondia o noindex ao Google, e um endereço que ele encontrasse noutro sítio podia aparecer nos resultados sem
+   conteúdo («Indexada, embora bloqueada pelo robots.txt»). Em produção, também diz onde está o sitemap. */
+writeFileSync(SAIDA + 'robots.txt', PRODUCAO ? `User-agent: *\nAllow: /\nSitemap: ${absoluto('/sitemap.xml')}\n` : 'User-agent: *\nAllow: /\n');
+/* O SITEMAP: só as páginas que entram no Google (as de `indexar: false` ficam fora, e levam noindex), cada uma com
+   a data do último commit que mudou o que ela mostra (memória sitemap-lastmod-e-indexnow): o código das páginas
+   (src/), o rodapé legal (legal-comum/), os dados da loja e o catálogo, que entram em todas, e os produtos e as
+   fotografias que ESTA página mostra (`fontes`, com o content/fotos.json, onde estão as descrições delas). A data do build mentia («mudou
+   hoje» a cada publicação). Sem a história do git (uma cópia sem .git, como a do ensaio do painel, ou um checkout
+   raso: o CI faz o seu com fetch-depth: 0), não há data, em vez de uma data falsa. */
+const COMUNS = ['src', 'legal-comum', R.FICHEIROS.loja, R.FICHEIROS.catalogo];
+const comGit = (() => {
+  try { return execFileSync('git', ['rev-parse', '--is-shallow-repository'], { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() === 'false'; } catch { return false; }
+})();
+const dataDe = (fontes) => {
+  if (!comGit) return null;
+  try { return execFileSync('git', ['log', '-1', '--format=%cI', '--', ...COMUNS, ...fontes], { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null; } catch { return null; }
+};
+if (!comGit) console.warn('aviso: sem a história do git, o sitemap vai sem <lastmod>');
+const noSitemap = lista.filter((p) => p.indexar !== false && !p.caminho.endsWith('.html'));
+writeFileSync(SAIDA + 'sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${noSitemap.map((p) => { const d = dataDe(p.fontes || []); return `<url><loc>${absoluto(p.caminho)}</loc>${d ? `<lastmod>${d}</lastmod>` : ''}</url>`; }).join('\n')}\n</urlset>\n`);
 writeFileSync(SAIDA + '.nojekyll', '');
 
 const lembretes = problemas.filter((p) => p.lembrete).length;

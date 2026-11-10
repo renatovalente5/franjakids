@@ -105,7 +105,7 @@ ${comoSeFaz()}
 <h2>8. Litígios e reclamações</h2>
 ${ralHtml({ ambito: 'local', concelhos: [ent.concelho] })}
 <p>Pode também usar o <a href="https://www.livroreclamacoes.pt/inicio" rel="noopener">Livro de Reclamações Eletrónico</a>.</p>`,
-    'Termos e condições da loja online da Franja Kids.'),
+    'Termos e condições da loja online da Franja Kids.', { indexar: false }),
 
     texto('/privacidade/', 'Política de privacidade', 'Que dados pedimos, para quê, e os teus direitos.', `
 <h2>Quem trata os dados</h2>
@@ -117,11 +117,13 @@ ${identificacao(e)}
   <li><strong>Carrinho:</strong> fica guardado só no seu browser (armazenamento local), para não o perder entre páginas. Não usamos cookies nem estatísticas.</li>
 </ul>
 <h2>A quem os damos</h2>
-${destinatariosHtml({ alojamento: 'github', envioEmails: 'resend', ...(online ? { pagamentos: 'stripe' } : {}), instagram: true }, { formato: 'lista' })
-  // as encomendas ficam num Worker da Cloudflare (a legal-comum ainda não tem esta finalidade)
-  .replace(/<\/ul>$/, '<li><strong>Cloudflare, Inc.</strong> (EUA) — guardar as encomendas feitas no site e passá-las para nós. EUA: consta da lista do Data Privacy Framework (decisão de adequação da Comissão Europeia).</li>\n</ul>')}
+${destinatariosHtml({ alojamento: 'cloudflare', dns: 'cloudflare', ...(online ? { pagamentos: 'stripe' } : {}), instagram: true }, { formato: 'lista' })
+  /* A Cloudflare aloja o site e o DNS desde 10 nov 2026 (antes, o GitHub Pages), guarda as encomendas (o Worker
+     franjakids-encomendas) e manda os emails delas (Email Sending; a Resend não se usa): estas duas finalidades a
+     legal-comum ainda não tem. O testar.mjs confere que entram, e que não fica o GitHub nem a Resend. */
+  .replace('DNS do domínio.', 'DNS do domínio; guardar as encomendas feitas no site e passá-las para nós; envio dos emails das encomendas (confirmações e avisos).')}
 <h2>Os seus direitos</h2>
 ${direitosHtml({ email: e.email || porConfirmar('email') })}`,
-    'Política de privacidade da Franja Kids.'),
+    'Política de privacidade da Franja Kids.', { indexar: false }),
   ];
 }

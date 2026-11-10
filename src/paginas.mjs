@@ -1,11 +1,30 @@
-// As páginas do site. Cada função devolve { caminho, titulo, descricao, corpo, imagem?, jsonld? }.
+// As páginas do site. Cada função devolve { caminho, titulo, descricao, corpo, imagem?, jsonld?, tituloSeo?,
+// indexar?, fontes? }: `tituloSeo` é o <title> (sem « · Franja Kids»), quando não é o `titulo`; `indexar: false`
+// põe a página fora do Google (noindex, follow, e fora do sitemap); `fontes` são os ficheiros do conteúdo que
+// a página mostra, para a data do sitemap (build.mjs).
 // ctx = { loja, catalogo, cat (R.catalogoDe), produtos (os do site, já pela ordem), api }
 import { BOTAO_ENCOMENDA } from '../legal-comum/index.mjs';
 import * as R from './lib/regras.mjs';
-import { url, absoluto, esc, euro, foto, fotoJpg, icone, FOTOS } from './util.mjs';
+import { url, esc, euro, foto, icone, FOTOS } from './util.mjs';
+import { LINHAS, CATEGORIAS, OCASIOES, resumir, descricaoDoProduto, ldSite, ldLoja, ldMigalhas, ldProduto } from './seo.mjs';
 
 const zonaMao = (loja) => loja.entrega.zonas.find((z) => z.id === 'mao');
 const online = (loja) => loja.pagamentos?.modo === 'online';
+
+/* As páginas das categorias e das ocasiões: /personalizados/bodies/, /ocasioes/avos/. Só existem com produtos
+   (uma categoria vazia não tem página nem pastilha), e só entram no Google com MINIMO_INDEXAR ou mais: uma
+   categoria com um produto só é quase a ficha dele. */
+export const MINIMO_INDEXAR = 2;
+export const caminhoCategoria = (catalogo, c) => `/${R.linhaDaCategoria(catalogo, c)}/${c}/`;
+export const caminhoOcasiao = (o) => `/ocasioes/${o}/`;
+const comCategoria = (produtos, c) => produtos.filter((p) => p.categoria === c);
+const comOcasiao = (produtos, o) => produtos.filter((p) => p.ocasioes.includes(o));
+
+/** Os ficheiros do conteúdo que mostram estes produtos (o JSON e a fotografia do cartão, ou todas). */
+const fontesDe = (lista, todas = false) => [R.FICHEIROS.fotos, ...lista.flatMap((p) => [R.ficheiroDoArtigo(p.slug), ...(todas ? p.fotos : p.fotos.slice(0, 1)).map(R.ficheiroDaFoto)])];
+
+/** As migalhas à vista: [[nome, caminho], …]; a última é a página onde se está (sem ligação). */
+const navMigalhas = (itens) => `<nav aria-label="Estás aqui"><ol class="migalhas">${itens.map(([n, c], i) => (i < itens.length - 1 ? `<li><a href="${url(c)}">${esc(n)}</a></li>` : `<li aria-current="page">${esc(n)}</li>`)).join('')}</ol></nav>`;
 
 // ── Produtos ────────────────────────────────────────────────────────────────
 
@@ -23,7 +42,7 @@ export function cartao(p, { sizes = '(min-width: 1024px) 270px, (min-width: 768p
 // ── Início ──────────────────────────────────────────────────────────────────
 
 export function inicio({ loja, catalogo, produtos }) {
-  const ocasioes = catalogo.ocasioes.filter((o) => o.foto && FOTOS[o.foto]);
+  const ocasioes = catalogo.ocasioes.filter((o) => o.foto && FOTOS[o.foto] && comOcasiao(produtos, o.id).length);
   const destaques = produtos.filter((p) => p.destaque === true);
   const insta = ['ig-forro-fado', 'ig-sonho', 'ig-mapa', 'vais-ser-avo', 'ig-maior-sonho', 'ig-coracao'];
   const passos = [
@@ -35,13 +54,10 @@ export function inicio({ loja, catalogo, produtos }) {
   return {
     caminho: '/',
     titulo: 'Início',
-    descricao: loja.descricao,
+    descricao: resumir(loja.descricao),
     imagem: 'vais-ser-avo',
-    jsonld: [{
-      '@context': 'https://schema.org', '@type': 'OnlineStore', name: loja.nome, url: absoluto('/'),
-      logo: absoluto('/assets/marca/logotipo-640.png'), description: loja.descricao,
-      sameAs: [`https://www.instagram.com/${loja.instagram}/`],
-    }],
+    jsonld: [ldSite(loja), ldLoja(loja)],
+    fontes: [R.PASTAS.artigos, R.PASTAS.fotos, R.FICHEIROS.fotos],
     corpo: `<section class="contentor heroi" aria-labelledby="t-heroi">
   <div class="heroi__texto">
     <h1 id="t-heroi">Tu imaginas, nós personalizamos.</h1>
@@ -67,14 +83,14 @@ export function inicio({ loja, catalogo, produtos }) {
 <section id="ocasioes" class="seccao" aria-labelledby="t-ocasioes"${ocasioes.length ? '' : ' hidden'}>
   <div class="contentor seccao__topo"><h2 id="t-ocasioes">Para quem é?</h2></div>
   <ul class="contentor ocasioes">
-    ${ocasioes.map((o) => `<li><a href="${url(`/personalizados/?ocasiao=${o.id}`)}"><span class="ocasioes__nome">${esc(o.nome)}</span>${foto(o.foto, { sizes: '116px', alt: '', classe: 'ocasioes__foto' })}${icone('seta', 'icone icone--pequeno ocasioes__seta')}</a></li>`).join('\n    ')}
+    ${ocasioes.map((o) => `<li><a href="${url(caminhoOcasiao(o.id))}"><span class="ocasioes__nome">${esc(o.nome)}</span>${foto(o.foto, { sizes: '116px', alt: '', classe: 'ocasioes__foto' })}${icone('seta', 'icone icone--pequeno ocasioes__seta')}</a></li>`).join('\n    ')}
   </ul>
 </section>
 
 <section class="seccao" aria-labelledby="t-loja">
   <div class="contentor seccao__topo"><h2 id="t-loja">O que fazemos</h2></div>
   <ul class="contentor linhas">
-    ${catalogo.linhas.map((l) => `<li class="linhas__cartao">${FOTOS[l.foto] ? foto(l.foto, { sizes: '(min-width: 1024px) 380px, calc(100vw - 40px)', alt: '', classe: 'linhas__foto' }) : ''}<h3><a href="${url(`/${l.id}/`)}">${esc(l.nome)}</a></h3><ul class="linhas__subs">${l.categorias.map((c) => `<li><a href="${url(`/${l.id}/?categoria=${c}`)}">${esc(catalogo.categorias[c])}</a></li>`).join('')}</ul></li>`).join('\n    ')}
+    ${catalogo.linhas.map((l) => `<li class="linhas__cartao">${FOTOS[l.foto] ? foto(l.foto, { sizes: '(min-width: 1024px) 380px, calc(100vw - 40px)', alt: '', classe: 'linhas__foto' }) : ''}<h3><a href="${url(`/${l.id}/`)}">${esc(l.nome)}</a></h3><ul class="linhas__subs">${l.categorias.filter((c) => comCategoria(produtos, c).length).map((c) => `<li><a href="${url(caminhoCategoria(catalogo, c))}">${esc(catalogo.categorias[c])}</a></li>`).join('')}</ul></li>`).join('\n    ')}
   </ul>
 </section>
 ${destaques.length ? `
@@ -121,38 +137,81 @@ ${destaques.length ? `
   };
 }
 
-// ── Linhas da loja (Personalizados, Bebé, Presentes) ───────────────────────
+// ── Listagens: as linhas (Personalizados, Bebé, Presentes), as categorias e as ocasiões ──────────────
 
-export function linha({ catalogo, produtos }, l) {
-  const meus = produtos.filter((p) => l.categorias.includes(p.categoria));
-  const comOcasiao = l.id === 'personalizados';
-  const pastilha = (filtro, valor, texto) => `<button class="pastilha" type="button" data-filtro="${filtro}" data-valor="${valor}" aria-pressed="${valor ? 'false' : 'true'}">${esc(texto)}</button>`;
-  return {
-    caminho: `/${l.id}/`,
-    titulo: l.nome,
-    descricao: l.frase,
-    imagem: meus[0]?.fotos[0] || (FOTOS[l.foto] ? l.foto : undefined),
-    corpo: `<section class="contentor pagina" aria-labelledby="t-linha">
-  <h1 id="t-linha">${esc(l.nome)}</h1>
-  <p>${esc(l.frase)}</p>
-  <div class="filtros" data-filtros>
-    <div class="fila filtros__fila" role="group" aria-label="Categoria">
-      ${pastilha('categoria', '', 'Tudo')}
-      ${l.categorias.map((c) => pastilha('categoria', c, catalogo.categorias[c])).join('\n      ')}
+/* As pastilhas são ligações entre páginas (o Google não lê filtros com «?»). Nas linhas e nas categorias: «Tudo»
+   e as categorias da linha (na dos Personalizados, também as ocasiões); nas ocasiões, as ocasiões. A pastilha
+   da página onde se está leva aria-current. Os endereços antigos (?categoria=, ?ocasiao=) vão para a página
+   certa pelo site.js, através do data-categoria / data-ocasiao das pastilhas. */
+function listagem({ catalogo, produtos }, { caminho, titulo, tituloSeo, frase, descricao, migalhas, meus, linha: l, atual = '', imagem }) {
+  const pastilha = (href, texto, ativa, dado = '') => `<a class="pastilha" href="${url(href)}"${dado}${ativa ? ' aria-current="page"' : ''}>${esc(texto)}</a>`;
+  const ocasioes = catalogo.ocasioes.filter((o) => comOcasiao(produtos, o.id).length);
+  const filaOcasioes = () => (ocasioes.length ? `<div class="fila filtros__fila" role="group" aria-label="Para quem">
+      ${ocasioes.map((o) => pastilha(caminhoOcasiao(o.id), o.nome, atual === o.id, ` data-ocasiao="${o.id}"`)).join('\n      ')}
+    </div>` : '');
+  const filas = l ? `<div class="fila filtros__fila" role="group" aria-label="Categoria">
+      ${pastilha(`/${l.id}/`, 'Tudo', !atual)}
+      ${l.categorias.filter((c) => comCategoria(produtos, c).length).map((c) => pastilha(caminhoCategoria(catalogo, c), catalogo.categorias[c], atual === c, ` data-categoria="${c}"`)).join('\n      ')}
     </div>
-    ${comOcasiao ? `<div class="fila filtros__fila" role="group" aria-label="Para quem">
-      ${pastilha('ocasiao', '', 'Para todos')}
-      ${catalogo.ocasioes.map((o) => pastilha('ocasiao', o.id, o.nome)).join('\n      ')}
-    </div>` : ''}
+    ${l.id === 'personalizados' ? filaOcasioes() : ''}` : filaOcasioes();
+  return {
+    caminho, titulo, tituloSeo, descricao: resumir(descricao || frase), indexar: meus.length >= MINIMO_INDEXAR,
+    imagem: meus[0]?.fotos[0] || imagem,
+    jsonld: [ldMigalhas(migalhas)],
+    fontes: fontesDe(meus),
+    corpo: `<section class="contentor pagina" aria-labelledby="t-linha">
+  ${migalhas.length > 2 ? navMigalhas(migalhas) : ''}
+  <h1 id="t-linha">${esc(titulo)}</h1>
+  ${frase ? `<p>${esc(frase)}</p>` : ''}
+  <div class="filtros" data-filtros>
+    ${filas}
   </div>
-  <p class="contagem" data-contagem aria-live="polite">${meus.length} ${meus.length === 1 ? 'artigo' : 'artigos'}</p>
+  <p class="contagem">${meus.length} ${meus.length === 1 ? 'artigo' : 'artigos'}</p>
   <ul class="grelha" data-grelha>
-    ${meus.map((p) => `<li data-categoria="${p.categoria}" data-ocasiao="${p.ocasioes.join(' ')}">${cartao(p)}</li>`).join('\n    ')}
+    ${meus.map((p) => `<li>${cartao(p)}</li>`).join('\n    ')}
   </ul>
-  <div class="vazio" data-vazio${meus.length ? ' hidden' : ''}><p>Ainda não temos peças com esta combinação.</p><button class="botao botao--linha" type="button" data-limpar>Ver tudo</button></div>
+  ${meus.length ? '' : '<div class="vazio"><p>Ainda não temos peças aqui.</p></div>'}
 </section>`,
   };
 }
+
+export function linha(ctx, l) {
+  const seo = LINHAS[l.id] || {};
+  return listagem(ctx, {
+    caminho: `/${l.id}/`, titulo: l.nome, tituloSeo: seo.titulo, frase: l.frase, descricao: seo.descricao,
+    migalhas: [['Início', '/'], [l.nome, `/${l.id}/`]], linha: l,
+    meus: ctx.produtos.filter((p) => l.categorias.includes(p.categoria)), imagem: FOTOS[l.foto] ? l.foto : undefined,
+  });
+}
+
+/** A página de uma categoria (só para as que têm produtos: build.mjs). */
+export function categoria(ctx, l, c) {
+  const nome = ctx.catalogo.categorias[c];
+  const seo = CATEGORIAS[c] || {};
+  const caminho = caminhoCategoria(ctx.catalogo, c);
+  return listagem(ctx, {
+    caminho, titulo: nome, tituloSeo: seo.titulo, frase: seo.frase || l.frase,
+    migalhas: [['Início', '/'], [l.nome, `/${l.id}/`], [nome, caminho]], linha: l, atual: c,
+    meus: comCategoria(ctx.produtos, c),
+  });
+}
+
+/** A página de uma ocasião, com os produtos dela de todas as linhas (só para as que têm produtos: build.mjs). */
+export function ocasiao(ctx, o) {
+  const seo = OCASIOES[o.id] || {};
+  const caminho = caminhoOcasiao(o.id);
+  return listagem(ctx, {
+    caminho, titulo: o.nome, tituloSeo: seo.titulo, frase: seo.frase || `${o.nome}: peças personalizadas da Franja Kids.`,
+    migalhas: [['Início', '/'], [o.nome, caminho]], atual: o.id,
+    meus: comOcasiao(ctx.produtos, o.id), imagem: FOTOS[o.foto] ? o.foto : undefined,
+  });
+}
+
+/** As páginas de categoria e de ocasião que existem (as que têm produtos). */
+export const listagensComProdutos = (ctx) => [
+  ...ctx.catalogo.linhas.flatMap((l) => l.categorias.filter((c) => comCategoria(ctx.produtos, c).length).map((c) => categoria(ctx, l, c))),
+  ...ctx.catalogo.ocasioes.filter((o) => comOcasiao(ctx.produtos, o.id).length).map((o) => ocasiao(ctx, o)),
+];
 
 // ── Ficha do produto ────────────────────────────────────────────────────────
 
@@ -209,28 +268,19 @@ export function produto({ loja, catalogo, produtos }, p) {
     </div>
     <p class="ficha__total" aria-live="polite">Total: <strong data-total>${euro(p.preco)}</strong></p>`;
   const mao = zonaMao(loja);
-  const jsonld = [{
-    '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Início', item: absoluto('/') },
-      { '@type': 'ListItem', position: 2, name: linhaDe.nome, item: absoluto(`/${linhaDe.id}/`) },
-      { '@type': 'ListItem', position: 3, name: p.nome, item: absoluto(`/produtos/${p.slug}/`) },
-    ],
-  }];
-  if (p.preco != null) {
-    jsonld.push({
-      '@context': 'https://schema.org', '@type': 'Product', name: p.nome, description: p.resumo,
-      image: fotos.map(fotoJpg), brand: { '@type': 'Brand', name: loja.nome },
-      offers: { '@type': 'Offer', price: p.preco.toFixed(2), priceCurrency: 'EUR', availability: 'https://schema.org/MadeToOrder', url: absoluto(`/produtos/${p.slug}/`) },
-    });
-  }
+  const catNome = catalogo.categorias[p.categoria];
+  const outros = produtos.filter((o) => o.slug !== p.slug && (o.categoria === p.categoria || o.ocasioes.some((x) => p.ocasioes.includes(x)))).slice(0, 4);
+  const jsonld = [ldMigalhas([['Início', '/'], [linhaDe.nome, `/${linhaDe.id}/`], [catNome, caminhoCategoria(catalogo, p.categoria)], [p.nome, `/produtos/${p.slug}/`]])];
+  if (p.preco != null) jsonld.push(ldProduto({ loja, catalogo }, p));
   return {
     caminho: `/produtos/${p.slug}/`,
     titulo: p.nome,
-    descricao: p.resumo,
+    descricao: descricaoDoProduto(p),
     imagem: fotos[0],
     jsonld,
+    fontes: [...fontesDe([p], true), ...fontesDe(outros)],
     corpo: `<div class="contentor">
-  <nav aria-label="Estás aqui"><ol class="migalhas"><li><a href="${url('/')}">Início</a></li><li><a href="${url(`/${linhaDe.id}/`)}">${esc(linhaDe.nome)}</a></li><li><a href="${url(`/${linhaDe.id}/?categoria=${p.categoria}`)}">${esc(catalogo.categorias[p.categoria])}</a></li></ol></nav>
+  <nav aria-label="Estás aqui"><ol class="migalhas"><li><a href="${url('/')}">Início</a></li><li><a href="${url(`/${linhaDe.id}/`)}">${esc(linhaDe.nome)}</a></li><li><a href="${url(caminhoCategoria(catalogo, p.categoria))}">${esc(catNome)}</a></li></ol></nav>
   <div class="ficha">
     <div class="galeria" data-galeria>
       <div class="galeria__principal">${fotos.map((f, i) => `<div${i ? ' hidden' : ''} data-foto-grande="${i}">${foto(f, { sizes: '(min-width: 1024px) 600px, calc(100vw - 40px)', prioridade: i === 0 })}</div>`).join('')}</div>
@@ -255,8 +305,7 @@ export function produto({ loja, catalogo, produtos }, p) {
   </div>
 </div>
 ${(() => {
-  const outros = produtos.filter((o) => o.slug !== p.slug && (o.categoria === p.categoria || o.ocasioes.some((x) => p.ocasioes.includes(x)))).slice(0, 4);
-  return outros.length ? `<section class="seccao" aria-labelledby="t-mais"><div class="contentor seccao__topo"><h2 id="t-mais">Também podes gostar</h2></div><ul class="contentor grelha">${outros.map((o) => `<li>${cartao(o)}</li>`).join('')}</ul></section>` : '';
+  return outros.length ?`<section class="seccao" aria-labelledby="t-mais"><div class="contentor seccao__topo"><h2 id="t-mais">Também podes gostar</h2></div><ul class="contentor grelha">${outros.map((o) => `<li>${cartao(o)}</li>`).join('')}</ul></section>` : '';
 })()}`,
   };
 }
@@ -270,6 +319,7 @@ export function carrinho({ loja }) {
   return {
     caminho: '/carrinho/',
     titulo: 'Carrinho',
+    indexar: false,
     descricao: 'O teu carrinho na Franja Kids.',
     corpo: `<section class="contentor pagina" aria-labelledby="t-carrinho"><h1 id="t-carrinho">Carrinho</h1></section>
 <div class="contentor carrinho" data-carrinho data-portes-gratis="${gratisDe(loja)}">
@@ -297,6 +347,7 @@ export function finalizar({ loja, termosUrl, api }) {
   return {
     caminho: '/finalizar/',
     titulo: 'Finalizar a encomenda',
+    indexar: false,
     descricao: 'Os teus dados, a entrega e o pagamento.',
     corpo: `<section class="contentor pagina" aria-labelledby="t-finalizar"><h1 id="t-finalizar">Finalizar a encomenda</h1></section>
 <form class="contentor finalizar" data-finalizar data-portes-gratis="${gratisDe(loja)}" data-modo="${pagaAgora ? 'online' : 'encomenda'}" novalidate>
@@ -356,6 +407,7 @@ export function obrigado({ loja }) {
   return {
     caminho: '/obrigado/',
     titulo: 'Obrigado',
+    indexar: false,
     descricao: 'A tua encomenda na Franja Kids.',
     corpo: `<section class="contentor pagina obrigado" aria-labelledby="t-obrigado" data-obrigado>
   <h1 id="t-obrigado" tabindex="-1">Obrigado!</h1>
@@ -371,6 +423,7 @@ export function procurar({ produtos, catalogo }) {
   return {
     caminho: '/procurar/',
     titulo: 'Procurar',
+    indexar: false,
     descricao: 'Procura bodies, t-shirts, camisolas e presentes na Franja Kids.',
     corpo: `<section class="contentor pagina" aria-labelledby="t-procurar">
   <h1 id="t-procurar">Procurar</h1>
@@ -385,9 +438,10 @@ export function procurar({ produtos, catalogo }) {
 
 // ── Textos (ajuda, sobre, legais) ──────────────────────────────────────────
 
-export function texto(caminho, titulo, frase, html, descricao) {
+/** Uma página de texto. `indexar: false` para as que não interessam a quem procura (os termos, a privacidade). */
+export function texto(caminho, titulo, frase, html, descricao, { indexar = true } = {}) {
   return {
-    caminho, titulo, descricao: descricao || frase,
+    caminho, titulo, descricao: resumir(descricao || frase), indexar,
     corpo: `<section class="contentor pagina" aria-labelledby="t-pagina"><h1 id="t-pagina">${esc(titulo)}</h1>${frase ? `<p>${esc(frase)}</p>` : ''}</section>
 <div class="contentor texto">${html}</div>`,
   };
@@ -400,6 +454,7 @@ export function sobre({ loja }) {
     titulo: 'Sobre nós',
     descricao: 'A Franja Kids são duas amigas que personalizam roupa e presentes para bebés, crianças e família.',
     imagem: 'donas',
+    fontes: [R.FICHEIROS.fotos, R.ficheiroDaFoto('donas')],
     corpo: `<section class="contentor historia" aria-labelledby="t-sobre">
   ${foto('donas', { sizes: '(min-width: 1024px) 460px, calc(100vw - 40px)', classe: 'historia__foto', prioridade: true })}
   <div class="historia__texto">
@@ -421,6 +476,7 @@ export function naoEncontrada() {
   return {
     caminho: '/404.html',
     titulo: 'Página não encontrada',
+    indexar: false,
     descricao: 'Esta página não existe.',
     corpo: `<section class="contentor pagina" aria-labelledby="t-404"><h1 id="t-404">Esta página não existe</h1><p>Pode ter mudado de sítio. Experimenta a loja ou procura o que querias.</p>
 <div class="heroi__botoes"><a class="botao botao--cheio" href="${url('/personalizados/')}">Ver os personalizados</a><a class="ligacao" href="${url('/procurar/')}">Procurar ${icone('seta', 'icone icone--pequeno')}</a></div></section>`,
