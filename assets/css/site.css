@@ -457,8 +457,9 @@ dialog::backdrop { background: rgb(46 30 22 / .35); }
   .menu-telemovel:not([hidden]) li:nth-child(5) { animation-delay: .16s; }
   /* o número do carrinho, quando se junta uma peça */
   .topo__conta.salta { animation: salta .5s var(--suave); }
-  /* de uma página para a outra, sem piscar */
-  @view-transition { navigation: auto; }
+  /* de uma página para a outra, sem piscar. O «@view-transition» está EM LINHA no <head> (layout.mjs), antes
+     das folhas: vindo daqui, o Chrome às vezes via a página nova ainda sem ele e abortava a passagem
+     («ViewTransition opt-in disabled», metade das navegações). */
   ::view-transition-old(root) { animation: .18s ease both vt-sai; }
   ::view-transition-new(root) { animation: .32s var(--suave) both vt-entra; }
 }

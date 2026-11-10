@@ -175,6 +175,9 @@ teste('pré-visualização: constrói, noindex em todas as páginas, robots fech
   for (const [f, h] of paginas()) {
     assert.match(h, /name="robots" content="noindex/, f);
     assert.doesNotMatch(h, /undefined|NaN|\[object Object\]/, f);
+    // a passagem entre páginas: o opt-in em linha e ANTES da primeira folha (numa folha, o Chrome abortava-a às vezes)
+    const optIn = h.indexOf('@view-transition { navigation: auto; }');
+    assert.ok(optIn > -1 && optIn < h.indexOf('rel="stylesheet"'), `${f}: o @view-transition em linha antes das folhas`);
   }
 });
 teste('pré-visualização: cada imagem e ligação a recursos que as páginas pedem existe no _site', () => {

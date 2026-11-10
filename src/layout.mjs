@@ -20,6 +20,7 @@ export function pagina({ loja, versao, api = '', caminho, titulo, descricao, cor
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>document.documentElement.classList.add('js')</script>
+<style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }</style>
 <title>${esc(tituloCompleto)}</title>
 <meta name="description" content="${esc(descricao || loja.descricao)}">
 ${PRODUCAO ? '' : '<meta name="robots" content="noindex, nofollow">\n'}<link rel="canonical" href="${absoluto(caminho)}">
