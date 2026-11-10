@@ -1,7 +1,7 @@
 // O esqueleto de todas as páginas: cabeça, topo, rodapé e a gaveta do carrinho.
 import { livroReclamacoes } from '../legal-comum/index.mjs';
 import { url, absoluto, esc, icone, logotipo, fotoJpg, PRODUCAO, FOTOS } from './util.mjs';
-import { TITULO_INICIO } from './seo.mjs';
+import { TITULO_INICIO, VERIFICACOES } from './seo.mjs';
 
 /* O que diz aos motores de busca: na pré-visualização (sem --producao), nada entra (noindex, nofollow, e o
    robots.txt fecha tudo); em produção entra tudo menos as páginas com `indexar: false` (noindex, follow: o
@@ -44,7 +44,7 @@ export function pagina({ loja, versao, api = '', caminho, titulo, tituloSeo, des
 <style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }</style>
 <title>${esc(tituloCompleto)}</title>
 <meta name="description" content="${esc(descricao || loja.descricao)}">
-${robots(indexar)}<link rel="canonical" href="${absoluto(caminho)}">
+${robots(indexar)}${caminho === '/' ? Object.entries(VERIFICACOES).map(([n, v]) => `<meta name="${n}" content="${v}">\n`).join('') : ''}<link rel="canonical" href="${absoluto(caminho)}">
 <meta name="theme-color" content="#F7EEDF">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="pt_PT">

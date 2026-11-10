@@ -11,6 +11,14 @@ import { absoluto, fotoJpg } from './util.mjs';
 
 export const TITULO_INICIO = 'Roupa e presentes personalizados para bebé';
 
+/* A posse do site nos motores de busca (10 nov 2026), na página inicial: o Google Search Console (propriedade
+   «https://franjakids.com/», conta renato.lima.valente@gmail.com) e o Bing Webmaster Tools (a conta do Renato,
+   entrada com o Google; o código é o da conta, o mesmo da Mimices). Tirar uma delas desvalida a propriedade. */
+export const VERIFICACOES = Object.freeze({
+  'google-site-verification': 'jw1EH9YxON3Q3i3G1Ode_bT4Dt04dntD07s0Kyf06yo',
+  'msvalidate.01': 'DE1BA388910A8DC62D873CAEEF7B2BB8',
+});
+
 export const LINHAS = {
   personalizados: {
     titulo: 'Roupa personalizada para bebé e família',
