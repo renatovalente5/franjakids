@@ -11,6 +11,7 @@ import { procurarFrasesProibidas } from '../legal-comum/index.mjs';
 import * as R from './lib/regras.mjs';
 import { RAIZ, BASE, SITE_URL, PRODUCAO, lerTexto, absoluto, url, carregarFotos, FOTOS, fotoPequena } from './util.mjs';
 import { pagina } from './layout.mjs';
+import { VERIFICACOES } from './seo.mjs';
 import { inicio, linha, listagensComProdutos, produto, carrinho, finalizar, obrigado, procurar, sobre, naoEncontrada } from './paginas.mjs';
 import { paginasDeTexto } from './textos.mjs';
 
@@ -169,6 +170,9 @@ if (!comGit) console.warn('aviso: sem a história do git, o sitemap vai sem <las
 const noSitemap = lista.filter((p) => p.indexar !== false && !p.caminho.endsWith('.html'));
 writeFileSync(SAIDA + 'sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${noSitemap.map((p) => { const d = dataDe(p.fontes || []); return `<url><loc>${absoluto(p.caminho)}</loc>${d ? `<lastmod>${d}</lastmod>` : ''}</url>`; }).join('\n')}\n</urlset>\n`);
 writeFileSync(SAIDA + '.nojekyll', '');
+/* A posse do site no Bing Webmaster Tools por ficheiro (10 nov 2026): com a meta-etiqueta, o Bing dizia «Body tag
+   not found» à página inicial com noindex. O conteúdo é o código da conta (o mesmo da meta, em seo.mjs). */
+writeFileSync(SAIDA + 'BingSiteAuth.xml', `<?xml version="1.0"?>\n<users>\n\t<user>${VERIFICACOES['msvalidate.01']}</user>\n</users>`);
 
 const lembretes = problemas.filter((p) => p.lembrete).length;
 console.log(`${lista.length} páginas em _site/ (${produtos.length} produtos, ${Object.keys(paraCarrinho.produtos).length} à venda, ${efeitos.length} escondidos, ${lembretes} lembretes) · BASE «${BASE}» · ${SITE_URL} · ${PRODUCAO ? 'produção' : 'pré-visualização (noindex)'} · modo ${paraCarrinho.modo}`);

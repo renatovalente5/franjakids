@@ -177,6 +177,7 @@ teste('pré-visualização: constrói, noindex em todas as páginas (o robots.tx
   // a posse do site no Google e no Bing, na página inicial (tirá-las desvalida as propriedades)
   assert.match(pagina('index.html'), /<meta name="google-site-verification" content="jw1EH9YxON3Q3i3G1Ode_bT4Dt04dntD07s0Kyf06yo">/);
   assert.match(pagina('index.html'), /<meta name="msvalidate\.01" content="DE1BA388910A8DC62D873CAEEF7B2BB8">/);
+  assert.match(pagina('BingSiteAuth.xml'), /<users>\s*<user>DE1BA388910A8DC62D873CAEEF7B2BB8<\/user>\s*<\/users>/);
   for (const [f, h] of paginas()) {
     assert.match(h, /name="robots" content="noindex/, f);
     assert.doesNotMatch(h, /undefined|NaN|\[object Object\]/, f);
