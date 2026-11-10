@@ -63,9 +63,21 @@ h1, h2, h3 { font-weight: 400; }
 .topo__marca img { width: 88px; }
 .topo__nav, .topo__procura { display: none; }
 .topo__accoes { display: flex; align-items: center; gap: 2px; }
-.menu-telemovel { background: var(--fundo); }
-.menu-telemovel ul { padding-block: 8px 24px; }
-.menu-telemovel a { display: block; padding: 14px 0; border-bottom: 1px solid var(--linha); font: 1.375rem var(--titulos); text-decoration: none; }
+/* O menu do telemóvel ocupa o ecrã todo, debaixo do topo (que fica, com o «X»). Vive fora do <header>: o
+   backdrop-filter do topo faria dele a caixa de um position: fixed lá dentro. */
+:root { --altura-topo: 76px; }
+.menu-telemovel { position: fixed; inset: var(--altura-topo) 0 0 0; z-index: 19; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; background: var(--fundo); padding-bottom: env(safe-area-inset-bottom); }
+.menu-telemovel ul { padding-block: 12px 24px; }
+.menu-telemovel a { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--linha); font: clamp(1.75rem, 1.2rem + 2.4vw, 2.25rem)/1.15 var(--titulos); text-decoration: none; }
+.menu-telemovel a .icone { flex: none; color: var(--tinta-suave); }
+.menu-telemovel__fim { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding-block: 8px 28px; }
+.menu-telemovel__fim a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--superficie); font: 600 .9375rem var(--texto); }
+/* só a raiz: com o body também em hidden, o body passava a ser a caixa do topo pegajoso, e o topo sumia com a
+   página descida */
+.menu-aberto { overflow: hidden; }
+.menu-aberto .topo { background: var(--fundo); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+.topo__menu .icone--fechar, .topo__menu[aria-expanded="true"] .icone--abrir { display: none; }
+.topo__menu[aria-expanded="true"] .icone--fechar { display: block; }
 @media (min-width: 1024px) {
   .topo__barra { height: 92px; gap: 28px; }
   .topo__marca { margin-right: 0; }
@@ -87,6 +99,10 @@ h1, h2, h3 { font-weight: 400; }
 .heroi__imagem { position: relative; }
 .heroi__foto { aspect-ratio: 4 / 5; max-height: 560px; border-radius: 28px; overflow: hidden; }
 .selo { position: absolute; right: 14px; top: 14px; width: 104px; height: 104px; color: var(--castanho); }
+/* Duas camadas: o anel (o círculo e a frase) roda como um todo, sobre o meio da sua caixa; o coração fica
+   quieto por cima. Rodar só a frase dentro do SVG (transform-box: view-box) fazia o Safari do iPhone
+   rodá-la à volta de outro ponto, e a frase saía do círculo. */
+.selo svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .selo circle { fill: var(--pessego); }
 .selo text { font: 700 9.6px var(--texto); letter-spacing: 1.6px; fill: currentColor; }
 .selo__coracao { fill: var(--coral); }
@@ -427,11 +443,18 @@ dialog::backdrop { background: rgb(46 30 22 / .35); }
   .js .heroi__texto > :nth-child(3) { animation-delay: .2s; }
   .js .heroi__foto { animation: assenta 1.1s var(--suave) both; }
   .js .selo { animation: entra-pop .8s var(--suave) .45s both; }
-  /* o selo roda devagar (a frase à volta; o coração e o círculo ficam), só enquanto está à vista */
-  .selo text { transform-box: view-box; transform-origin: 50% 50%; animation: roda 28s linear infinite; }
-  .selo.fora text { animation-play-state: paused; }
+  /* o selo roda devagar (o anel inteiro; o coração fica), só enquanto está à vista */
+  .selo__anel { animation: roda 28s linear infinite; }
+  .selo.fora .selo__anel { animation-play-state: paused; }
   /* a fotografia que se escolhe na ficha (só depois de escolher: a primeira não se esbate) */
   .galeria.troca .galeria__principal > div:not([hidden]) { animation: surge .35s ease both; }
+  /* o menu do telemóvel: o fundo esbate-se e as linhas sobem, uma a seguir à outra */
+  .menu-telemovel:not([hidden]) { animation: surge .25s ease both; }
+  .menu-telemovel:not([hidden]) li { animation: entra .55s var(--suave) both; }
+  .menu-telemovel:not([hidden]) li:nth-child(2) { animation-delay: .04s; }
+  .menu-telemovel:not([hidden]) li:nth-child(3) { animation-delay: .08s; }
+  .menu-telemovel:not([hidden]) li:nth-child(4) { animation-delay: .12s; }
+  .menu-telemovel:not([hidden]) li:nth-child(5) { animation-delay: .16s; }
   /* o número do carrinho, quando se junta uma peça */
   .topo__conta.salta { animation: salta .5s var(--suave); }
   /* de uma página para a outra, sem piscar */

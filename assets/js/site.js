@@ -102,10 +102,14 @@
   const botaoMenu = $('[data-menu]');
   const painel = $('#menu-telemovel');
   if (botaoMenu && painel) {
-    const fechar = () => { botaoMenu.setAttribute('aria-expanded', 'false'); painel.hidden = true; };
-    botaoMenu.addEventListener('click', () => { const aberto = botaoMenu.getAttribute('aria-expanded') === 'true'; botaoMenu.setAttribute('aria-expanded', String(!aberto)); painel.hidden = aberto; });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !painel.hidden) { fechar(); botaoMenu.focus(); } });
-    matchMedia('(min-width: 1024px)').addEventListener('change', (m) => { if (m.matches) fechar(); });
+    // ecrã inteiro: a página por baixo não rola (a classe na raiz) e o topo fica com o «X»
+    const mostrarMenu = (aberto) => { botaoMenu.setAttribute('aria-expanded', String(aberto)); painel.hidden = !aberto; document.documentElement.classList.toggle('menu-aberto', aberto); };
+    botaoMenu.addEventListener('click', () => mostrarMenu(botaoMenu.getAttribute('aria-expanded') !== 'true'));
+    painel.addEventListener('click', (e) => { if (e.target.closest('a')) mostrarMenu(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !painel.hidden) { mostrarMenu(false); botaoMenu.focus(); } });
+    matchMedia('(min-width: 1024px)').addEventListener('change', (m) => { if (m.matches) mostrarMenu(false); });
+    // ao voltar atrás (bfcache), a página volta como estava: com o menu fechado
+    addEventListener('pageshow', (e) => { if (e.persisted) mostrarMenu(false); });
   }
 
   // ── Diálogos: fechar e clicar fora ──

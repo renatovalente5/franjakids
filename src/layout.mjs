@@ -49,13 +49,14 @@ ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j)}</sc
       <a class="topo__procura" href="${url('/procurar/')}">${icone('procurar', 'icone icone--pequeno')}<span>Procurar</span></a>
       <a class="redondo topo__procurar" href="${url('/procurar/')}" aria-label="Procurar">${icone('procurar')}</a>
       <a class="redondo topo__saco" href="${url('/carrinho/')}" aria-label="Carrinho" data-carrinho-ligacao>${icone('saco')}<span class="topo__conta" data-carrinho-conta hidden></span></a>
-      <button class="redondo topo__menu" type="button" data-menu aria-expanded="false" aria-controls="menu-telemovel">${icone('menu')}<span class="so-leitor">Menu</span></button>
+      <button class="redondo topo__menu" type="button" data-menu aria-expanded="false" aria-controls="menu-telemovel">${icone('menu', 'icone icone--abrir')}${icone('fechar', 'icone icone--fechar')}<span class="so-leitor">Menu</span></button>
     </div>
   </div>
-  <nav id="menu-telemovel" class="menu-telemovel" aria-label="Principal" hidden>
-    <ul class="contentor">${lista()}</ul>
-  </nav>
 </header>
+<nav id="menu-telemovel" class="menu-telemovel" aria-label="Principal" hidden>
+  <ul class="contentor">${MENU.map(([t, h]) => `<li><a href="${url(h)}"${caminho.startsWith(h) ? ' aria-current="page"' : ''}>${t}${icone('seta', 'icone')}</a></li>`).join('')}</ul>
+  <div class="contentor menu-telemovel__fim"><a href="https://www.instagram.com/${loja.instagram}/">${icone('instagram', 'icone icone--pequeno')}@${loja.instagram}</a><a href="${url('/contactos/')}">Contactos</a></div>
+</nav>
 <script>/* o número do carrinho já no primeiro desenho (a passagem entre páginas não pisca); o site.js mantém-no. A chave é a do site.js (CHAVE). */try{const n=(JSON.parse(localStorage.getItem('franja:carrinho:v2'))||[]).reduce((s,i)=>s+(i.qtd||0),0);if(n>0){const b=document.querySelector('[data-carrinho-conta]');b.textContent=n;b.hidden=false}}catch(e){}</script>
 
 <main id="conteudo">

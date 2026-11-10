@@ -53,12 +53,14 @@ export function inicio({ loja, catalogo, produtos }) {
   </div>
   <div class="heroi__imagem">
     ${foto('vais-ser-avo', { sizes: '(min-width: 1024px) 460px, calc(100vw - 64px)', prioridade: true, classe: 'heroi__foto' })}
-    <svg class="selo" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
-      <defs><path id="selo-circulo" d="M60 60m-43 0a43 43 0 1 1 86 0a43 43 0 1 1-86 0"/></defs>
-      <circle cx="60" cy="60" r="58"/>
-      <text><textPath href="#selo-circulo" textLength="266" lengthAdjust="spacing">FEITO POR ENCOMENDA · COM AMOR ·</textPath></text>
-      <path class="selo__coracao" d="M60 72s-11-6.8-11-15.2A6.1 6.1 0 0 1 60 53a6.1 6.1 0 0 1 11 3.8C71 65.2 60 72 60 72z"/>
-    </svg>
+    <div class="selo" aria-hidden="true">
+      <svg class="selo__anel" viewBox="0 0 120 120" focusable="false">
+        <defs><path id="selo-circulo" d="M60 60m-43 0a43 43 0 1 1 86 0a43 43 0 1 1-86 0"/></defs>
+        <circle cx="60" cy="60" r="58"/>
+        <text><textPath href="#selo-circulo" textLength="266" lengthAdjust="spacing">FEITO POR ENCOMENDA · COM AMOR ·</textPath></text>
+      </svg>
+      <svg class="selo__meio" viewBox="0 0 120 120" focusable="false"><path class="selo__coracao" d="M60 72s-11-6.8-11-15.2A6.1 6.1 0 0 1 60 53a6.1 6.1 0 0 1 11 3.8C71 65.2 60 72 60 72z"/></svg>
+    </div>
   </div>
 </section>
 
