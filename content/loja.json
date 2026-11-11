@@ -5,19 +5,19 @@
   "instagram": "franjakids",
   "producao": "1 a 2 semanas",
   "entrega": {
-    "gratisAPartirDe": 50,
+    "gratisAPartirDe": 60,
     "prazoContinente": "2 dias úteis",
     "concelho": "Valongo",
     "zonas": [
       {
         "id": "continente",
         "nome": "Portugal continental",
-        "portes": null
+        "portes": 5.5
       },
       {
         "id": "ilhas",
         "nome": "Açores e Madeira",
-        "portes": null
+        "portes": 5.5
       },
       {
         "id": "estrangeiro",
