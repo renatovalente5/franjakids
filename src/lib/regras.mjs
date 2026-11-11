@@ -168,14 +168,22 @@ export function nifValido(nif) {
 /* O SLUG DE UM PRODUTO NOVO: gerado UMA vez, ao criar, a partir do nome, e nunca mais muda — é o
    endereço da página que a loja partilha no Instagram. Minúsculas, sem acentos, o resto passa a
    hífen («Body «Olá mundo»» → body-ola-mundo). Repetido: -2, -3… */
-export function gerarSlug(nome, existentes = []) {
+export const MAX_SLUG_NOVO = 80;
+export function gerarSlug(nome, existentes = [], vazio = 'produto') {
   const ja = existentes instanceof Set ? existentes : new Set(existentes);
   let base = String(ausente(nome) ? '' : nome)
     .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+/, '').slice(0, 80).replace(/-+$/, '');
-  if (!base) base = 'produto';
-  let slug = base;
-  for (let n = 2; ja.has(slug); n++) slug = `${base}-${n}`;
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+  if (!base) base = vazio;  // um nome só de emoji ou de sinais: «produto», ou o que quem chama disser («ocasiao»)
+  /* Até 80 caracteres COM o «-2» de um repetido (com 82, as fotografias do produto não tinham onde ir: o caminho
+     delas aceita até 80), cortado no fim de uma palavra («…laco-cetim», e não «…laco-cet»). */
+  const ate = (n) => {
+    if (base.length <= n) return base;
+    const k = base.lastIndexOf('-', n);
+    return (k >= n / 2 ? base.slice(0, k) : base.slice(0, n)).replace(/-+$/, '');
+  };
+  let slug = ate(MAX_SLUG_NOVO);
+  for (let n = 2; ja.has(slug); n++) slug = `${ate(MAX_SLUG_NOVO - String(n).length - 1)}-${n}`;
   return slug;
 }
 
@@ -422,8 +430,11 @@ export function conferirEscolha(a, escolha = {}, cat = null) {
 /* Os portes de uma encomenda, em cêntimos, ou null quando estão por confirmar (a zona sem
    portes). `zona` = { id, portes }; os portes grátis só valem para Portugal continental. */
 export function portesDe(zona, artigosCents, gratisAPartirDe) {
-  if (!eObjecto(zona) || typeof zona.portes !== 'number') return null;
+  if (!eObjecto(zona)) return null;
+  /* Acima do valor dos portes grátis, o continente é grátis mesmo sem os portes escritos: o carrinho já dizia «Tens
+     portes grátis no continente» e o finalizar dizia «A confirmar» (revisão de 11 nov 2026). */
   if (zona.id === ZONA_GRATIS && typeof gratisAPartirDe === 'number' && artigosCents >= centimos(gratisAPartirDe)) return 0;
+  if (typeof zona.portes !== 'number') return null;
   return centimos(zona.portes);
 }
 
@@ -774,6 +785,16 @@ export function problemasDoCatalogo(c, { fotos = null } = {}) {
       }
     });
     if (cats) for (const id of Object.keys(cats)) if (!vistas.has(id)) avisa(`categoria:${id.slice(0, 40)}:sem-linha`, 'categorias', 'categorias', `A categoria «${id.slice(0, 40)}» não está em nenhuma linha: não aparece no site.`, { lembrete: true });
+    /* Duas categorias com o mesmo nome eram dois filtros iguais no site, para páginas diferentes (como as cores). */
+    if (cats) {
+      const nomes = new Map();
+      for (const [id, nome] of Object.entries(cats)) {
+        if (typeof nome !== 'string' || !nome.trim()) continue;
+        const k = nome.trim().toLowerCase();
+        if (nomes.has(k)) avisa(`categorias.${id}:nome-repetido`, 'categorias', `categorias.${id}`, `Há duas categorias com o nome «${nome.trim()}». Mude o nome de uma delas.`);
+        else nomes.set(k, id);
+      }
+    }
   }
 
   // --- ocasiões ---------------------------------------------------------------------
@@ -781,11 +802,18 @@ export function problemasDoCatalogo(c, { fotos = null } = {}) {
   if (!Array.isArray(ocs)) bloqueia('ocasioes:forma', 'ocasioes', 'ocasioes', 'As ocasiões não estão gravadas como uma lista. Só o Renato as pode repor.');
   else {
     const ids = new Set();
+    const nomes = new Set();
     ocs.forEach((o, i) => {
       if (!eObjecto(o) || !slugValido(o.id)) { bloqueia(`ocasioes.${i}:id`, 'ocasioes', `ocasioes.${i}`, `A ocasião ${i + 1} não tem um endereço válido. Só o Renato a pode corrigir.`); return; }
       if (ids.has(o.id)) bloqueia(`ocasioes.${o.id}:repetida`, 'ocasioes', `ocasioes.${i}`, `Há duas ocasiões com o endereço «${o.id}». Só o Renato a pode corrigir.`);
       ids.add(o.id);
       if (!textoNumaLinha(o.nome, TAMANHOS.ocasiaoNome)) avisa(`ocasioes.${i}.nome`, 'ocasioes', `ocasioes.${i}.nome`, `O nome da ocasião ${i + 1} tem de ser um texto numa linha, até ${TAMANHOS.ocasiaoNome} caracteres.`);
+      // duas ocasiões com o mesmo nome eram dois filtros iguais no site («Avós» e «Avós»), para páginas diferentes
+      else {
+        const k = o.nome.trim().toLowerCase();
+        if (nomes.has(k)) avisa(`ocasioes.${i}.nome:repetido`, 'ocasioes', `ocasioes.${i}.nome`, `Há duas ocasiões com o nome «${o.nome.trim()}». Mude o nome de uma delas.`);
+        nomes.add(k);
+      }
       /* Sem fotografia, a ocasião não aparece na página inicial (só no filtro dos Personalizados). */
       if (!ausente(o.foto) && o.foto !== '' && !fotoBoa(o.foto)) avisa(`ocasioes.${i}.foto`, 'ocasioes', `ocasioes.${i}.foto`, `A fotografia da ocasião «${temTexto(o.nome) ? o.nome.trim() : o.id}» não está na biblioteca: escolha outra, ou nenhuma.`);
     });

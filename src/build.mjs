@@ -169,7 +169,9 @@ const dataDe = (fontes) => {
 if (!comGit) console.warn('aviso: sem a história do git, o sitemap vai sem <lastmod>');
 const noSitemap = lista.filter((p) => p.indexar !== false && !p.caminho.endsWith('.html'));
 writeFileSync(SAIDA + 'sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${noSitemap.map((p) => { const d = dataDe(p.fontes || []); return `<url><loc>${absoluto(p.caminho)}</loc>${d ? `<lastmod>${d}</lastmod>` : ''}</url>`; }).join('\n')}\n</urlset>\n`);
-writeFileSync(SAIDA + '.nojekyll', '');
+/* O favicon.ico na raiz: os browsers e os leitores de feeds pedem-no mesmo com o <link rel="icon">, e era um 404.
+   (O .nojekyll do GitHub Pages já não se escreve: o site é servido pela Cloudflare, onde ele aparecia como ficheiro.) */
+copyFileSync(RAIZ + 'assets/marca/favicon.ico', SAIDA + 'favicon.ico');
 /* A posse do site no Bing Webmaster Tools por ficheiro (10 nov 2026): com a meta-etiqueta, o Bing dizia «Body tag
    not found» à página inicial com noindex. O conteúdo é o código da conta (o mesmo da meta, em seo.mjs). */
 writeFileSync(SAIDA + 'BingSiteAuth.xml', `<?xml version="1.0"?>\n<users>\n\t<user>${VERIFICACOES['msvalidate.01']}</user>\n</users>`);

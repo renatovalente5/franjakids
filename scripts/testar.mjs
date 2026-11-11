@@ -24,9 +24,11 @@ import * as SEO from '../src/seo.mjs';
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PYTHON = process.env.PYTHON || 'python3';
 let feitos = 0;
-const teste = (nome, fn) => {
+// assíncrono para os testes que importam módulos (esses chamam-se com await, e correm pela ordem); os outros correm
+// logo, como sempre
+const teste = async (nome, fn) => {
   try {
-    fn();
+    await fn();
     feitos++;
     console.log(`  ✓ ${nome}`);
   } catch (e) {
@@ -79,8 +81,37 @@ teste('portesDe: grátis só no continente a partir do valor; zona sem portes fi
   assert.equal(R.portesDe({ id: 'continente', portes: 3.5 }, 5000, 50), 0);
   assert.equal(R.portesDe({ id: 'ilhas', portes: 6 }, 9000, 50), 600);
   assert.equal(R.portesDe({ id: 'ilhas', portes: null }, 9000, 50), null);
+  // acima do valor, o continente é grátis mesmo sem os portes escritos (o carrinho já o dizia); abaixo, por confirmar
+  assert.equal(R.portesDe({ id: 'continente', portes: null }, 5000, 50), 0);
+  assert.equal(R.portesDe({ id: 'continente', portes: null }, 4999, 50), null);
   assert.equal(R.portesDe({ id: 'mao', portes: 0 }, 100, 50), 0);
   assert.equal(R.portesDe({ id: 'continente', portes: 3.5 }, 9000, null), 350);
+});
+teste('gerarSlug: até 80 caracteres com o «-2» de um repetido, cortado no fim de uma palavra', () => {
+  const nome = 'T-shirt Mãe e Filha «A melhor equipa do mundo» com nome bordado, coração e laço cetim — rosa';
+  const um = R.gerarSlug(nome);
+  assert.ok(um.length <= 80 && R.slugValido(um), um);
+  assert.ok(!um.endsWith('-cet'), um);
+  const dois = R.gerarSlug(nome, [um]);
+  assert.ok(dois.length <= 80 && dois.endsWith('-2') && R.slugValido(dois), dois);
+  assert.ok(R.gerarSlug(nome, [um, dois]).endsWith('-3'));
+  assert.equal(R.gerarSlug('Body «Olá mundo»'), 'body-ola-mundo');
+  assert.equal(R.gerarSlug('Body «Olá mundo»', ['body-ola-mundo']), 'body-ola-mundo-2');
+  assert.equal(R.gerarSlug('🎀'), 'produto');
+  assert.equal(R.gerarSlug('🎂🎂', [], 'ocasiao'), 'ocasiao', 'uma ocasião só de emoji não fica com o id «produto»');
+  assert.equal(R.gerarSlug('x'.repeat(120)).length, 80, 'uma palavra só, sem onde cortar, corta-se aos 80');
+});
+teste('catálogo: duas ocasiões ou duas categorias com o mesmo nome não passam (eram dois filtros iguais no site)', () => {
+  const c = structuredClone(catalogo);
+  assert.deepEqual(R.problemasDoCatalogo(c).filter((p) => /repetid/.test(p.chave)), []);
+  c.ocasioes.push({ ...c.ocasioes[0], id: `${c.ocasioes[0].id}-2`, nome: ` ${c.ocasioes[0].nome.toUpperCase()} ` });
+  const oc = R.problemasDoCatalogo(c).find((p) => p.chave.endsWith('.nome:repetido'));
+  assert.ok(oc && oc.classe === 'avisa' && oc.mensagem.includes('Há duas ocasiões com o nome'), JSON.stringify(oc));
+  const c2 = structuredClone(catalogo);
+  const [a1, a2] = Object.keys(c2.categorias);
+  c2.categorias[a2] = c2.categorias[a1];
+  const ca = R.problemasDoCatalogo(c2).find((p) => p.chave.endsWith(':nome-repetido'));
+  assert.ok(ca && ca.classe === 'avisa' && ca.mensagem.includes('Há duas categorias com o nome'), JSON.stringify(ca));
 });
 teste('temSuplementos: «desde» com acréscimos nas escolhas ou na personalização opcional', () => {
   assert.ok(R.temSuplementos(produto('babygrow-com-nome')));
@@ -394,6 +425,96 @@ teste('sitemap: a data de cada página é a do último commit que mudou o que el
   assert.match(data('/produtos/box-franja/'), /^2026-01-02T10:00:00/);
   assert.match(data('/como-funciona/'), /^2026-01-02T10:00:00/);
   fs.rmSync(path.join(COPIA, '.git'), { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------- o site.js e o Worker do site (11 nov 2026)
+console.log('site.js e worker/www.js');
+const SITE_JS = fs.readFileSync(path.join(RAIZ, 'assets/js/site.js'), 'utf8');
+const CONTAS_JS = fs.readFileSync(path.join(RAIZ, 'worker/encomendas/contas.js'), 'utf8');
+// um bocado do site.js, tirado pelo nome e posto a correr aqui (o site.js é um script sem módulos)
+const pedaco = (re, de = SITE_JS) => { const m = de.match(re); assert.ok(m, `não encontrei ${re}`); return m[1]; };
+await teste('finalizar: as regras dos campos são as do Worker (o que passa no site não é recusado depois do envio)', async () => {
+  const C = await import('../worker/encomendas/contas.js');
+  assert.ok(SITE_JS.includes(`const RE_EMAIL = /${R.RE_EMAIL.source}/;`), 'o RE_EMAIL do site.js é o de regras.mjs');
+  assert.ok(SITE_JS.includes(`const MAX_EMAIL = ${R.TAMANHOS.email};`));
+  assert.ok(SITE_JS.includes(`const MAX_CP_ESTRANGEIRO = ${C.MAX_CP_ESTRANGEIRO};`));
+  assert.equal(pedaco(/const RE_CP = (\/.+?\/);/), pedaco(/const RE_CP = (\/.+?\/);/, CONTAS_JS));
+  for (const k of ['CP_E_DAS_ILHAS', 'CP_E_DO_CONTINENTE']) assert.equal(pedaco(new RegExp(`const ${k} = ('[^']+');`)), pedaco(new RegExp(`const ${k} = ('[^']+');`), CONTAS_JS), k);
+  const nif = new Function('nif', pedaco(/const nifValido = \(nif\) => \{([\s\S]*?)\n {4}\};/));
+  for (const n of ['123456789', '123456780', '023456789', '501964843', '501964842', '999999990', '12345678', '1234567890', '', 'abcdefghi']) assert.equal(nif(n), R.nifValido(n), `NIF ${n}`);
+  // o telemóvel: de 9 a 15 algarismos, como o telefoneValido do Worker
+  assert.ok(SITE_JS.includes('return n >= 9 && n <= 15 ?'));
+  for (const t of ['912345678', '+351 912 345 678', '1234567890123456', '91234567']) assert.equal(C.telefoneValido(t), t.replace(/\D/g, '').length >= 9 && t.replace(/\D/g, '').length <= 15, t);
+});
+teste('carrinho guardado: uma linha estragada não parte o site; a quantidade é sempre um inteiro de 1 a 20', () => {
+  const limpa = new Function('MAX_QTD', `return ${pedaco(/const linhaLimpa = (\(i\) => \{[\s\S]*?\n {2}\});/)}`)(20);
+  assert.equal(limpa(null), null);
+  assert.equal(limpa('x'), null);
+  assert.equal(limpa({ qtd: 2 }), null);
+  const q = (qtd) => limpa({ slug: 'a', qtd }).qtd;
+  assert.deepEqual([q('2'), q(-5), q(1000), q(1.5), q(undefined), q(0), q(Infinity), q('abc')], [2, 1, 20, 1, 1, 1, 20, 1]);
+  assert.deepEqual(limpa({ slug: 'a', qtd: 1, opcoes: ['x'], texto: 7, personalizar: 'sim', tamanho: 3 }), { slug: 'a', opcoes: {}, texto: '', personalizar: false, qtd: 1 });
+  assert.deepEqual(limpa({ slug: 'a', qtd: 1, opcoes: { Desenho: 'Menina', Mau: 3 }, cor: 'Rosa' }).opcoes, { Desenho: 'Menina' });
+});
+await teste('o número do carrinho no <head> conta como o site.js, mesmo com o guardado estragado', async () => {
+  const vm = await import('node:vm');
+  repor();
+  assert.equal(construir().status, 0);
+  const script = pedaco(/<script>(\/\* o número do carrinho[\s\S]*?)<\/script>/, pagina('index.html'));
+  const conta = (guardado) => {
+    const b = { textContent: '', hidden: true };
+    vm.runInNewContext(script, { localStorage: { getItem: () => guardado }, document: { querySelector: () => b } });
+    return b.textContent;
+  };
+  assert.equal(conta('[null,{"slug":"a","qtd":"2"},{"slug":"b","qtd":-5},{"qtd":4}]'), 3);
+  assert.equal(conta('{}'), '');
+  assert.equal(conta('lixo'), '');
+});
+await teste('o cartão de partilha diz a altura da fotografia que o imagens.py escreve (o round do Python)', async () => {
+  const { alturaReduzida } = await import('../src/layout.mjs');
+  const casos = [[2, 1, 1], [2, 3, 1], [1528, 1000, 1080], [6000, 9000, 1080], [2000, 1307, 1080]];
+  for (let i = 0; i < 200; i++) casos.push([400 + ((i * 7919) % 5000), 300 + ((i * 104729) % 5000), 360 + ((i * 31) % 1080)]);
+  const py = spawnSync(PYTHON, ['-c', 'import sys, json\nprint(json.dumps([round(a * w / l) for l, a, w in json.loads(sys.argv[1])]))', JSON.stringify(casos)], { encoding: 'utf8' });
+  assert.equal(py.status, 0, py.stderr);
+  assert.deepEqual(casos.map(([l, a, w]) => alturaReduzida(l, a, w)), JSON.parse(py.stdout));
+});
+teste('a página 404 não tem morada própria; o favicon.ico existe; o .nojekyll já não', () => {
+  assert.doesNotMatch(pagina('404.html'), /rel="canonical"|og:url/);
+  assert.ok(fs.existsSync(path.join(SAIDA, 'favicon.ico')));
+  assert.ok(!fs.existsSync(path.join(SAIDA, '.nojekyll')));
+  // o logótipo como cartão de partilha leva as medidas (a fotografia já levava)
+  assert.match(pagina('carrinho/index.html'), /og:image" content="[^"]+logotipo-640\.png">\n<meta property="og:image:width" content="640">\n<meta property="og:image:height" content="453">/);
+});
+teste('listagens: o 1.º cartão carrega com prioridade, os 4 primeiros sem esperar; a contagem é o h2', () => {
+  const h = pagina('bebe/index.html');
+  const imgs = [...h.matchAll(/<a class="cartao"[\s\S]*?<img ([^>]+)>/g)].map((m) => m[1]);
+  assert.ok(imgs.length >= 2, 'há cartões');
+  assert.match(imgs[0], /fetchpriority="high"/);
+  assert.doesNotMatch(imgs.slice(0, 4).join('\n'), /loading="lazy"/);
+  assert.ok(imgs.slice(4).every((i) => /loading="lazy"/.test(i)));
+  assert.match(h, /<h2 class="contagem">\d+ artigos?<\/h2>/);
+  assert.match(pagina('finalizar/index.html'), /<input type="checkbox" id="termos" name="termos"/);
+});
+await teste('worker/www.js: segurança em todas as respostas; um ano de cache só no que tem o resumo no nome', async () => {
+  const { cacheDe, comCabecalhos } = await import('../worker/www.js');
+  const u = (c) => new URL('https://franjakids.com' + c);
+  const ANO = 'public, max-age=31536000, immutable';
+  assert.equal(cacheDe(u('/assets/img/babetes-promovidos-1-8e1f37fbad-1080.avif')), ANO);
+  assert.equal(cacheDe(u('/assets/img/grande-babetes-promovidos-1.webp')), null, 'as do painel têm o nome fixo');
+  assert.equal(cacheDe(u('/assets/css/site.css?v=1a2b3c4d')), ANO);
+  assert.equal(cacheDe(u('/assets/css/site.css')), null);
+  assert.equal(cacheDe(u('/assets/catalogo.json')), null);
+  assert.equal(cacheDe(u('/produtos/manta-remalhada/')), null);
+  assert.match(cacheDe(u('/assets/fontes/figtree-400-700.woff2')), /max-age=2592000/);
+  const r = comCabecalhos(new Response('ola', { status: 200, headers: { 'Content-Type': 'text/html' } }), u('/assets/img/x-0123456789-360.webp'));
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('Cache-Control'), ANO);
+  assert.equal(r.headers.get('Content-Type'), 'text/html');
+  for (const k of ['Strict-Transport-Security', 'X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Permissions-Policy']) assert.ok(r.headers.get(k), k);
+  assert.match(r.headers.get('Content-Security-Policy'), /frame-ancestors 'none'/);
+  // a 404 servida pelo nome responde 404, e um 304 não ganha cache nova
+  assert.equal(comCabecalhos(new Response('x'), u('/404'), 404).status, 404);
+  assert.equal(comCabecalhos(new Response(null, { status: 304 }), u('/assets/img/x-0123456789-360.webp')).headers.get('Cache-Control'), null);
 });
 
 fs.rmSync(tmp, { recursive: true, force: true });

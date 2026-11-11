@@ -33,9 +33,11 @@ export function precoHtml(p, classe = 'cartao__preco') {
   return `<p class="${classe}">${R.temSuplementos(p) ? 'desde ' : ''}${euro(p.preco)}</p>`;
 }
 
-export function cartao(p, { sizes = '(min-width: 1024px) 270px, (min-width: 768px) 30vw, 45vw', selo = p._linha !== 'personalizados' } = {}) {
+/* Um cartão de produto. Numa grelha, os primeiros (os que se vêem logo, até 4 por fila) carregam sem esperar
+   (`lazy: false`) e o 1.º com prioridade: é a imagem maior do ecrã (o LCP), e «lazy» atrasava-a. */
+export function cartao(p, { sizes = '(min-width: 1024px) 270px, (min-width: 768px) 30vw, 45vw', selo = p._linha !== 'personalizados', prioridade = false, lazy = true } = {}) {
   return `<a class="cartao" href="${url(`/produtos/${p.slug}/`)}">`
-    + `<div class="cartao__foto">${foto(p.fotos[0], { sizes, alt: '' })}${selo && p._pers ? '<span class="cartao__selo">Personalizável</span>' : ''}</div>`
+    + `<div class="cartao__foto">${foto(p.fotos[0], { sizes, alt: '', prioridade, lazy })}${selo && p._pers ? '<span class="cartao__selo">Personalizável</span>' : ''}</div>`
     + `<h3>${esc(p.nome)}</h3>${precoHtml(p)}</a>`;
 }
 
@@ -166,9 +168,9 @@ function listagem({ catalogo, produtos }, { caminho, titulo, tituloSeo, frase, d
   <div class="filtros" data-filtros>
     ${filas}
   </div>
-  <p class="contagem">${meus.length} ${meus.length === 1 ? 'artigo' : 'artigos'}</p>
+  <h2 class="contagem">${meus.length} ${meus.length === 1 ? 'artigo' : 'artigos'}</h2>
   <ul class="grelha" data-grelha>
-    ${meus.map((p) => `<li>${cartao(p)}</li>`).join('\n    ')}
+    ${meus.map((p, i) => `<li>${cartao(p, { prioridade: i === 0, lazy: i >= 4 })}</li>`).join('\n    ')}
   </ul>
   ${meus.length ? '' : '<div class="vazio"><p>Ainda não temos peças aqui.</p></div>'}
 </section>`,
@@ -250,9 +252,12 @@ export function produto({ loja, catalogo, produtos }, p) {
     grupos.push(grupo(o.nome, o.valores.map((v, i) => ({ ...v, marcada: i === base }))));
   }
   const ps = p._pers;
+  // o rótulo já diz «(opcional)»: uma pista que começa por «Opcional.» dizia-o duas vezes
+  const opcionalNoRotulo = ps && !ps.obrigatoria && !ps.opcional;
+  const pista = ps?.pista && opcionalNoRotulo ? ps.pista.replace(/^\s*opcional[.:,]?\s*/i, '') : ps?.pista;
   const campoTexto = ps ? `<div class="campo" data-campo-texto${ps.opcional ? ' hidden' : ''}>
       <label for="texto">${esc(ps.rotulo)}${ps.obrigatoria || ps.opcional ? '' : ' <span class="campo__pista">(opcional)</span>'}</label>
-      <p class="campo__pista" id="texto-pista">${ps.pista ? `${esc(ps.pista.replace(/\.$/, ''))}. ` : ''}Antes de produzir, mandamos-te a pré-visualização.</p>
+      <p class="campo__pista" id="texto-pista">${pista ? `${esc(pista.replace(/\.$/, ''))}. ` : ''}Antes de produzir, mandamos-te a pré-visualização.</p>
       <input id="texto" name="texto" type="text" autocomplete="off" spellcheck="false" data-max="${ps.max}"${ps.obrigatoria ? ' data-obrigatorio' : ''} aria-describedby="texto-pista texto-contador texto-erro">
       <p class="campo__contador" id="texto-contador" aria-live="polite" data-contador></p>
       <p class="campo__erro" id="texto-erro" data-erro></p>
@@ -387,7 +392,7 @@ export function finalizar({ loja, termosUrl, api }) {
     <div data-itens-resumo></div>
     <dl><dt>Artigos</dt><dd data-subtotal></dd><dt>Portes</dt><dd data-portes></dd><dt class="total">Total</dt><dd class="total" data-total></dd></dl>
     <p class="aviso" data-aviso-personalizado hidden>Os artigos personalizados não têm troca nem devolução por desistência. Confirma o nome, a frase, o tamanho e a cor: é assim que os vamos fazer.</p>
-    <label class="marcar"><input type="checkbox" name="termos" required aria-describedby="termos-erro"><span>Li e aceito os <a href="${url(termosUrl)}">termos e condições</a></span></label>
+    <label class="marcar"><input type="checkbox" id="termos" name="termos" required aria-describedby="termos-erro"><span>Li e aceito os <a href="${url(termosUrl)}">termos e condições</a></span></label>
     <p class="campo__erro" id="termos-erro" data-erro></p>
     <p class="campo__erro" data-erro-envio role="alert"></p>
     <button class="botao botao--cheio" type="submit" data-enviar>${pagaAgora ? esc(BOTAO_ENCOMENDA) : 'Enviar encomenda'}</button>
@@ -429,8 +434,9 @@ export function procurar({ produtos, catalogo }) {
   <h1 id="t-procurar">Procurar</h1>
   <form class="procura" role="search" data-procura action="${url('/procurar/')}">${icone('procurar')}<label class="so-leitor" for="q">Procurar na loja</label><input id="q" name="q" type="search" placeholder="Padrinhos, avós, babygrow…" autocomplete="off"></form>
   <p class="contagem" data-contagem aria-live="polite"></p>
+  <h2 class="so-leitor">Produtos</h2>
   <ul class="grelha" data-grelha>
-    ${produtos.map((p) => `<li data-texto="${esc([p.nome, p.resumo, catalogo.categorias[p.categoria], ...p.ocasioes.map((o) => catalogo.ocasioes.find((x) => x.id === o)?.nome || o)].join(' '))}">${cartao(p)}</li>`).join('\n    ')}
+    ${produtos.map((p, i) => `<li data-texto="${esc([p.nome, p.resumo, catalogo.categorias[p.categoria], ...p.ocasioes.map((o) => catalogo.ocasioes.find((x) => x.id === o)?.nome || o)].join(' '))}">${cartao(p, { prioridade: i === 0, lazy: i >= 4 })}</li>`).join('\n    ')}
   </ul>
 </section>`,
   };

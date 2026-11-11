@@ -15,7 +15,22 @@
   const cents = (v) => Math.round(v * 100);
 
   // ── Carrinho guardado no browser ──
-  const ler = () => { try { const v = JSON.parse(localStorage.getItem(CHAVE)); return Array.isArray(v) ? v : []; } catch { return []; } };
+  /* O que está guardado lê-se com desconfiança: uma linha estragada (à mão, ou de uma versão antiga) não pode parar o
+     site inteiro. Só objectos com o slug; a quantidade inteira de 1 a MAX_QTD; o resto com o tipo certo. (O número
+     do topo, em linha no <head> do layout.mjs, conta da mesma maneira.) */
+  const linhaLimpa = (i) => {
+    if (!i || typeof i !== 'object' || typeof i.slug !== 'string' || !i.slug) return null;
+    const l = { slug: i.slug };
+    if (typeof i.tamanho === 'string' && i.tamanho) l.tamanho = i.tamanho;
+    if (typeof i.cor === 'string' && i.cor) l.cor = i.cor;
+    l.opcoes = i.opcoes && typeof i.opcoes === 'object' && !Array.isArray(i.opcoes)
+      ? Object.fromEntries(Object.entries(i.opcoes).filter(([, v]) => typeof v === 'string')) : {};
+    l.texto = typeof i.texto === 'string' ? i.texto : '';
+    l.personalizar = i.personalizar === true;
+    l.qtd = Math.min(MAX_QTD, Math.max(1, Math.floor(Number(i.qtd)) || 1));
+    return l;
+  };
+  const ler = () => { try { const v = JSON.parse(localStorage.getItem(CHAVE)); return Array.isArray(v) ? v.map(linhaLimpa).filter(Boolean) : []; } catch { return []; } };
   const gravar = (itens) => { try { localStorage.setItem(CHAVE, JSON.stringify(itens)); } catch { /* sem armazenamento: o carrinho dura só esta página */ } contar(); };
   const chaveDe = (i) => JSON.stringify([i.slug, i.tamanho || '', i.cor || '', i.opcoes || {}, i.texto || '', !!i.personalizar]);
   let contados = null;  // o número da última vez: só salta quando sobe (juntar uma peça), não ao abrir
@@ -31,11 +46,16 @@
   contar();
   addEventListener('pageshow', (e) => { if (e.persisted) { contar(); if ($('[data-carrinho]')) desenharCarrinho(); } });
 
+  /* O catálogo publicado. Sem ele (sem rede, um erro do servidor) lança, e quem o pede mostra que não deu: o
+     carrinho, o finalizar e a gaveta nunca ficam calados à espera. */
   let catalogo = null;
   const obterCatalogo = async (fresco = false) => {
     if (catalogo && !fresco) return catalogo;
-    catalogo = await fetch(BASE + '/assets/catalogo.json', fresco ? { cache: 'no-store' } : {}).then((r) => r.json());
-    return catalogo;
+    const r = await fetch(BASE + '/assets/catalogo.json', fresco ? { cache: 'no-store' } : {});
+    if (!r.ok) throw new Error('catálogo: ' + r.status);
+    const c = await r.json();
+    if (!c || typeof c.produtos !== 'object' || !Array.isArray(c.zonas)) throw new Error('catálogo inválido');
+    return (catalogo = c);
   };
   /* O preço de uma unidade, em cêntimos, ou null se o produto já não se vende ou a escolha já não
      existe (o produto mudou no painel): essas linhas saem do carrinho. */
@@ -55,9 +75,17 @@
     return v;
   };
   const validos = (cat) => ler().filter((i) => unidade(i, cat) != null);
+  /* As linhas que já não se vendem (o produto saiu ou ficou sem preço, a escolha mudou no painel) saem do carrinho
+     guardado assim que se desenha, para o número do topo e a lista dizerem o mesmo. → { itens, sairam } */
+  const limparCarrinho = (cat) => {
+    const todas = ler();
+    const itens = todas.filter((i) => unidade(i, cat) != null);
+    if (itens.length !== todas.length) gravar(itens);
+    return { itens, sairam: todas.length - itens.length };
+  };
   const fotoDe = (p) => `<picture><img src="${esc(p.foto)}" alt="" width="360" height="480" loading="lazy"></picture>`;
-  const escolhasDe = (i, p) => [i.tamanho && `Tamanho: ${i.tamanho}`, i.cor && `Cor: ${i.cor}`, ...Object.entries(i.opcoes || {}).map(([k, v]) => `${k}: ${v}`)]
-    .filter(Boolean).map(esc).join(' · ') + (p.personalizacao?.opcional && i.personalizar ? ` · ${esc(p.personalizacao.opcional)}` : '');
+  const escolhasDe = (i, p, mais = []) => [i.tamanho && `Tamanho: ${i.tamanho}`, i.cor && `Cor: ${i.cor}`, ...Object.entries(i.opcoes || {}).map(([k, v]) => `${k}: ${v}`),
+    p.personalizacao?.opcional && i.personalizar && p.personalizacao.opcional, ...mais].filter(Boolean).map(esc).join(' · ');
   const textoDe = (i, p) => (i.texto ? `<p class="item__texto">${esc(p.personalizacao?.rotulo || 'Personalização')}: «${esc(i.texto)}»</p>` : '');
   const progresso = (el, subtotal, limite) => {
     if (!el) return;
@@ -103,7 +131,13 @@
   const painel = $('#menu-telemovel');
   if (botaoMenu && painel) {
     // ecrã inteiro: a página por baixo não rola (a classe na raiz) e o topo fica com o «X»
-    const mostrarMenu = (aberto) => { botaoMenu.setAttribute('aria-expanded', String(aberto)); painel.hidden = !aberto; document.documentElement.classList.toggle('menu-aberto', aberto); };
+    // e o que fica tapado (o conteúdo, o rodapé) sai do alcance do Tab e dos leitores de ecrã enquanto está aberto
+    const tapados = $$('body > main, body > footer, body > .saltar');
+    const mostrarMenu = (aberto) => {
+      botaoMenu.setAttribute('aria-expanded', String(aberto)); painel.hidden = !aberto;
+      document.documentElement.classList.toggle('menu-aberto', aberto);
+      tapados.forEach((el) => { el.inert = aberto; });
+    };
     botaoMenu.addEventListener('click', () => mostrarMenu(botaoMenu.getAttribute('aria-expanded') !== 'true'));
     painel.addEventListener('click', (e) => { if (e.target.closest('a')) mostrarMenu(false); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !painel.hidden) { mostrarMenu(false); botaoMenu.focus(); } });
@@ -113,8 +147,15 @@
   }
 
   // ── Diálogos: fechar e clicar fora ──
+  /* «Fora» é fora da caixa, pelas coordenadas: o próprio <dialog> também é o alvo de um clique no espaço vazio lá
+     dentro (o enchimento da caixa, o meio da gaveta), e esse não a fecha. */
   $$('dialog').forEach((d) => {
-    d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('[data-fechar]')) d.close(); });
+    d.addEventListener('click', (e) => {
+      if (e.target.closest('[data-fechar]')) { d.close(); return; }
+      if (e.target !== d) return;
+      const r = d.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close();
+    });
   });
 
   // ── Endereços antigos dos filtros ──
@@ -175,9 +216,11 @@
       if (caixa?.checked) v += cents(Number(caixa.dataset.suplemento) || 0);
       return v / 100;
     };
+    // a quantidade escrita à mão conta de 1 a MAX_QTD (a mesma que vai para o carrinho)
+    const quantos = () => Math.min(MAX_QTD, Math.max(1, parseInt(qtd?.value, 10) || 1));
     const actualizar = () => {
       $$('[data-opcao]', ficha).forEach((f) => { const r = $('input:checked', f); $('[data-escolhido]', f).textContent = r ? '· ' + r.value : ''; });
-      if (total) total.textContent = euro(unitario() * Math.max(1, parseInt(qtd?.value, 10) || 1));
+      if (total) total.textContent = euro(unitario() * quantos());
     };
     ficha.addEventListener('change', (e) => {
       if (e.target.matches('input[type="radio"]')) {
@@ -185,13 +228,23 @@
         $('[data-erro]', f).textContent = '';
         if (e.target.dataset.foto != null) mostrar(e.target.dataset.foto);
       }
-      if (e.target === caixa) { blocoTexto.hidden = !caixa.checked; if (caixa.checked) campo.focus(); }
+      if (e.target === caixa) {
+        // ligar ou desligar a personalização começa do zero: sem o erro de uma tentativa anterior
+        blocoTexto.hidden = !caixa.checked;
+        campo.removeAttribute('aria-invalid'); $('#texto-erro').textContent = '';
+        if (caixa.checked) campo.focus();
+      }
+      if (e.target === qtd) qtd.value = quantos();
       actualizar();
     });
+    /* As letras contam-se como o Worker as conta (regras.mjs, conferirEscolha): sem os invisíveis, os espaços seguidos
+       num só e sem os das pontas, em unidades de JavaScript (um emoji conta 2, com o tom de pele 4). Contadas de
+       outra maneira, um nome perto do máximo passava aqui e era recusado no envio. */
+    const letras = () => campo.value.replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim().length;
     const contarLetras = () => {
       if (!campo) return true;
       const max = Number(campo.dataset.max);
-      const n = [...campo.value].length;
+      const n = letras();
       const c = $('[data-contador]', ficha);
       const passou = n > max;
       c.textContent = passou ? `${n - max} ${n - max === 1 ? 'caractere' : 'caracteres'} a mais` : `${max - n} de ${max} caracteres disponíveis`;
@@ -232,7 +285,7 @@
         opcoes: Object.fromEntries(grupos.filter((f) => !f.dataset.campo).map((f) => [f.dataset.opcao, valorDe(f)]).filter(([, v]) => v)),
         texto: campo && !blocoTexto.hidden ? campo.value.replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim() : '',
         personalizar: !!caixa?.checked,
-        qtd: Math.min(MAX_QTD, Math.max(1, parseInt(qtd.value, 10) || 1)),
+        qtd: quantos(),
       };
       for (const k of ['tamanho', 'cor']) if (!item[k]) delete item[k];
       const itens = ler();
@@ -240,39 +293,72 @@
       if (igual) igual.qtd = Math.min(MAX_QTD, igual.qtd + item.qtd); else itens.push(item);
       gravar(itens);
       anunciar(`Juntámos ao carrinho: ${dados.nome}.`);
-      await abrirGaveta(item);
+      await abrirGaveta(item, dados.nome);
     });
   }
 
-  async function abrirGaveta(item) {
+  /* A gaveta abre sempre que se junta uma peça. Com o catálogo, mostra a fotografia, as escolhas, o preço e quanto
+     falta para os portes grátis; sem ele (sem rede), só o nome — a peça já está no carrinho na mesma. */
+  async function abrirGaveta(item, nome) {
     const g = $('#gaveta');
     if (!g) return;
-    const cat = await obterCatalogo();
-    const p = cat.produtos[item.slug];
-    const u = unidade(item, cat);
-    if (!p || u == null) return;
-    $('[data-gaveta-corpo]', g).innerHTML = `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3>${esc(p.nome)}</h3><p class="item__escolhas">${escolhasDe(item, p)}${item.qtd > 1 ? ' · ' + item.qtd + ' unidades' : ''}</p>${textoDe(item, p)}</div><p class="item__preco">${euro((u * item.qtd) / 100)}</p></div>`;
-    const subtotal = validos(cat).reduce((s, i) => s + unidade(i, cat) * i.qtd, 0) / 100;
-    progresso($('[data-progresso]', g), subtotal, cat.gratisAPartirDe);
-    g.showModal();
+    const quantas = item.qtd > 1 ? [`${item.qtd} unidades`] : [];
+    let corpo = `<div class="item item--simples"><div><h3>${esc(nome)}</h3><p class="item__escolhas">${quantas.map(esc).join('')}</p></div></div>`;
+    let subtotal = null, limite = null;
+    try {
+      const cat = await obterCatalogo();
+      const p = cat.produtos[item.slug];
+      const u = unidade(item, cat);
+      if (p && u != null) {
+        corpo = `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3>${esc(p.nome)}</h3><p class="item__escolhas">${escolhasDe(item, p, quantas)}</p>${textoDe(item, p)}</div><p class="item__preco">${euro((u * item.qtd) / 100)}</p></div>`;
+        subtotal = validos(cat).reduce((s, i) => s + unidade(i, cat) * i.qtd, 0) / 100;
+        limite = cat.gratisAPartirDe;
+      }
+    } catch { /* sem o catálogo: abre só com o nome */ }
+    $('[data-gaveta-corpo]', g).innerHTML = corpo;
+    progresso($('[data-progresso]', g), subtotal ?? 0, subtotal == null ? null : limite);
+    if (!g.open) g.showModal();
   }
 
   // ── Página do carrinho ──
+  /* Desenhar a lista de novo apaga os botões: o foco (no «+», no «−», no campo, no «Remover» de uma linha) volta ao
+     mesmo papel na mesma linha da lista nova; depois de «Remover», ao da linha que ficou no lugar (ou à de cima). */
+  const PAPEIS = ['menos', 'mais', 'qtd', 'remover'];
+  const lugarDoFoco = (lista) => {
+    const el = document.activeElement;
+    if (!el || !lista.contains(el)) return null;
+    const papel = PAPEIS.find((x) => el.dataset[x] != null);
+    return papel ? { papel, k: Number(el.dataset[papel]) } : null;
+  };
+  const reporFoco = (lista, lugar) => {
+    if (!lugar) return;
+    const de = (k) => $(`[data-${lugar.papel}="${k}"]`, lista);
+    (de(lugar.k) || de(lugar.k - 1) || $('a, button', lista))?.focus();
+  };
   async function desenharCarrinho() {
     const raiz = $('[data-carrinho]');
-    const cat = await obterCatalogo();
-    const itens = validos(cat);
     const lista = $('[data-itens]', raiz);
     const resumo = $('[data-resumo]', raiz);
-    if (!itens.length) {
-      lista.innerHTML = `<p class="vazio">O carrinho está vazio. <a href="${BASE}/personalizados/">Ver os personalizados</a></p>`;
+    let cat;
+    try { cat = await obterCatalogo(); } catch {
+      lista.innerHTML = '<div class="vazio"><p>Não conseguimos carregar o carrinho. Confirma a ligação à internet.</p><button class="botao botao--linha" type="button" data-recarregar>Tentar outra vez</button></div>';
       resumo.hidden = true;
       return;
     }
-    lista.innerHTML = itens.map((i, k) => {
+    const { itens, sairam } = limparCarrinho(cat);
+    const aviso = sairam ? `<p class="aviso">${sairam === 1 ? 'Uma peça do carrinho já não está à venda como a escolheste e saiu dele.' : `${sairam} peças do carrinho já não estão à venda como as escolheste e saíram dele.`}</p>` : '';
+    const foco = lugarDoFoco(lista);
+    if (!itens.length) {
+      lista.innerHTML = `${aviso}<p class="vazio">O carrinho está vazio. <a href="${BASE}/personalizados/">Ver os personalizados</a></p>`;
+      resumo.hidden = true;
+      reporFoco(lista, foco);
+      return;
+    }
+    lista.innerHTML = aviso + '<h2 class="so-leitor">As peças no carrinho</h2>' + itens.map((i, k) => {
       const p = cat.produtos[i.slug];
-      return `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3><a href="${esc(p.url)}">${esc(p.nome)}</a></h3><p class="item__escolhas">${escolhasDe(i, p)}</p>${textoDe(i, p)}
-        <div class="item__accoes"><div class="quantidade"><button type="button" data-menos="${k}" aria-label="Diminuir a quantidade">−</button><input type="text" inputmode="numeric" value="${i.qtd}" aria-label="Quantidade" data-qtd="${k}"><button type="button" data-mais="${k}" aria-label="Aumentar a quantidade">+</button></div><button class="item__remover" type="button" data-remover="${k}">Remover</button></div></div>
+      const nome = esc(p.nome);
+      return `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3><a href="${esc(p.url)}">${nome}</a></h3><p class="item__escolhas">${escolhasDe(i, p)}</p>${textoDe(i, p)}
+        <div class="item__accoes"><div class="quantidade"><button type="button" data-menos="${k}" aria-label="Diminuir a quantidade de ${nome}">−</button><input type="text" inputmode="numeric" value="${i.qtd}" aria-label="Quantidade de ${nome}" data-qtd="${k}"><button type="button" data-mais="${k}" aria-label="Aumentar a quantidade de ${nome}">+</button></div><button class="item__remover" type="button" data-remover="${k}" aria-label="Remover ${nome}">Remover</button></div></div>
         <p class="item__preco">${euro((unidade(i, cat) * i.qtd) / 100)}</p></div>`;
     }).join('');
     const subtotal = itens.reduce((s, i) => s + unidade(i, cat) * i.qtd, 0) / 100;
@@ -280,15 +366,20 @@
     $('[data-portes]', raiz).textContent = 'No passo seguinte';
     progresso($('[data-progresso]', raiz), subtotal, cat.gratisAPartirDe);
     resumo.hidden = false;
+    reporFoco(lista, foco);
   }
   const raizCarrinho = $('[data-carrinho]');
   if (raizCarrinho) {
     desenharCarrinho();
-    // as linhas que já não se vendem saem do carrinho guardado (os índices são os da lista desenhada)
-    const mexer = async (fn) => { const cat = await obterCatalogo(); const itens = validos(cat); fn(itens); gravar(itens); desenharCarrinho(); };
+    // os índices são os da lista desenhada, que já só tem as linhas que se vendem
+    const mexer = async (fn) => {
+      try { const cat = await obterCatalogo(); const itens = validos(cat); fn(itens); gravar(itens); } catch { /* o desenho diz que não deu */ }
+      await desenharCarrinho();
+    };
     raizCarrinho.addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (!b) return;
+      if (b.matches('[data-recarregar]')) { desenharCarrinho(); return; }
       const k = Number(b.dataset.menos ?? b.dataset.mais ?? b.dataset.remover);
       if (Number.isNaN(k)) return;
       mexer((itens) => {
@@ -298,12 +389,19 @@
         else itens[k].qtd = Math.min(MAX_QTD, itens[k].qtd + 1);
       });
     });
+    /* O «change» do campo da quantidade chega ANTES de o Tab mover o foco: desenhar já apagava o campo de onde o foco
+       saía e ele caía no <body>. Adia-se, para o desenho já encontrar o foco no sítio seguinte (memória
+       redesenhar-no-change-do-tab-perde-o-foco). */
     raizCarrinho.addEventListener('change', (e) => {
       if (!e.target.matches('[data-qtd]')) return;
       const k = Number(e.target.dataset.qtd);
-      mexer((itens) => { if (itens[k]) itens[k].qtd = Math.min(MAX_QTD, Math.max(1, parseInt(e.target.value, 10) || 1)); });
+      const valor = e.target.value;
+      setTimeout(() => mexer((itens) => { if (itens[k]) itens[k].qtd = Math.min(MAX_QTD, Math.max(1, parseInt(valor, 10) || 1)); }), 0);
     });
+    // o carrinho mudado noutro separador
+    addEventListener('storage', (e) => { if (e.key === CHAVE || e.key === null) desenharCarrinho(); });
   }
+  addEventListener('storage', (e) => { if (e.key === CHAVE || e.key === null) contar(); });
 
   // ── Finalizar ──
   const form = $('[data-finalizar]');
@@ -313,15 +411,23 @@
     const erroEnvio = $('[data-erro-envio]', form);
     let totalMostrado = null;
     const zonaEscolhida = () => $('input[name="envio"]:checked', form);
+    /* O resumo, com os preços do catálogo publicado. → as linhas; ou null, sem linhas (vai para o carrinho) ou sem o
+       catálogo (e diz que não deu). */
     const desenhar = async (fresco = false) => {
-      const cat = await obterCatalogo(fresco);
-      const itens = validos(cat);
-      if (!itens.length) { location.replace(BASE + '/carrinho/'); return; }
+      let cat;
+      try { cat = await obterCatalogo(fresco); } catch {
+        $('[data-itens-resumo]', form).innerHTML = '<p class="vazio">Não conseguimos carregar a encomenda.</p>';
+        erroEnvio.textContent = 'Não conseguimos carregar os preços (sem ligação?). Tenta outra vez daqui a pouco.';
+        return null;
+      }
+      const { itens } = limparCarrinho(cat);
+      if (!itens.length) { location.replace(BASE + '/carrinho/'); return null; }
       $('[data-itens-resumo]', form).innerHTML = itens.map((i) => { const p = cat.produtos[i.slug]; return `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3>${esc(p.nome)}${i.qtd > 1 ? ' × ' + i.qtd : ''}</h3><p class="item__escolhas">${escolhasDe(i, p)}</p>${textoDe(i, p)}</div><p class="item__preco">${euro((unidade(i, cat) * i.qtd) / 100)}</p></div>`; }).join('');
       const artigos = itens.reduce((s, i) => s + unidade(i, cat) * i.qtd, 0);
       const zona = cat.zonas.find((z) => z.id === zonaEscolhida().value);
+      // a conta do Worker (regras.mjs, portesDe): acima do valor, o continente é grátis mesmo sem os portes escritos
       let portes = zona && typeof zona.portes === 'number' ? cents(zona.portes) : null;
-      if (portes != null && zona.id === 'continente' && typeof cat.gratisAPartirDe === 'number' && artigos >= cents(cat.gratisAPartirDe)) portes = 0;
+      if (zona?.id === 'continente' && typeof cat.gratisAPartirDe === 'number' && artigos >= cents(cat.gratisAPartirDe)) portes = 0;
       totalMostrado = portes == null ? artigos : artigos + portes;
       $('[data-subtotal]', form).textContent = euro(artigos / 100);
       $('[data-portes]', form).textContent = portes === 0 ? 'Grátis' : portes == null ? 'A confirmar' : euro(portes / 100);
@@ -333,46 +439,97 @@
       return itens;
     };
     desenhar();
-    form.addEventListener('change', (e) => {
-      if (e.target.name === 'envio') desenhar();
-      if (e.target.matches('[data-oferta]')) $('[data-mensagem]', form).hidden = !e.target.checked;
-      if (e.target.matches('input')) { e.target.removeAttribute('aria-invalid'); const err = $('#' + (e.target.id || e.target.name) + '-erro'); if (err) err.textContent = ''; }
-    });
-    const mostrarErros = (erros) => {
-      const caixa = $('[data-resumo-erros]', form);
-      $('ul', caixa).innerHTML = erros.map(([id, m]) => `<li><a href="#${id === 'termos' ? 'termos-erro' : id}">${esc(m)}</a></li>`).join('');
-      caixa.hidden = false;
-      document.title = 'Erro: ' + tituloOriginal;
-      caixa.focus();
+
+    /* AS REGRAS DOS CAMPOS SÃO AS DO WORKER DAS ENCOMENDAS (worker/encomendas/contas.js, validarCliente; o email e o
+       NIF de src/lib/regras.mjs; scripts/testar.mjs confere que não se afastam): o que passa aqui não é recusado
+       depois do envio, e o que é recusado aqui seria recusado lá. Cada regra → a frase do erro, ou '' se está certo. */
+    const RE_EMAIL = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
+    const MAX_EMAIL = 160;
+    const MAX_CP_ESTRANGEIRO = 20;
+    const nifValido = (nif) => {
+      const s = String(nif).replace(/\s/g, '');
+      if (!/^[1-9][0-9]{8}$/.test(s)) return false;
+      let soma = 0;
+      for (let i = 0; i < 8; i++) soma += Number(s[i]) * (9 - i);
+      const resto = soma % 11;
+      return (resto < 2 ? 0 : 11 - resto) === Number(s[8]);
     };
+    const RE_CP = /^(\d{4})\s*-?\s*(\d{3})$/;          // 4440-000, 4440 000 ou 4440000 → 4440-000
+    const cpPortugues = (v) => { const m = RE_CP.exec(v); return m ? `${m[1]}-${m[2]}` : v; };
+    const CP_E_DAS_ILHAS = 'Em Portugal continental o código postal começa por 1 a 8. Para os Açores e a Madeira, escolhe essa entrega.';
+    const CP_E_DO_CONTINENTE = 'Nos Açores e na Madeira o código postal começa por 9. Para Portugal continental, escolhe essa entrega.';
+    const regras = {
+      nome: (v) => (v ? '' : 'Escreve o teu nome.'),
+      email: (v) => (v.length <= MAX_EMAIL && RE_EMAIL.test(v) ? '' : 'Escreve um email como nome@exemplo.pt.'),
+      telemovel: (v) => { const n = v.replace(/\D/g, '').length; return n >= 9 && n <= 15 ? '' : 'Escreve o telemóvel com 9 algarismos.'; },
+      nif: (v) => (!v || nifValido(v) ? '' : 'O NIF não está certo. Confirma-o ou deixa-o em branco.'),
+      morada: (v) => (v ? '' : 'Escreve a morada.'),
+      'codigo-postal': (v, zona) => {
+        if (zona === 'estrangeiro') return !v ? 'Escreve o código postal.' : v.length > MAX_CP_ESTRANGEIRO ? `O código postal tem no máximo ${MAX_CP_ESTRANGEIRO} caracteres.` : '';
+        const cp = cpPortugues(v);
+        const continente = /^[1-8]\d{3}-\d{3}$/.test(cp);
+        const ilhas = /^9\d{3}-\d{3}$/.test(cp);
+        if (zona === 'ilhas') return ilhas ? '' : continente ? CP_E_DO_CONTINENTE : 'Escreve o código postal como 9500-000.';
+        return continente ? '' : ilhas ? CP_E_DAS_ILHAS : 'Escreve o código postal como 4440-000.';
+      },
+      localidade: (v) => (v ? '' : 'Escreve a localidade.'),
+      pais: (v) => (v ? '' : 'Escreve o país.'),
+      termos: () => (form.elements.termos.checked ? '' : 'Para encomendar, aceita os termos e condições.'),
+    };
+    const camposDe = (zona) => ['nome', 'email', 'telemovel', 'nif',
+      ...(zona !== 'mao' ? ['morada', 'codigo-postal', 'localidade', ...(zona === 'estrangeiro' ? ['pais'] : [])] : []), 'termos'];
+    // o valor como o Worker o lê: sem os invisíveis e sem os espaços das pontas
+    const v = (id) => (form.elements[id]?.value || '').replace(/\p{Cf}/gu, '').trim();
+    const marcar = (id, msg) => {
+      const el = form.elements[id];
+      const err = $('#' + id + '-erro');
+      if (msg) el?.setAttribute('aria-invalid', 'true'); else el?.removeAttribute('aria-invalid');
+      if (err && err.textContent !== msg) err.textContent = msg;
+    };
+    const conferir = (id) => { const msg = regras[id](v(id), zonaEscolhida().value); marcar(id, msg); return msg; };
+    const comErro = (id) => form.elements[id]?.getAttribute('aria-invalid') === 'true';
+
+    /* Um campo com erro volta a conferir-se a cada letra: o erro sai (ou muda) enquanto se escreve, e NUNCA ao sair do
+       campo. Sair do campo é o «mousedown» no botão de enviar; tirar o erro nesse instante encolhia a página debaixo
+       do dedo, o botão subia, e o clique caía ao lado (no Safari, o 1.º toque em «Enviar» perdia-se). */
+    form.addEventListener('input', (e) => {
+      const id = e.target.id || e.target.name;
+      if (regras[id] && comErro(id)) conferir(id);
+    });
+    form.addEventListener('change', (e) => {
+      if (e.target.name === 'envio') {
+        desenhar();
+        // o código postal confere-se com a entrega; os campos da morada que a entrega já não pede ficam sem erro
+        const pede = camposDe(e.target.value);
+        for (const id of ['morada', 'codigo-postal', 'localidade', 'pais']) if (comErro(id)) { if (pede.includes(id)) conferir(id); else marcar(id, ''); }
+      }
+      if (e.target.matches('[data-oferta]')) $('[data-mensagem]', form).hidden = !e.target.checked;
+      if (e.target.name === 'termos' && comErro('termos')) conferir('termos');
+    });
+    const resumoErros = $('[data-resumo-erros]', form);
+    const mostrarErros = (erros) => {
+      $('ul', resumoErros).innerHTML = erros.map(([id, m]) => `<li><a href="#${id}">${esc(m)}</a></li>`).join('');
+      resumoErros.hidden = false;
+      document.title = 'Erro: ' + tituloOriginal;
+      resumoErros.focus();
+    };
+    // a ligação do resumo leva ao campo e põe lá o foco (a âncora sozinha só rolava até ele)
+    resumoErros.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href^="#"]');
+      const alvo = a && document.getElementById(a.hash.slice(1));
+      if (!alvo) return;
+      e.preventDefault();
+      alvo.focus({ preventScroll: true });
+      alvo.scrollIntoView({ block: 'center' });
+    });
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (botao.disabled) return;
       erroEnvio.textContent = '';
-      const erros = [];
-      const verificar = (id, ok, msg) => {
-        const el = form.elements[id];
-        const err = $('#' + id + '-erro');
-        if (ok) { el?.removeAttribute?.('aria-invalid'); if (err) err.textContent = ''; return; }
-        el?.setAttribute?.('aria-invalid', 'true');
-        if (err) err.textContent = msg;
-        erros.push([id, msg]);
-      };
-      const v = (id) => (form.elements[id]?.value || '').trim();
       const zona = zonaEscolhida().value;
-      verificar('nome', !!v('nome'), 'Escreve o teu nome.');
-      verificar('email', /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v('email')), 'Escreve um email como nome@exemplo.pt.');
-      verificar('telemovel', v('telemovel').replace(/\D/g, '').length >= 9, 'Escreve o telemóvel com 9 algarismos.');
-      verificar('nif', !v('nif') || /^\d{9}$/.test(v('nif').replace(/\s/g, '')), 'O NIF tem 9 algarismos (ou deixa em branco).');
-      if (zona !== 'mao') {
-        verificar('morada', !!v('morada'), 'Escreve a morada.');
-        verificar('codigo-postal', zona === 'estrangeiro' ? !!v('codigo-postal') : /^\d{4}-?\d{3}$/.test(v('codigo-postal')), zona === 'estrangeiro' ? 'Escreve o código postal.' : 'Escreve o código postal como 4440-000.');
-        verificar('localidade', !!v('localidade'), 'Escreve a localidade.');
-        if (zona === 'estrangeiro') verificar('pais', !!v('pais'), 'Escreve o país.');
-      }
-      verificar('termos', form.elements.termos.checked, 'Para encomendar, aceita os termos e condições.');
+      const erros = camposDe(zona).map((id) => [id, conferir(id)]).filter(([, m]) => m);
       if (erros.length) { mostrarErros(erros); return; }
-      $('[data-resumo-erros]', form).hidden = true;
+      resumoErros.hidden = true;
       document.title = tituloOriginal;
 
       const itens = await desenhar();
@@ -386,7 +543,7 @@
         cliente: {
           nome: v('nome'), email: v('email'), telefone: v('telemovel'),
           ...(v('nif') ? { nif: v('nif').replace(/\s/g, '') } : {}),
-          ...(zona !== 'mao' ? { morada: v('morada'), codigoPostal: zona === 'estrangeiro' ? cp : cp.replace(/^(\d{4})(\d{3})$/, '$1-$2'), localidade: v('localidade') } : {}),
+          ...(zona !== 'mao' ? { morada: v('morada'), codigoPostal: zona === 'estrangeiro' ? cp : cpPortugues(cp), localidade: v('localidade') } : {}),
           ...(zona === 'estrangeiro' ? { pais: v('pais') } : {}),
         },
         oferta: !!form.elements.oferta.checked,
@@ -407,12 +564,14 @@
           location.assign(`${BASE}/obrigado/?e=${encodeURIComponent(resposta.encomenda)}&c=${encodeURIComponent(resposta.chave)}`);
           return;
         }
+        const id = { codigoPostal: 'codigo-postal', telefone: 'telemovel' }[resposta.campo] || resposta.campo;
         if (r.status === 409) { await desenhar(true); erroEnvio.textContent = resposta.erro || 'Os preços mudaram. Confirma o total e envia outra vez.'; }
-        else if (r.status === 400 && resposta.campo && form.elements[{ codigoPostal: 'codigo-postal', telefone: 'telemovel' }[resposta.campo] || resposta.campo]) {
-          const id = { codigoPostal: 'codigo-postal', telefone: 'telemovel' }[resposta.campo] || resposta.campo;
-          verificar(id, false, resposta.erro);
-          mostrarErros(erros);
-        } else erroEnvio.textContent = resposta.erro || 'Não conseguimos enviar a encomenda. Tenta outra vez daqui a pouco, ou manda-nos mensagem.';
+        else if (r.status === 400 && regras[id] && form.elements[id]) { marcar(id, resposta.erro); mostrarErros([[id, resposta.erro]]); }
+        else {
+          // um produto que deixou de se vender (ou mudou) entretanto: o resumo volta a desenhar-se sem ele
+          if (r.status === 400 && ['produto', 'tamanho', 'cor', 'opcoes'].includes(resposta.campo)) await desenhar(true);
+          erroEnvio.textContent = resposta.erro || 'Não conseguimos enviar a encomenda. Tenta outra vez daqui a pouco, ou manda-nos mensagem.';
+        }
       } catch {
         erroEnvio.textContent = 'Não conseguimos enviar a encomenda (sem ligação?). Tenta outra vez daqui a pouco.';
       }
@@ -430,7 +589,9 @@
     const pedido = id && q.get('c') ? `e=${encodeURIComponent(id)}&c=${encodeURIComponent(q.get('c'))}` : q.get('s') ? `s=${encodeURIComponent(q.get('s'))}` : '';
     if (q.get('s')) gravar([]);  // voltou da Stripe: o carrinho já foi
     const simples = (n) => `<p>Recebemos a tua encomenda${n ? ` <strong>${esc(n)}</strong>` : ''}. Mandámos-te um email com o resumo; se não o vires, espreita o spam.</p>`;
-    if (!pedido || !API) corpo.innerHTML = simples(id);
+    // aberta à mão (sem encomenda no endereço), não diz que recebeu nada
+    if (!pedido) corpo.innerHTML = '<p>Aqui aparece a tua encomenda logo depois de a fazeres. Se já encomendaste, tens o resumo no teu email.</p>';
+    else if (!API) corpo.innerHTML = simples(id);
     else {
       fetch(`${API}/encomenda?${pedido}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((e) => {
         const linhas = e.linhas.map((l) => `<li><span>${esc(l.nome)}${l.qtd > 1 ? ' × ' + l.qtd : ''}${l.escolhas?.length ? `<small>${l.escolhas.map(esc).join(' · ')}</small>` : ''}</span><b>${euro(l.total_cents / 100)}</b></li>`).join('');

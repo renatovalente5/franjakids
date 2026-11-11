@@ -64,7 +64,8 @@ ${cartoes([
 <h2>Portes</h2>
 <ul>${ent.zonas.map((z) => `<li>${esc(z.nome)}: ${portesDe(z)}${z.id === 'continente' && gratis ? ` (grátis a partir de ${gratis} em artigos)` : ''}.</li>`).join('')}</ul>
 <p>Os portes aparecem no finalizar, antes de encomendares.</p>`,
-    `Prazos de produção, envios por CTT${mao ? ` e ${esc(mao.nome.charAt(0).toLowerCase() + mao.nome.slice(1))}` : ''}.`),
+    // a descrição vai em texto simples: o layout.mjs escapa-a (aqui escapada também, um «&» saía «&amp;amp;»)
+    `Prazos de produção, envios por CTT${mao ? ` e ${mao.nome.charAt(0).toLowerCase() + mao.nome.slice(1)}` : ''}.`),
 
     texto('/trocas-e-devolucoes/', 'Trocas e devoluções', 'O que podes devolver, como, e o que fazer se alguma coisa chegar mal.', `
 <h2>Artigos sem personalização</h2>
@@ -94,7 +95,7 @@ ${comoSeFaz()}
 <h2>3. Preços e pagamento</h2>
 <p>Os preços incluem IVA. Os portes aparecem antes da encomenda${gratis ? ` e são grátis em Portugal continental a partir de ${gratis} em artigos` : ''}. ${online ? 'Paga-se por MB WAY ou cartão, através da Stripe, no fim da encomenda.' : 'Depois de confirmarmos a encomenda, combinamos o pagamento por MB WAY ou transferência; só produzimos depois de recebido.'}</p>
 <h2>4. Personalização</h2>
-<p>Depois da encomenda, mandamos a pré-visualização por email ou mensagem; só produzimos depois da sua aprovação. O texto é usado exactamente como foi escrito na encomenda.</p>
+<p>Depois da encomenda, mandamos a pré-visualização por email ou mensagem; só produzimos depois da sua aprovação. O texto é usado exatamente como foi escrito na encomenda.</p>
 <h2>5. Prazos e entrega</h2>
 <p>As peças personalizadas levam cerca de ${esc(loja.producao)} a fazer. Em Portugal continental, o envio por correio registado CTT chega em até ${esc(ent.prazoContinente)}. Para as ilhas e o estrangeiro, confirmamos prazo e portes antes do pagamento.${mao ? ` ${esc(mao.nome)}, sem custo.` : ''}</p>
 <h2>6. Direito de livre resolução</h2>
@@ -107,12 +108,12 @@ ${ralHtml({ ambito: 'local', concelhos: [ent.concelho] })}
 <p>Pode também usar o <a href="https://www.livroreclamacoes.pt/inicio" rel="noopener">Livro de Reclamações Eletrónico</a>.</p>`,
     'Termos e condições da loja online da Franja Kids.', { indexar: false }),
 
-    texto('/privacidade/', 'Política de privacidade', 'Que dados pedimos, para quê, e os teus direitos.', `
+    texto('/privacidade/', 'Política de privacidade', 'Que dados pedimos, para quê, e os seus direitos.', `
 <h2>Quem trata os dados</h2>
 ${identificacao(e)}
 <h2>Que dados e para quê</h2>
 <ul>
-  <li><strong>Encomendas:</strong> nome, email, telemóvel, NIF (se o deres), morada e o texto da personalização, para fazer, enviar e faturar a encomenda (execução do contrato e obrigações fiscais). Guardamos as encomendas 10 anos, como a lei fiscal obriga; o texto da personalização apaga-se no fim da garantia.</li>
+  <li><strong>Encomendas:</strong> nome, email, telemóvel, NIF (se o der), morada e o texto da personalização, para fazer, enviar e faturar a encomenda (execução do contrato e obrigações fiscais). Guardamos as encomendas 10 anos, como a lei fiscal obriga; o texto da personalização apaga-se no fim da garantia.</li>
   <li><strong>Mensagens:</strong> o que nos escreve por mensagem ou email, para responder (12 meses).</li>
   <li><strong>Carrinho:</strong> fica guardado só no seu browser (armazenamento local), para não o perder entre páginas. Não usamos cookies nem estatísticas.</li>
 </ul>

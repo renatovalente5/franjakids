@@ -42,7 +42,7 @@ export const fotoJpg = (nome) => { const f = FOTOS[nome]; return f ? SITE_URL + 
 // a miniatura do carrinho e da gaveta (a de 360, em WebP)
 export const fotoPequena = (nome) => { const f = FOTOS[nome]; return f ? ficheiroDe(f, nome, f.larguras[0], 'webp') : ''; };
 
-export function foto(nome, { sizes = '100vw', classe = '', prioridade = false, alt } = {}) {
+export function foto(nome, { sizes = '100vw', classe = '', prioridade = false, lazy = !prioridade, alt } = {}) {
   const f = FOTOS[nome];
   if (!f) throw new Error('fotografia em falta: ' + nome);
   const set = (fmt) => f.larguras.map((w) => `${ficheiroDe(f, nome, w, fmt)} ${w}w`).join(', ');
@@ -51,7 +51,7 @@ export function foto(nome, { sizes = '100vw', classe = '', prioridade = false, a
   return `<picture${classe ? ` class="${classe}"` : ''}>`
     + (f.formatos.includes('avif') ? `<source type="image/avif" srcset="${set('avif')}" sizes="${sizes}">` : '')
     + `<img src="${ficheiroDe(f, nome, meio, 'webp')}" srcset="${set('webp')}" sizes="${sizes}" width="${f.largura}" height="${f.altura}" alt="${esc(texto)}"`
-    + ` style="object-position:${f.foco}"${prioridade ? ' fetchpriority="high"' : ' loading="lazy"'}>`
+    + ` style="object-position:${f.foco}"${prioridade ? ' fetchpriority="high"' : ''}${lazy && !prioridade ? ' loading="lazy"' : ''}>`
     + `</picture>`;
 }
 

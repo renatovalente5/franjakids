@@ -8,13 +8,25 @@ import { TITULO_INICIO, VERIFICACOES } from './seo.mjs';
    Google segue as ligações delas, e elas ficam fora do sitemap). */
 const robots = (indexar) => (!PRODUCAO ? '<meta name="robots" content="noindex, nofollow">\n' : indexar ? '' : '<meta name="robots" content="noindex, follow">\n');
 
+/* A altura que o scripts/imagens.py dá à versão reduzida: round() do Python, que nos empates (,5) vai para o par —
+   o Math.round ia sempre para cima, e o cartão dizia 707 a uma fotografia de 706. */
+export const alturaReduzida = (largura, altura, w) => {
+  const x = (altura * w) / largura;
+  const baixo = Math.floor(x);
+  const resto = x - baixo;
+  return resto > 0.5 ? baixo + 1 : resto < 0.5 ? baixo : baixo % 2 === 0 ? baixo : baixo + 1;
+};
+
 /* O cartão de partilha: a fotografia da página em JPEG (o WhatsApp não lê AVIF), com as medidas e a descrição. */
 function imagemDePartilha(imagem) {
   const f = imagem && FOTOS[imagem];
-  if (!f) return `<meta property="og:image" content="${absoluto('/assets/marca/logotipo-640.png')}">\n<meta property="og:image:alt" content="Franja Kids">`;
+  if (!f) return `<meta property="og:image" content="${absoluto('/assets/marca/logotipo-640.png')}">
+<meta property="og:image:width" content="640">
+<meta property="og:image:height" content="453">
+<meta property="og:image:alt" content="Franja Kids">`;
   return `<meta property="og:image" content="${fotoJpg(imagem)}">
 <meta property="og:image:width" content="${f.jpg}">
-<meta property="og:image:height" content="${Math.round((f.jpg * f.altura) / f.largura)}">
+<meta property="og:image:height" content="${alturaReduzida(f.largura, f.altura, f.jpg)}">
 <meta property="og:image:alt" content="${esc(f.alt)}">`;
 }
 
@@ -30,6 +42,8 @@ export const MENU = [
 ];
 
 export function pagina({ loja, versao, api = '', caminho, titulo, tituloSeo, descricao, corpo, imagem, jsonld = [], semRodape = false, indexar = true }) {
+  // a página 404 serve qualquer morada que não existe: não tem uma morada sua para dizer ao Google
+  const sem404 = (html) => (caminho === '/404.html' ? '' : html);
   // um nome comprido (os produtos têm os nomes que a dona escreve) vai sem « · Franja Kids»: o Google corta
   // o título a ~60 caracteres e já mostra o nome do site por cima do resultado
   const base = tituloSeo || titulo;
@@ -44,14 +58,14 @@ export function pagina({ loja, versao, api = '', caminho, titulo, tituloSeo, des
 <style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }</style>
 <title>${esc(tituloCompleto)}</title>
 <meta name="description" content="${esc(descricao || loja.descricao)}">
-${robots(indexar)}${caminho === '/' ? Object.entries(VERIFICACOES).map(([n, v]) => `<meta name="${n}" content="${v}">\n`).join('') : ''}<link rel="canonical" href="${absoluto(caminho)}">
+${robots(indexar)}${caminho === '/' ? Object.entries(VERIFICACOES).map(([n, v]) => `<meta name="${n}" content="${v}">\n`).join('') : ''}${sem404(`<link rel="canonical" href="${absoluto(caminho)}">`)}
 <meta name="theme-color" content="#F7EEDF">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="pt_PT">
 <meta property="og:site_name" content="${esc(loja.nome)}">
 <meta property="og:title" content="${esc(tituloCompleto)}">
 <meta property="og:description" content="${esc(descricao || loja.descricao)}">
-<meta property="og:url" content="${absoluto(caminho)}">
+${sem404(`<meta property="og:url" content="${absoluto(caminho)}">`)}
 ${imagemDePartilha(imagem)}
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="${url('/assets/marca/icone-32.png')}" sizes="32x32">
@@ -80,7 +94,7 @@ ${jsonld.map(ld).join('\n')}
   <ul class="contentor">${MENU.map(([t, h]) => `<li><a href="${url(h)}"${caminho.startsWith(h) ? ' aria-current="page"' : ''}>${t}${icone('seta', 'icone')}</a></li>`).join('')}</ul>
   <div class="contentor menu-telemovel__fim"><a href="https://www.instagram.com/${loja.instagram}/">${icone('instagram', 'icone icone--pequeno')}@${loja.instagram}</a><a href="${url('/contactos/')}">Contactos</a></div>
 </nav>
-<script>/* o número do carrinho já no primeiro desenho (a passagem entre páginas não pisca); o site.js mantém-no. A chave é a do site.js (CHAVE). */try{const n=(JSON.parse(localStorage.getItem('franja:carrinho:v2'))||[]).reduce((s,i)=>s+(i.qtd||0),0);if(n>0){const b=document.querySelector('[data-carrinho-conta]');b.textContent=n;b.hidden=false}}catch(e){}</script>
+<script>/* o número do carrinho já no primeiro desenho (a passagem entre páginas não pisca); o site.js mantém-no. A chave é a do site.js (CHAVE). */try{const n=(JSON.parse(localStorage.getItem('franja:carrinho:v2'))||[]).reduce((s,i)=>s+(i&&typeof i==='object'&&typeof i.slug==='string'&&i.slug?Math.min(20,Math.max(1,Math.floor(Number(i.qtd))||1)):0),0);if(n>0){const b=document.querySelector('[data-carrinho-conta]');b.textContent=n;b.hidden=false}}catch(e){}</script>
 
 <main id="conteudo">
 ${corpo}
