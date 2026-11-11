@@ -95,30 +95,44 @@ Apagar uma encomenda de teste: `$WR kv key delete "order:FK-…" --binding ORDER
 Nota: a lista do painel (o `list()` do KV) pode levar até um minuto a reflectir uma mudança de estado;
 a ficha (`get`) é imediata.
 
-## O que falta ligar
+## O que está ligado (11 nov 2026) e o que falta
 
-1. **O KV** — `wrangler kv namespace create franjakids-encomendas-ORDERS` e o id no `wrangler.toml`
-   (está o marcador `POR-CRIAR`: com ele, um deploy falha).
-2. **O painel** — o mesmo `PAINEL_SEGREDO` nos dois Workers (`openssl rand -hex 32`, guardado em
-   `_cliente/segredos/`).
-3. **O email da loja** — `STORE_EMAIL` no toml (recebe «Nova encomenda», «Encomenda paga», os
-   falhados e os pagamentos de encomendas anuladas; é o reply-to dos emails ao cliente). Vazio, a loja
-   não recebe nada.
-4. **O Resend com o domínio** — verificar o domínio (DKIM, SPF, DMARC),
-   `$WR secret put RESEND_API_KEY --config $CFG < …` e, no toml,
-   `MAIL_FROM = "Franja Kids <encomendas@franjakids.com>"`. Até lá `onboarding@resend.dev` só
-   entrega ao dono da conta do Resend, e sem a chave não se manda nada (a encomenda fica na mesma).
-5. **A Stripe** (modo «online», no fim) — na conta da cliente, ligar o cartão e o MB WAY; uma chave
-   restrita (`rk_live_…`) com escrita nas Checkout Sessions e leitura nos PaymentIntents e nas
-   Charges (é por lá que se sabe o meio de pagamento usado) →
-   `$WR secret put STRIPE_SECRET_KEY --config $CFG < …`; o endpoint `https://<worker>/stripe/webhook`
-   com os eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
-   `checkout.session.async_payment_failed`, `checkout.session.expired`, `charge.refunded` (a lista
-   está em `stripe.js`, `EVENTOS`) → `$WR secret put STRIPE_WEBHOOK_SECRET --config $CFG < …`; por
-   fim `pagamentos.modo = "online"` no `content/loja.json` (pelo painel) — o catálogo leva o modo.
-6. **O domínio** — no toml, `SITE_URL`, `LOGO_URL` e `ALLOWED_ORIGINS` passam do
-   `renatovalente5.github.io/franjakids` ao domínio (e o `127.0.0.1:8985` e o `localhost:8985`
-   saem).
+1. ~~O KV~~ — `ORDERS` com o id no `wrangler.toml` (10 nov 2026).
+2. ~~O painel~~ — o mesmo `PAINEL_SEGREDO` nos dois Workers (em `~/Chaves/franjakids/PAINEL_SEGREDO`).
+3. ~~O email da loja~~ — `STORE_EMAIL = "franjakids@gmail.com"` (11 nov 2026).
+4. ~~O email~~ — pela Cloudflare (Email Sending, binding `EMAIL`, de `encomendas@franjakids.com`); o Resend
+   não se usa.
+5. **A Stripe** — conta da cliente «Franja Kids», com o Renato como «Developer»:
+   - **No modo de teste está tudo e provado**:
+     - a marca (ícone, logótipo, bege `#F7EEDF`, castanho `#5A3E33`) e os emails em pt-PT, sem recibos da
+       Stripe (os emails são deste Worker);
+     - formas de pagamento: cartão (com Apple Pay e Google Pay), Link e MB WAY; Amazon Pay, Klarna,
+       Satispay, Bancontact e EPS desligados;
+     - a chave restrita «Worker das encomendas (ensaio)» (`rk_test_…`) com escrita nas Checkout Sessions e
+       leitura nos PaymentIntents e nas Charges and Refunds;
+     - o webhook `franjakids-encomendas-ensaio` (versão `2026-08-26.dahlia`, da mesma família da
+       `STRIPE_API_VERSION`), com os 5 eventos de `EVENTOS`.
+   - **A prova**: o Worker de ensaio (o ambiente `ensaio` deste `wrangler.toml`, com as suas encomendas e o
+     catálogo de ensaio num gist) e `~/Websites/_ferramentas/franjakids/stripe-ensaio.mjs` [cartao|mbway]
+     [chromium|webkit]. O carrinho, o finalizar, o Checkout com o cartão 4242 e com o MB WAY de teste, a
+     volta à «obrigado», a encomenda «paga» com o meio certo (`card`/`mb_way`), os emails à loja e ao
+     cliente e, com um reembolso no painel da Stripe, a encomenda «reembolsada». 7/7 em Chromium e WebKit.
+   - **Falta a ativação**, que é da dona: «Ativar Payments» na conta (empresa, banco, extras). Os dados
+     públicos (nome, site, email de apoio, descritor do extrato) só aparecem depois dela. Depois, em
+     produção:
+     - as formas de pagamento como no teste (a configuração é por modo);
+     - uma chave restrita `rk_live_…` com as mesmas três permissões →
+       `$WR secret put STRIPE_SECRET_KEY --config $CFG < …`;
+     - o webhook `https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev/stripe/webhook`, com os
+       5 eventos e a versão dahlia → `$WR secret put STRIPE_WEBHOOK_SECRET --config $CFG < …`. O segredo
+       copia-se pelo botão «Copiar», com o clipboard direto para o `wrangler`: as ferramentas de procura
+       do browser leem o texto revelado (aconteceu com o de teste, que foi trocado);
+     - o `/painel/saude` com `stripe` e `webhook` a `true`, e a gaveta «Pagamento» do painel a dizer
+       «Stripe ligado»;
+     - por fim, `pagamentos.modo = "online"` no painel (o catálogo leva o modo) e o «Construir» do site com
+       `--producao --api=https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev`.
+6. ~~O domínio~~ — `SITE_URL`, `LOGO_URL` e `ALLOWED_ORIGINS` no `franjakids.com`; os endereços locais
+   passaram para o Worker de ensaio (127.0.0.1:8986).
 7. **Os portes** — são do `content/loja.json` (o painel), não do Worker: enquanto o continente não os
    tiver, as encomendas por CTT seguem com «portes por confirmar» em modo «encomenda», e em modo
    «online» essas zonas não se vendem.
