@@ -237,7 +237,7 @@ pessoa; o Resend fica como plano B).
 | pronta | «A tua encomenda está pronta» + combinamos a entrega em mão | — |
 | enviada | «A tua encomenda seguiu» + nota (registo dos CTT) | — |
 | anulada | «A tua encomenda foi anulada» + nota | — |
-| reembolsada / falhou / expirou | «Reembolso feito» / «O pagamento não se concluiu» (falhou com Multibanco: «A referência Multibanco expirou sem o pagamento») | «FK-… falhou/expirou» |
+| reembolsada / falhou / expirou | «Reembolso feito» / «O pagamento não se concluiu» (falhou com Multibanco: «A referência Multibanco expirou sem o pagamento») | — (não pede nada à loja: a encomenda não se fez e o painel mostra-a; até 11 nov 2026 ia «FK-… falhou/expirou») |
 
 ## 7. Vars do Worker (wrangler)
 
@@ -249,7 +249,8 @@ os emails: o Outlook não mostra WebP), `ALLOWED_ORIGINS`, `MAIL_FROM`, `STORE_E
 `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `PAINEL_SEGREDO`. Bindings: KV `ORDERS`, rate limit
 `TRAVAO_CHECKOUT`, os objectos duráveis `ENCOMENDA` (classe `Encomenda`) e `CONTADOR` (classe
 `Contador`, o travão dos emails: no máximo 3 emails de encomendas por pagar — a «registada» do modo
-encomenda e a «expirou» — por endereço e por dia; o da loja sai sempre), com a migração `v1`
+encomenda, a «expirou», o «Falta pagar» do Multibanco e o «falhou» — por endereço e por dia; o da loja sai
+sempre), com a migração `v1`
 (`new_sqlite_classes`, repetida no `[env.ensaio]`). `wrangler deploy --config worker/encomendas/wrangler.toml` sempre com `--config`
 (memória: wrangler-autoconfig-pasta-mae).
 

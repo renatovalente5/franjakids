@@ -152,12 +152,12 @@ test('o webhook: a sessão expirada e o pagamento falhado avisam; depois de paga
   assert.equal((await webhook(env, expirou)).status, 200);
   assert.equal((await ler()).estado, 'expirou');
   let emails = rede.resend();
-  assert.equal(emails.length, 2);
+  assert.equal(emails.length, 1, 'só à cliente: à loja não pede nada');
   const cliente = emails.find((e) => e.to[0] === 'maria@exemplo.pt');
   assert.equal(cliente.subject, `O pagamento da encomenda ${encomenda} não se concluiu`);
   assert.match(cliente.text, /A página de pagamento expirou sem o pagamento\. Nada foi cobrado\./);
   assert.doesNotMatch(cliente.text, /14 dias|desistência/);
-  assert.equal(emails.find((e) => e.to[0] === 'loja@exemplo.pt').subject, `${encomenda} expirou`);
+  assert.equal((await ler()).avisos.expirou.loja, 'não se aplica');
   // Pagou afinal (a Stripe ainda aceitou o pagamento): fica paga.
   rede.chamadas.length = 0;
   assert.equal((await webhook(env, sessaoPaga(encomenda))).status, 200);
@@ -171,14 +171,14 @@ test('o webhook: a sessão expirada e o pagamento falhado avisam; depois de paga
   assert.equal(rede.resend().length, 0);
 });
 
-test('o webhook: o pagamento falhado numa encomenda pendente marca «falhou» e avisa os dois', async () => {
+test('o webhook: o pagamento falhado numa encomenda pendente marca «falhou» e avisa a cliente (à loja não pede nada)', async () => {
   const { env, encomenda, ler } = await pendente();
   const falhou = { id: 'evt_falhou', type: 'checkout.session.async_payment_failed', data: { object: { id: 'cs_test_a1b2c3d4e5f6', object: 'checkout.session', metadata: { encomenda } } } };
   assert.equal((await webhook(env, falhou)).status, 200);
   assert.equal((await ler()).estado, 'falhou');
   const emails = rede.resend();
   assert.match(emails.find((e) => e.to[0] === 'maria@exemplo.pt').text, /O pagamento não se concluiu\. Nada foi cobrado\./);
-  assert.equal(emails.find((e) => e.to[0] === 'loja@exemplo.pt').subject, `${encomenda} falhou`);
+  assert.deepEqual(emails.map((e) => e.to[0]), ['maria@exemplo.pt']);
 });
 
 /* O MULTIBANCO (11 nov 2026, da LF Mobile): a sessão completa-se sem pagamento, a referência chega no
@@ -246,9 +246,7 @@ test('o webhook: a referência Multibanco que não se pagou a tempo — «falhou
   assert.equal((await ler()).estado, 'falhou');
   const emails = rede.resend();
   assert.match(emails.find((e) => e.to[0] === 'maria@exemplo.pt').text, /A referência Multibanco expirou sem o pagamento\. Nada foi cobrado\./);
-  const loja = emails.find((e) => e.to[0] === 'loja@exemplo.pt');
-  assert.equal(loja.subject, `${encomenda} falhou`);
-  assert.match(loja.text, /A referência Multibanco da encomenda .+ expirou sem o pagamento\. O cliente foi avisado\./);
+  assert.deepEqual(emails.map((e) => e.to[0]), ['maria@exemplo.pt'], 'à loja não vai nada');
 });
 
 test(`o «Falta pagar» do Multibanco tem o travão por endereço: no máximo ${MAX_EMAILS_POR_PAGAR} por dia a quem ainda não pagou`, async () => {

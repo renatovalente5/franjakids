@@ -197,11 +197,12 @@ test('o «Falta pagar» do Multibanco: a entidade, a referência, o valor e a va
   // a referência expirada: a frase diz que foi a referência
   const expirada = mensagens(env, 'falhou', { ...paraMomento('falhou'), stripe: { multibanco: MB } });
   assert.match(expirada.cliente.texto, /A referência Multibanco expirou sem o pagamento\. Nada foi cobrado\./);
-  assert.match(expirada.loja.texto, /^A referência Multibanco da encomenda FK-20261109-7K2Q9M expirou sem o pagamento\. O cliente foi avisado\./);
+  assert.equal(expirada.loja, null);
 });
 
 test('os emails à loja: só nos momentos certos, com tudo o que precisa (telefone, NIF, email, morada, notas)', () => {
-  const comLoja = { registada: true, paga: true, multibanco: false, pronta: false, enviada: false, anulada: false, reembolsada: false, falhou: true, expirou: true };
+  // à loja só o que lhe pede alguma coisa (o «expirou» e o «falhou» saíram a 11 nov 2026, a pedido do Renato)
+  const comLoja = { registada: true, paga: true, multibanco: false, pronta: false, enviada: false, anulada: false, reembolsada: false, falhou: false, expirou: false };
   for (const momento of MOMENTOS) {
     assert.equal(Boolean(mensagens(env, momento, paraMomento(momento), { origem: 'stripe' }).loja), comLoja[momento], momento);
   }
@@ -214,11 +215,8 @@ test('os emails à loja: só nos momentos certos, com tudo o que precisa (telefo
   assert.match(d.texto, /Falta confirmar a encomenda com o cliente e combinar o pagamento\./);
   assert.match(d.html, /href="mailto:maria@exemplo\.pt"/);
   assert.match(d.html, /Responder a este email é responder ao cliente\./);
-  const falhou = mensagens(env, 'falhou', paraMomento('falhou')).loja;
-  assert.equal(falhou.assunto, 'FK-20261109-7K2Q9M falhou');
-  assert.match(falhou.texto, /^O pagamento da encomenda FK-20261109-7K2Q9M não se concluiu\. O cliente foi avisado\./);
-  assert.match(mensagens(env, 'expirou', paraMomento('expirou')).loja.texto, /^A página de pagamento da encomenda FK-20261109-7K2Q9M expirou sem o pagamento\. O cliente foi avisado\./);
-  assert.equal(mensagens(env, 'expirou', paraMomento('expirou')).loja.assunto, 'FK-20261109-7K2Q9M expirou');
+  // o pagamento que não se fez: só a cliente é avisada, pela Stripe ou pelo painel
+  for (const momento of ['falhou', 'expirou']) for (const origem of ['stripe', 'painel']) assert.equal(mensagens(env, momento, paraMomento(momento), { origem }).loja, null, `${momento}/${origem}`);
   assert.match(mensagens(env, 'paga', paraMomento('paga'), { origem: 'stripe' }).loja.texto, /Pagamento: MB WAY · Stripe: pi_1/);
 });
 

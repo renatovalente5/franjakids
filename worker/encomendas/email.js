@@ -13,8 +13,11 @@
  * documento é deliberada, não um subproduto do HTML (memória email-transaccional-texto-e-html).
  *
  * Cada momento (§6 do contrato) é uma entrada de AVISOS: quem a chama é o /checkout (registada),
- * o webhook da Stripe (paga, reembolsada, falhou, expirou) e o painel (paga, pronta, enviada,
- * anulada). avisar() manda e devolve o que aconteceu a cada destinatário ({ em, cliente, loja }).
+ * o webhook da Stripe (paga, multibanco, reembolsada, falhou, expirou) e o painel (paga, pronta,
+ * enviada, anulada). avisar() manda e devolve o que aconteceu a cada destinatário ({ em, cliente, loja }).
+ * À loja só vai o que lhe pede alguma coisa: a encomenda nova e a paga (fazer, enviar, faturar) e o
+ * pagamento que chega a uma anulada (devolvê-lo). O «expirou» e o «falhou» não lhe pedem nada — a
+ * encomenda não se fez e o painel mostra-a —: só a cliente é avisada (o Renato, 11 nov 2026).
  */
 
 import { documento, tabelaArtigos, ficha, botao, caixaMultibanco, separador, bloco, h2, p, pequeno, ligacao, esc, linhas } from './email-html.js';
@@ -322,20 +325,12 @@ const AVISOS = {
     loja: null,
   }),
   // Pela Stripe, só um meio diferido falha depois da página: a referência Multibanco que não se pagou a tempo.
-  falhou: (env, enc) => naoConcluido(env, enc, (enc.stripe || {}).multibanco ? {
-    razao: 'A referência Multibanco expirou sem o pagamento.', palavra: 'falhou', titulo: 'Referência Multibanco expirada',
-    cabecalho: `A referência Multibanco da encomenda ${enc.encomenda} expirou sem o pagamento.`,
-  } : {
-    razao: 'O pagamento não se concluiu.', palavra: 'falhou', titulo: 'Pagamento falhado',
-    cabecalho: `O pagamento da encomenda ${enc.encomenda} não se concluiu.`,
-  }),
-  expirou: (env, enc) => naoConcluido(env, enc, {
-    razao: 'A página de pagamento expirou sem o pagamento.', palavra: 'expirou', titulo: 'Pagamento expirado',
-    cabecalho: `A página de pagamento da encomenda ${enc.encomenda} expirou sem o pagamento.`,
-  }),
+  falhou: (env, enc) => naoConcluido(env, enc, (enc.stripe || {}).multibanco ? 'A referência Multibanco expirou sem o pagamento.' : 'O pagamento não se concluiu.'),
+  expirou: (env, enc) => naoConcluido(env, enc, 'A página de pagamento expirou sem o pagamento.'),
 };
 
-function naoConcluido(env, enc, { razao, palavra, titulo, cabecalho }) {
+/* O pagamento que não se fez: só à cliente (à loja não pede nada; o painel mostra a encomenda). */
+function naoConcluido(env, enc, razao) {
   return {
     cliente: emailCliente(env, enc, {
       assunto: `O pagamento da encomenda ${enc.encomenda} não se concluiu`,
@@ -343,7 +338,7 @@ function naoConcluido(env, enc, { razao, palavra, titulo, cabecalho }) {
       frase: `${razao} Nada foi cobrado. Podes encomendar outra vez no site ou mandar-nos mensagem no Instagram.`,
       semDesistencia: true,
     }),
-    loja: emailLoja(env, enc, { assunto: `${enc.encomenda} ${palavra}`, titulo, cabecalho: `${cabecalho} O cliente foi avisado.` }),
+    loja: null,
   };
 }
 
