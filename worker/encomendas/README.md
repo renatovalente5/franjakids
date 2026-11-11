@@ -20,7 +20,8 @@ está nas [Decisões](#decisões). O site (`assets/js/site.js`) e o painel
   Portugal), a oferta, as notas e os termos, e compara o total com o que o site mostrou (409 se um
   preço mudou entretanto). Grava no KV `ORDERS`. Em modo **encomenda** (o de agora) manda os emails e
   devolve o número e a chave; em modo **online** abre a página segura da Stripe (hosted, em
-  português, com os meios ligados na conta: cartão e MB WAY) e devolve o URL.
+  português, com os meios ligados na conta: MB WAY, Multibanco, cartão, Apple Pay e Google Pay) e devolve
+  o URL.
 - `GET /encomenda?e=<id>&c=<chave>` (ou `?s=<sessão Stripe>`) — o que a página «obrigado» mostra:
   sem email, telefone, morada, NIF nem notas, e do nome só o primeiro.
 - `POST /stripe/webhook` — os eventos da Stripe, com a assinatura verificada e a idempotência por
@@ -109,13 +110,18 @@ vir com ~50 s de atraso (medido), e escrever por cima dela perdia pagamentos —
    - **No modo de teste está tudo e provado**:
      - a marca (ícone, logótipo, bege `#F7EEDF`, castanho `#5A3E33`) e os emails em pt-PT, sem recibos da
        Stripe (os emails são deste Worker);
-     - formas de pagamento: cartão (com Apple Pay e Google Pay), Link e MB WAY; Amazon Pay, Klarna,
-       Satispay, Bancontact e EPS desligados;
-     - a chave restrita «Worker das encomendas (ensaio)» (`rk_test_…`) com escrita nas Checkout Sessions e
-       nos Coupons (os cupões, desde 11 nov 2026) e
-       leitura nos PaymentIntents e nas Charges and Refunds;
+     - formas de pagamento (11 nov 2026, a pedido do Renato): **só** cartão, Apple Pay, Google Pay, MB WAY
+       e Multibanco — tudo o resto desligado (Link, Kakao Pay, Naver Pay, PAYCO, Samsung Pay, BLIK, PIX,
+       Amazon Pay, Klarna, Satispay, Bancontact, EPS…); o Worker não fixa os meios, a configuração da
+       conta é que manda;
+     - em «E-mails de clientes», as instruções de pagamento do Multibanco **desligadas**: a referência
+       manda-a este Worker, no «Falta pagar» (com as duas, a cliente recebia dois emails);
+     - a chave restrita «Worker das encomendas (ensaio)» (`rk_test_…`) com escrita nas Checkout Sessions,
+       nos Coupons (os cupões) e nos PaymentIntents (cancelar a referência Multibanco de uma encomenda
+       anulada; até 11 nov 2026 era só leitura) e leitura nas Charges and Refunds;
      - o webhook `franjakids-encomendas-ensaio` (versão `2026-08-26.dahlia`, da mesma família da
-       `STRIPE_API_VERSION`), com os 5 eventos de `EVENTOS`.
+       `STRIPE_API_VERSION`), com os 6 eventos de `EVENTOS` (o `payment_intent.requires_action` desde
+       11 nov 2026: a referência Multibanco).
    - **A prova**: o Worker de ensaio (o ambiente `ensaio` deste `wrangler.toml`, com as suas encomendas e o
      catálogo de ensaio num gist) e `~/Websites/_ferramentas/franjakids/stripe-ensaio.mjs` [cartao|mbway]
      [chromium|webkit]. O carrinho, o finalizar, o Checkout com o cartão 4242 e com o MB WAY de teste, a
@@ -124,12 +130,14 @@ vir com ~50 s de atraso (medido), e escrever por cima dela perdia pagamentos —
    - **Falta a ativação**, que é da dona: «Ativar Payments» na conta (empresa, banco, extras). Os dados
      públicos (nome, site, email de apoio, descritor do extrato) só aparecem depois dela. Depois, em
      produção:
-     - as formas de pagamento como no teste (a configuração é por modo);
-     - uma chave restrita `rk_live_…` com as mesmas permissões (Checkout Sessions e Coupons: escrita;
-       PaymentIntents e Charges and Refunds: leitura) →
+     - as formas de pagamento como no teste — **só** cartão, Apple Pay, Google Pay, MB WAY e Multibanco
+       (a configuração é por modo, e o modo real vem com outros ligados: desligá-los um a um) — e as
+       instruções do Multibanco por email desligadas (é por conta, mas confirmar);
+     - uma chave restrita `rk_live_…` com as mesmas permissões (Checkout Sessions, Coupons e
+       PaymentIntents: escrita; Charges and Refunds: leitura) →
        `$WR secret put STRIPE_SECRET_KEY --config $CFG < …`;
      - o webhook `https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev/stripe/webhook`, com os
-       5 eventos e a versão dahlia → `$WR secret put STRIPE_WEBHOOK_SECRET --config $CFG < …`. O segredo
+       6 eventos e a versão dahlia → `$WR secret put STRIPE_WEBHOOK_SECRET --config $CFG < …`. O segredo
        copia-se pelo botão «Copiar», com o clipboard direto para o `wrangler`: as ferramentas de procura
        do browser leem o texto revelado (aconteceu com o de teste, que foi trocado);
      - o `/painel/saude` com `stripe` e `webhook` a `true`, e a gaveta «Pagamento» do painel a dizer
@@ -187,16 +195,25 @@ O que o contrato não dizia, ou dizia de duas maneiras, decidido pelo lado mais 
   atrasado numa encomenda já reembolsada não manda nada.
 - **Anular (ou marcar paga) uma encomenda «pendente» fecha a página da Stripe**
   (`POST /checkout/sessions/<id>/expire`), para a pessoa não pagar uma encomenda anulada nem pagar
-  duas vezes. Se a Stripe recusar (a pessoa pagou nesse instante), a mudança faz-se na mesma e o
-  caminho de cima trata do pagamento.
+  duas vezes. À espera do Multibanco, a página já se completou e não fecha: cancela-se o pagamento
+  (`POST /payment_intents/<id>/cancel`), e a referência deixa de valer. Se a Stripe recusar (a pessoa
+  pagou nesse instante), a mudança faz-se na mesma e o caminho de cima trata do pagamento.
 - **`stripe.metodo` é o meio usado, não o primeiro aceite.** O `payment_method_types` da sessão diz
   os meios que ela aceitava (todos os ligados na conta); com mais de um, o webhook pergunta à cobrança
-  (`latest_charge.payment_method_details.type`: `card`, `mb_way`). Se a Stripe não responder, o
+  (`latest_charge.payment_method_details.type`: `card`, `mb_way`, `multibanco`). Se a Stripe não responder, o
   pagamento conta na mesma e o método fica por saber.
-- **Sem o Multibanco da LF** (o evento `payment_intent.requires_action` e o email «Falta pagar»): o
-  contrato é cartão e MB WAY. Se a dona ligar o Multibanco na Stripe, funciona na mesma: a sessão
-  completa sem pagamento fica «pendente» até ao `async_payment_succeeded`, e a referência mostra-a a
-  página da Stripe.
+- **O Multibanco** (desde 11 nov 2026, como na LF Mobile): a sessão completa-se sem pagamento e a
+  encomenda fica «pendente»; o `payment_intent.requires_action` traz a entidade, a referência e a
+  validade (`stripe.multibanco`) e o email «Falta pagar» à cliente (só a ela, uma vez, com o travão por
+  endereço dos emails sem pagamento); a «obrigado» mostra a referência (lida do PaymentIntent da
+  sessão, antes de o webhook chegar, ou da encomenda); o `async_payment_succeeded` põe-na «paga» (a
+  confirmação aos dois), e o `async_payment_failed` — a referência que expirou — «falhou», com a frase
+  da referência. **Com o Multibanco a Stripe não volta ao site**: fica na página dela com a referência
+  (provado a 11 nov 2026). O «voltar» do browser traz a pessoa ao finalizar, e o `POST /encomenda/desistir`
+  responde `feita` (a sessão completou-se) em vez de a desfazer: o finalizar manda-a para a «obrigado».
+  Na Stripe de teste, a referência paga-se sozinha ao fim de ~3 min (um email normal; com
+  `…succeed_immediately@…` em segundos): `~/Websites/_ferramentas/franjakids/multibanco-ensaio.mjs
+  [pagar|anular] [chromium|webkit]`.
 - **Para a Stripe vai só o nome e a quantidade de cada produto** (e o preço), o email para o recibo e
   o número da encomenda. Duas linhas do mesmo produto com preços diferentes (com e sem nome bordado)
   aparecem lá com o mesmo nome.

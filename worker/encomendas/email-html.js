@@ -90,6 +90,27 @@ export function ficha(pares) {
       </table></td></tr>`;
 }
 
+/* A referência Multibanco (da LF Mobile, com as cores da marca): texto vivo e monoespaçado, nunca
+   imagem — o Outlook bloqueia imagens e a pessoa tem de a poder copiar. A caixa é castanha, como o
+   botão, com o texto creme (o par do botão) e os rótulos na cor das linhas (contraste medido no
+   email.test.mjs). */
+export function caixaMultibanco(mb, totalCents) {
+  const campo = (rotulo, valor, grande) => `
+          <p style="margin:0 0 4px 0;font-family:${FONTE};font-size:12px;line-height:16px;color:${C.linha};text-transform:uppercase;letter-spacing:1px;">${esc(rotulo)}</p>
+          <p style="margin:0 0 ${grande ? '16' : '12'}px 0;font-family:'Courier New',Courier,monospace;font-size:${grande ? '28' : '20'}px;line-height:${grande ? '34' : '26'}px;font-weight:bold;color:${C.botaoTexto};letter-spacing:${grande ? '3' : '1'}px;white-space:nowrap;">${esc(valor)}</p>`;
+  const validade = mb.validade ? new Date(mb.validade * 1000).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' }) : null;
+  return `<tr><td class="p" style="padding:14px 40px 6px 40px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="${C.castanho}" style="background-color:${C.castanho};border-radius:12px;">
+        <tr><td align="center" style="padding:22px 24px 10px 24px;">
+          ${campo('Entidade', mb.entidade, true)}
+          ${campo('Referência', mb.referencia, true)}
+          ${campo('Valor', `${(totalCents / 100).toFixed(2).replace('.', ',')} €`)}
+          ${validade ? campo('Válida até', validade) : ''}
+        </td></tr>
+      </table>
+    </td></tr>`;
+}
+
 /* O botão: VML para o Outlook clássico, tabela para os outros. 48 px de altura. */
 export function botao(url, txt) {
   return `<tr><td align="center" class="p" style="padding:18px 40px 8px 40px;">

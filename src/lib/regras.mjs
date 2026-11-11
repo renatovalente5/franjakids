@@ -127,9 +127,12 @@ export const TECTOS = Object.freeze({ artigoBytes: 64 * 1024, aviso: 0.8 });
 export const RE_ALEGACOES = /\b(ecol[óo]gic[oa]s?|sustent[áa]ve(l|is)|sustentabilidade|amig[oa]s? do ambiente|eco-?friendly|biodegrad[áa]ve(l|is)|neutr[oa]s? em carbono|certificad[oa]s?)\b/i;
 
 /* Os modos da loja online: «encomenda» (o site regista a encomenda e a loja combina o pagamento
-   com o cliente) e «online» (paga-se na Stripe, no próprio site: cartão e MB WAY). O Worker das
-   encomendas lê o mesmo valor do catálogo publicado. */
-export const MODOS_PAGAMENTO = Object.freeze({ encomenda: 'Encomenda (a loja confirma e combina o pagamento)', online: 'Pagamento no site (Stripe: cartão e MB WAY)' });
+   com o cliente) e «online» (paga-se na Stripe, no próprio site). O Worker das encomendas lê o mesmo
+   valor do catálogo publicado. */
+export const MODOS_PAGAMENTO = Object.freeze({ encomenda: 'Encomenda (a loja confirma e combina o pagamento)', online: 'Pagamento no site (Stripe: MB WAY, Multibanco, cartão, Apple Pay e Google Pay)' });
+/* Os meios de pagamento do modo «online»: os que estão ligados na Stripe (11 nov 2026; o Worker não os
+   fixa, a conta é que manda). Mudam-se aqui e na Stripe ao mesmo tempo. */
+export const MEIOS_ONLINE = Object.freeze(['MB WAY', 'Multibanco', 'cartão', 'Apple Pay', 'Google Pay']);
 
 /* ------------------------------------------------------------------ */
 /* Ajudantes que o painel e os Workers também usam                     */

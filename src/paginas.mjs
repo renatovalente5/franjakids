@@ -322,6 +322,8 @@ ${(() => {
 }
 
 // ── Carrinho, finalizar e obrigado ───────────────────────────────────────────
+/* Os meios de pagamento do modo «online», como etiquetas: «MB WAY», «Multibanco», «Cartão»… */
+const meiosOnline = () => R.MEIOS_ONLINE.map((m) => `<span>${esc(m[0].toUpperCase() + m.slice(1))}</span>`).join('');
 
 const gratisDe = (loja) => (typeof loja.entrega.gratisAPartirDe === 'number' ? loja.entrega.gratisAPartirDe : '');
 
@@ -340,7 +342,7 @@ export function carrinho({ loja }) {
     <dl><dt>Artigos</dt><dd data-subtotal></dd><dt>Portes</dt><dd data-portes>No passo seguinte</dd></dl>
     <div class="progresso" data-progresso></div>
     <a class="botao botao--cheio" href="${url('/finalizar/')}">Finalizar a encomenda</a>
-    <p class="pagamentos">${online(loja) ? '<span>MB WAY</span><span>Cartão</span>' : ''}${mao ? `<span>${esc(mao.nome)}</span>` : ''}</p>
+    <p class="pagamentos">${online(loja) ? meiosOnline() : ''}${mao ? `<span>${esc(mao.nome)}</span>` : ''}</p>
   </aside>
 </div>`,
   };
@@ -410,7 +412,7 @@ export function finalizar({ loja, termosUrl, api }) {
     <p class="campo__erro" id="termos-erro" data-erro></p>
     <p class="campo__erro" data-erro-envio role="alert"></p>
     <button class="botao botao--cheio" type="submit" data-enviar>${pagaAgora ? esc(BOTAO_ENCOMENDA) : 'Enviar encomenda'}</button>
-    <p class="pagamentos">${pagaAgora ? '<span>MB WAY</span><span>Cartão</span><span>Pagamento seguro pela Stripe</span>' : '<span>O pagamento combinamos contigo depois de confirmarmos a encomenda</span>'}</p>
+    <p class="pagamentos">${pagaAgora ? `${meiosOnline()}<span>Pagamento seguro pela Stripe</span>` : '<span>O pagamento combinamos contigo depois de confirmarmos a encomenda</span>'}</p>
   </aside>
 </form>${api ? '' : `
 <dialog class="caixa" id="pre-visualizacao" aria-labelledby="t-pre">

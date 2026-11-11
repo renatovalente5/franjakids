@@ -3,7 +3,7 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../index.js';
-import { razaoParaNao, TRANSICOES_PAINEL, ESTADOS, metadadosDe } from '../encomenda.js';
+import { razaoParaNao, TRANSICOES_PAINEL, ESTADOS, metadadosDe, gravarEncomenda } from '../encomenda.js';
 import { catalogoDeEnsaio, envFalso, redeFalsa, pedir, pedidoValido, clienteValido, moradaValida, registar, bearer, ORIGEM } from './ajuda.mjs';
 
 let rede;
@@ -60,6 +60,35 @@ test('GET /encomenda?s=: pela sessão da Stripe (só as que este Worker abriu), 
   assert.equal((await pedir(worker, env, 'GET', '/encomenda?s=cs_test_outra_sessao')).status, 404);
   assert.equal((await pedir(worker, env, 'GET', '/encomenda?s=lixo')).status, 404);
   assert.equal(rede.stripe().length, chamadas, 'uma sessão que não é nossa nem chega à Stripe');
+});
+
+test('GET /encomenda à espera do Multibanco: a referência vem do PaymentIntent da sessão (antes do webhook) e, depois, da encomenda; paga, já não', async () => {
+  const MB = { entity: '12345', reference: '123 456 789', expires_at: 1800600000, hosted_voucher_url: 'https://payments.stripe.com/multibanco/voucher/x' };
+  let pi = null;
+  rede = redeFalsa({
+    catalogo: catalogoDeEnsaio({ modo: 'online' }),
+    stripe: (url, init) => (init.method === 'GET'
+      ? Response.json({ id: 'cs_test_a1b2c3d4e5f6', status: 'complete', payment_status: 'unpaid', payment_intent: pi })
+      : Response.json({ id: 'cs_test_a1b2c3d4e5f6', url: 'https://checkout.stripe.com/c/pay/cs_test_a1b2c3d4e5f6' })),
+  });
+  const env = envFalso({ STRIPE_SECRET_KEY: 'sk_test_x' });
+  const { encomenda, chave } = await registar(worker, env);
+  const pela = `/encomenda?e=${encomenda}&c=${chave}&s=cs_test_a1b2c3d4e5f6`;
+  // ainda sem PaymentIntent (a pessoa não escolheu o meio): nada de referência
+  assert.equal((await pedir(worker, env, 'GET', pela)).json.multibanco, undefined);
+  pi = { id: 'pi_mb', object: 'payment_intent', status: 'requires_action', next_action: { type: 'multibanco_display_details', multibanco_display_details: MB } };
+  const r = await pedir(worker, env, 'GET', pela);
+  assert.equal(r.json.estado, 'pendente');
+  assert.deepEqual(r.json.multibanco, { entidade: '12345', referencia: '123 456 789', validade: 1800600000 }, 'sem o endereço da Stripe: só o que a pessoa precisa para pagar');
+  assert.match(rede.stripe().at(-1).url, /\/checkout\/sessions\/cs_test_a1b2c3d4e5f6\?expand%5B%5D=payment_intent$/);
+  // gravada pelo webhook: vem da encomenda, também sem a sessão no endereço (a ligação do email)
+  const kv = JSON.parse(await env.ORDERS.get(`order:${encomenda}`));
+  await gravarEncomenda(env, { ...kv, stripe: { ...kv.stripe, payment_intent: 'pi_mb', multibanco: { entidade: '12345', referencia: '123 456 789', validade: 1800600000, url: MB.hosted_voucher_url } } });
+  assert.deepEqual((await pedir(worker, env, 'GET', `/encomenda?e=${encomenda}&c=${chave}`)).json.multibanco, { entidade: '12345', referencia: '123 456 789', validade: 1800600000 });
+  // paga: já não há referência a mostrar
+  const pago = JSON.parse(await env.ORDERS.get(`order:${encomenda}`));
+  await gravarEncomenda(env, { ...pago, estado: 'paga' });
+  assert.equal((await pedir(worker, env, 'GET', `/encomenda?e=${encomenda}&c=${chave}`)).json.multibanco, undefined);
 });
 
 test('o painel: sem o bearer 401, com o bearer errado 401, sem segredo no Worker 503, sem CORS', async () => {

@@ -452,6 +452,11 @@ dialog::backdrop { background: rgb(46 30 22 / .35); }
 .obrigado__totais dt { color: var(--tinta-suave); }
 .obrigado__totais dd { margin: 0; text-align: right; font-weight: 600; }
 .obrigado__totais dt:last-of-type, .obrigado__totais dd:last-of-type { color: var(--tinta); font-weight: 700; font-size: 1.125rem; }
+/* A referência Multibanco por pagar: a caixa castanha do botão, os números grandes e monoespaçados
+   (copiam-se e lêem-se ao balcão). Os rótulos na cor das linhas: 6,8:1 sobre o castanho. */
+.obrigado__multibanco { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 8px 20px; max-width: 560px; padding: 20px 24px; border-radius: 16px; background: var(--castanho); color: #FBF3E6; }
+.obrigado__multibanco dt { color: var(--linha); font-size: .8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.obrigado__multibanco dd { margin: 0; font: 700 1.375rem/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; overflow-wrap: anywhere; }
 
 /* ── Movimento ──
    As entradas ao descer, a capa ao abrir, o selo que roda e o que responde ao toque. Só se esconde

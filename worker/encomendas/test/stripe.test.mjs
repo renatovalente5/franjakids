@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import worker from '../index.js';
 import { formEncode, verificarAssinatura, assinar, aplicarEvento, EVENTOS } from '../stripe.js';
 import { catalogoDeEnsaio, envFalso, redeFalsa, pedir, registar, bearer, clienteValido, moradaValida } from './ajuda.mjs';
+import { MAX_EMAILS_POR_PAGAR } from '../email.js';
 
 let rede;
 afterEach(() => { if (rede) rede.repor(); rede = null; });
@@ -180,6 +181,103 @@ test('o webhook: o pagamento falhado numa encomenda pendente marca «falhou» e 
   assert.equal(emails.find((e) => e.to[0] === 'loja@exemplo.pt').subject, `${encomenda} falhou`);
 });
 
+/* O MULTIBANCO (11 nov 2026, da LF Mobile): a sessão completa-se sem pagamento, a referência chega no
+   payment_intent.requires_action, e o dinheiro no async_payment_succeeded (ou a referência expira:
+   async_payment_failed). */
+const MB = { entity: '12345', reference: '123 456 789', expires_at: 1800600000, hosted_voucher_url: 'https://payments.stripe.com/multibanco/voucher/x' };
+const completaSemPagar = (encomenda, pi = 'pi_mb') => ({ id: `evt_mb_sessao_${pi}`, type: 'checkout.session.completed', data: { object: { id: 'cs_test_a1b2c3d4e5f6', object: 'checkout.session', status: 'complete', payment_status: 'unpaid', payment_intent: pi, metadata: { encomenda } } } });
+const referenciaMB = (encomenda, id = 'evt_mb_ref', pi = 'pi_mb') => ({ id, type: 'payment_intent.requires_action', data: { object: { id: pi, object: 'payment_intent', status: 'requires_action', metadata: { encomenda }, next_action: { type: 'multibanco_display_details', multibanco_display_details: MB } } } });
+
+test('o webhook: Multibanco — fica «pendente», a referência grava-se e o «Falta pagar» sai UMA vez, só à cliente; pago, «paga»; uma referência atrasada não manda nada', async () => {
+  const { env, encomenda, ler } = await pendente();
+  assert.equal((await webhook(env, completaSemPagar(encomenda))).status, 200);
+  assert.equal((await ler()).estado, 'pendente');
+  assert.equal(rede.resend().length, 0);
+  assert.equal((await webhook(env, referenciaMB(encomenda))).status, 200);
+  let enc = await ler();
+  assert.equal(enc.estado, 'pendente');
+  assert.deepEqual(enc.stripe.multibanco, { entidade: '12345', referencia: '123 456 789', validade: 1800600000, url: 'https://payments.stripe.com/multibanco/voucher/x' });
+  assert.equal(enc.stripe.payment_intent, 'pi_mb');
+  let emails = rede.resend();
+  assert.equal(emails.length, 1, 'só à cliente: a loja sabe quando o pagamento entrar');
+  assert.deepEqual(emails[0].to, ['maria@exemplo.pt']);
+  assert.equal(emails[0].subject, `Falta pagar: referência Multibanco da encomenda ${encomenda}`);
+  assert.match(emails[0].text, /paga a referência Multibanco abaixo/);
+  assert.match(emails[0].text, new RegExp(`PAGAR POR MULTIBANCO\n {2}Entidade: 12345\n {2}Referência: 123 456 789\n {2}Valor: ${(enc.total_cents / 100).toFixed(2).replace('.', ',')} €\n {2}Válida até: \\d{2}/\\d{2}/\\d{4}`));
+  assert.match(emails[0].html, />123 456 789</);
+  assert.equal(enc.avisos.multibanco.cliente, 'enviado');
+  // A Stripe reentrega, ou manda outra vez a mesma referência: não sai outro email.
+  rede.chamadas.length = 0;
+  assert.equal((await webhook(env, referenciaMB(encomenda))).texto, 'repetido');
+  assert.equal((await webhook(env, referenciaMB(encomenda, 'evt_mb_ref_2'))).status, 200);
+  assert.equal(rede.resend().length, 0);
+  // Pagou: «paga», com o método, e a confirmação aos dois.
+  const pagou = { id: 'evt_mb_pago', type: 'checkout.session.async_payment_succeeded', data: { object: { id: 'cs_test_a1b2c3d4e5f6', object: 'checkout.session', payment_status: 'paid', payment_intent: 'pi_mb', payment_method_types: ['multibanco'], metadata: { encomenda } } } };
+  assert.equal((await webhook(env, pagou)).status, 200);
+  enc = await ler();
+  assert.equal(enc.estado, 'paga');
+  assert.equal(enc.stripe.metodo, 'multibanco');
+  emails = rede.resend();
+  assert.equal(emails.length, 2);
+  assert.match(emails.find((e) => e.to[0] === 'loja@exemplo.pt').text, /Pagamento: Multibanco · Stripe: pi_mb/);
+  // Uma referência que chega atrasada, depois de pago: não pede para pagar outra vez.
+  rede.chamadas.length = 0;
+  assert.equal((await webhook(env, referenciaMB(encomenda, 'evt_mb_ref_3'))).status, 200);
+  assert.equal(rede.resend().length, 0);
+  assert.equal((await ler()).estado, 'paga');
+});
+
+test('o webhook: um requires_action sem referência (o 3-D Secure de um cartão) não muda nada nem avisa', async () => {
+  const { env, encomenda, ler } = await pendente();
+  const antes = await ler();
+  const tresDS = { id: 'evt_3ds', type: 'payment_intent.requires_action', data: { object: { id: 'pi_3ds', object: 'payment_intent', status: 'requires_action', metadata: { encomenda }, next_action: { type: 'use_stripe_sdk', use_stripe_sdk: {} } } } };
+  assert.equal((await webhook(env, tresDS)).status, 200);
+  assert.deepEqual(await ler(), antes);
+  assert.equal(rede.resend().length, 0);
+});
+
+test('o webhook: a referência Multibanco que não se pagou a tempo — «falhou», e a frase diz que a referência expirou', async () => {
+  const { env, encomenda, ler } = await pendente();
+  await webhook(env, completaSemPagar(encomenda));
+  await webhook(env, referenciaMB(encomenda));
+  rede.chamadas.length = 0;
+  const expirou = { id: 'evt_mb_falhou', type: 'checkout.session.async_payment_failed', data: { object: { id: 'cs_test_a1b2c3d4e5f6', object: 'checkout.session', payment_status: 'unpaid', payment_intent: 'pi_mb', metadata: { encomenda } } } };
+  assert.equal((await webhook(env, expirou)).status, 200);
+  assert.equal((await ler()).estado, 'falhou');
+  const emails = rede.resend();
+  assert.match(emails.find((e) => e.to[0] === 'maria@exemplo.pt').text, /A referência Multibanco expirou sem o pagamento\. Nada foi cobrado\./);
+  const loja = emails.find((e) => e.to[0] === 'loja@exemplo.pt');
+  assert.equal(loja.subject, `${encomenda} falhou`);
+  assert.match(loja.text, /A referência Multibanco da encomenda .+ expirou sem o pagamento\. O cliente foi avisado\./);
+});
+
+test(`o «Falta pagar» do Multibanco tem o travão por endereço: no máximo ${MAX_EMAILS_POR_PAGAR} por dia a quem ainda não pagou`, async () => {
+  const { env, encomenda } = await pendente();
+  const ids = [encomenda];
+  for (let i = 0; i < MAX_EMAILS_POR_PAGAR; i++) ids.push((await registar(worker, env)).encomenda);
+  rede.chamadas.length = 0;
+  for (const [i, e] of ids.entries()) assert.equal((await webhook(env, referenciaMB(e, `evt_mb_travao_${i}`, `pi_mb_${i}`))).status, 200);
+  assert.equal(rede.resend().filter((m) => [].concat(m.to).includes('maria@exemplo.pt')).length, MAX_EMAILS_POR_PAGAR);
+  const ultima = JSON.parse(await env.ORDERS.get(`order:${ids.at(-1)}`));
+  assert.match(ultima.avisos.multibanco.cliente, /^travado/);
+  assert.equal(ultima.stripe.multibanco.referencia, '123 456 789', 'a referência grava-se na mesma (o «obrigado» mostra-a)');
+});
+
+test('a dona anula uma encomenda à espera do Multibanco: a página já se completou, por isso cancela-se o pagamento (a referência deixa de valer)', async () => {
+  const { env, encomenda, ler } = await pendente({ fecho: () => new Response('{"error":{"message":"Only Checkout Sessions with a status of open can be expired."}}', { status: 400 }) });
+  await webhook(env, completaSemPagar(encomenda));
+  await webhook(env, referenciaMB(encomenda));
+  rede.chamadas.length = 0;
+  const r = await pedir(worker, env, 'POST', `/painel/encomendas/${encomenda}/estado`, { cabecalhos: bearer(), corpo: { estado: 'anulada', por: 'dona@exemplo.pt', avisar: false } });
+  assert.equal(r.status, 200, r.texto);
+  assert.equal((await ler()).estado, 'anulada');
+  const pedidos = rede.stripe().map((c) => c.url);
+  assert.deepEqual(pedidos, ['https://api.stripe.com/v1/checkout/sessions/cs_test_a1b2c3d4e5f6/expire', 'https://api.stripe.com/v1/payment_intents/pi_mb/cancel']);
+  const cancelar = rede.stripe().at(-1);
+  assert.equal(cancelar.init.method, 'POST');
+  assert.equal(cancelar.init.body, 'cancellation_reason=abandoned');
+});
+
 test('o webhook: o reembolso total marca «reembolsada» e avisa o cliente; o parcial fica só no histórico', async () => {
   const { env, encomenda, ler } = await pendente();
   await webhook(env, sessaoPaga(encomenda));
@@ -248,6 +346,7 @@ test('com a Stripe a recusar fechar a página (já pagou, ou já fechou), a dona
   assert.equal(r.status, 200, r.texto);
   assert.equal((await ler()).estado, 'paga');
   assert.equal(rede.stripe().filter((c) => c.url.endsWith('/expire')).length, 1);
+  assert.equal(rede.stripe().filter((c) => c.url.endsWith('/cancel')).length, 0, 'sem pagamento começado (nem referência), não há nada a cancelar');
   // Uma encomenda que já não está «pendente» não tem página aberta: não se pergunta outra vez.
   rede.chamadas.length = 0;
   assert.equal((await pedir(worker, env, 'POST', `/painel/encomendas/${encomenda}/estado`, { cabecalhos: bearer(), corpo: { estado: 'anulada' } })).status, 200);
@@ -306,7 +405,7 @@ test('aplicarEvento: um estado posterior nunca recua por um evento atrasado', ()
       assert.equal(enc.estado, estado);
     }
   }
-  assert.deepEqual(EVENTOS, ['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.async_payment_failed', 'checkout.session.expired', 'charge.refunded']);
+  assert.deepEqual(EVENTOS, ['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.async_payment_failed', 'checkout.session.expired', 'payment_intent.requires_action', 'charge.refunded']);
 });
 
 test('em modo «online» com envio, o webhook pago manda à loja a morada e o NIF (e ao cliente, o NIF não)', async () => {

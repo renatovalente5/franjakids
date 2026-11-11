@@ -5,8 +5,8 @@
  *
  * Princípios (herdados do Armazém e da LF):
  *   · «Dinheiro recebido» é payment_status !== 'unpaid'. Um checkout.session.completed, por si só,
- *     NÃO é pagamento: com um meio de pagamento diferido (o Multibanco, se a dona o ligar na Stripe)
- *     chega com payment_status 'unpaid', e o dinheiro vem depois no async_payment_succeeded.
+ *     NÃO é pagamento: com o Multibanco (ligado a 11 nov 2026) chega com payment_status 'unpaid', a
+ *     referência vem no payment_intent.requires_action, e o dinheiro no async_payment_succeeded.
  *   · A Stripe não garante a ordem dos eventos: um evento atrasado nunca desfaz um facto posterior
  *     (uma encomenda paga não volta a «pendente» nem a «falhou», uma «enviada» não volta a «paga»).
  *   · Para a Stripe vai o mínimo: o nome de cada produto, a quantidade e o preço, o email (para o
@@ -103,7 +103,9 @@ export async function verificarAssinatura(corpo, cabecalho, segredo, agoraSegund
    line_items com o preço que ESTE Worker calculou, cada um só com o nome e a quantidade — nem as
    escolhas, nem o texto da personalização (o nome do bebé não sai daqui). Os portes, quando os há,
    são mais uma linha. Os meios de pagamento não se fixam (payment_method_types): são os que
-   estiverem ligados na conta da Stripe (cartão e MB WAY). */
+   estiverem ligados na conta da Stripe — desde 11 nov 2026, só cartão, Apple Pay, Google Pay, MB WAY
+   e Multibanco (fixá-los aqui partia o checkout inteiro se um deles não estivesse activo no modo
+   real). */
 /* O CUPÃO NA STRIPE (como na LF Mobile): um cupão de uso único com o desconto que ESTE Worker calculou —
    os nossos artigos vão como price_data, sem produto fixo, por isso as regras (o mínimo, as categorias, os
    usos) são nossas (cupoes.js). Aparece na página da Stripe como «Cupão X −5,00 €»; o amount_off tira-se
@@ -162,15 +164,24 @@ export async function criarSessao(env, enc, zona) {
 /* ---------------------------------------------------------------- os eventos */
 
 /* Os eventos a subscrever no endpoint da Stripe (um só por facto: evita os «gémeos» que mandariam
-   dois emails de pagamento). Sem o payment_intent.requires_action da LF: era o da referência
-   Multibanco, e o contrato da Franja Kids é cartão e MB WAY. */
+   dois emails de pagamento). O payment_intent.requires_action é o da referência Multibanco (como na
+   LF Mobile; voltou a 11 nov 2026, com o Multibanco). */
 export const EVENTOS = Object.freeze([
   'checkout.session.completed',
   'checkout.session.async_payment_succeeded',
   'checkout.session.async_payment_failed',
   'checkout.session.expired',
+  'payment_intent.requires_action',
   'charge.refunded',
 ]);
+
+/* A referência Multibanco de um PaymentIntent (next_action), na forma que se grava: a entidade, a
+   referência, a validade (segundos desde 1970) e a página da Stripe com ela. Sem ela, null. */
+export function multibancoDe(pi) {
+  const mb = pi && pi.next_action && pi.next_action.multibanco_display_details;
+  if (!mb || !mb.entity || !mb.reference) return null;
+  return { entidade: String(mb.entity), referencia: String(mb.reference), validade: Number.isFinite(mb.expires_at) ? mb.expires_at : null, url: typeof mb.hosted_voucher_url === 'string' ? mb.hosted_voucher_url : null };
+}
 
 /* Os estados que um pagamento ainda pode promover a «paga». Os outros já são posteriores (a dona
    marcou a encomenda, ou a Stripe devolveu o dinheiro) ou finais. */
@@ -223,7 +234,8 @@ export function aplicarEvento(enc, evento, em = new Date().toISOString()) {
     case 'checkout.session.completed':
       enc.stripe.session_id = enc.stripe.session_id || obj.id;
       if (typeof obj.payment_intent === 'string') enc.stripe.payment_intent = enc.stripe.payment_intent || obj.payment_intent;
-      // Sem pagamento ainda (um meio diferido): fica «pendente», que já era.
+      // Sem pagamento ainda (o Multibanco): fica «pendente», que já era; a referência vem no
+      // payment_intent.requires_action.
       if (obj.payment_status && obj.payment_status !== 'unpaid') marcarPaga(enc, obj, em, avisos);
       break;
     case 'checkout.session.async_payment_succeeded':
@@ -236,6 +248,18 @@ export function aplicarEvento(enc, evento, em = new Date().toISOString()) {
     case 'checkout.session.expired':
       if (enc.estado === 'pendente') { mudarEstado(enc, 'expirou', { por: 'stripe', em }); avisos.push('expirou'); }
       break;
+    case 'payment_intent.requires_action': {
+      // A referência Multibanco (a entidade e a referência só vêm aqui, no next_action). Um 3-D Secure
+      // de cartão também passa por este evento, sem referência: não muda nada.
+      const mb = multibancoDe(obj);
+      if (mb) {
+        if (typeof obj.id === 'string') enc.stripe.payment_intent = enc.stripe.payment_intent || obj.id;
+        enc.stripe.multibanco = mb;
+        // O «falta pagar» só se ainda não pagou: este evento pode chegar depois do pagamento.
+        if (enc.estado === 'pendente') avisos.push('multibanco');
+      }
+      break;
+    }
     case 'charge.refunded': {
       const devolvido = Number.isFinite(obj.amount_refunded) ? obj.amount_refunded : 0;
       const total = Number.isFinite(obj.amount) ? obj.amount : enc.total_cents;

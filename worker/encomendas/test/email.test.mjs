@@ -23,10 +23,15 @@ const enc = {
   historico: [{ em: '2026-11-09T21:02:11.000Z', estado: 'registada', por: 'site' }],
   criada_em: '2026-11-09T21:02:11.000Z', actualizada_em: '2026-11-09T21:02:11.000Z',
 };
-const MOMENTOS = ['registada', 'paga', 'pronta', 'enviada', 'anulada', 'reembolsada', 'falhou', 'expirou'];
+const MOMENTOS = ['registada', 'paga', 'multibanco', 'pronta', 'enviada', 'anulada', 'reembolsada', 'falhou', 'expirou'];
+const MB = { entidade: '12345', referencia: '123 456 789', validade: 1800600000, url: 'https://payments.stripe.com/multibanco/voucher/x' };
 const extras = { nota: 'CTT RR000111222PT', origem: 'stripe' };   // um registo que não se confunde com o NIF
-/* A entrega de cada momento: «pronta» é só da entrega em mão. */
-const paraMomento = (momento, e = enc) => ({ ...e, entrega: momento === 'pronta' ? 'mao' : e.entrega, estado: momento === 'registada' ? 'registada' : momento });
+/* A entrega de cada momento: «pronta» é só da entrega em mão. O «multibanco» é de uma encomenda
+   pendente, com a referência. */
+const paraMomento = (momento, e = enc) => ({
+  ...e, entrega: momento === 'pronta' ? 'mao' : e.entrega, estado: momento === 'registada' ? 'registada' : momento === 'multibanco' ? 'pendente' : momento,
+  ...(momento === 'multibanco' ? { stripe: { ...e.stripe, metodo: undefined, pago_em: undefined, multibanco: MB } } : {}),
+});
 const tudo = (m) => [m.cliente && m.cliente.assunto, m.cliente && m.cliente.texto, m.cliente && m.cliente.html, m.loja && m.loja.assunto, m.loja && m.loja.texto, m.loja && m.loja.html].filter(Boolean).join('\n');
 
 test('cada momento tem o email ao cliente em texto e HTML, com o número, o logótipo, a saudação e o contacto da loja', () => {
@@ -136,7 +141,7 @@ test('a livre resolução: 14 dias para o que não é personalizado; os personal
   for (const momento of ['registada', 'paga', 'pronta', 'enviada']) {
     assert.match(mensagens(env, momento, paraMomento(momento), extras).cliente.texto, /trocas-e-devolucoes/, `${momento} leva a livre resolução`);
   }
-  for (const momento of ['anulada', 'reembolsada', 'falhou', 'expirou']) {
+  for (const momento of ['multibanco', 'anulada', 'reembolsada', 'falhou', 'expirou']) {
     assert.doesNotMatch(mensagens(env, momento, paraMomento(momento), extras).cliente.texto, /14 dias|desistência/, `${momento} não fala da livre resolução`);
   }
 });
@@ -169,13 +174,34 @@ test('o texto e o HTML dizem os mesmos factos', () => {
       const urls = x.texto.match(/https:\/\/\S+[^\s.,)]/g) || [];
       for (const u of urls) assert.ok(hrefs.includes(u), `${momento}/${quem}: o HTML não liga para ${u}`);
       for (const h of hrefs.filter((u) => u.startsWith('https://'))) assert.ok(x.texto.includes(h), `${momento}/${quem}: o texto não diz ${h}`);
-      if (quem === 'cliente' && !['anulada', 'reembolsada', 'falhou', 'expirou'].includes(momento)) assert.ok(urls.includes(`${site}/trocas-e-devolucoes/`));
+      if (quem === 'cliente' && !['multibanco', 'anulada', 'reembolsada', 'falhou', 'expirou'].includes(momento)) assert.ok(urls.includes(`${site}/trocas-e-devolucoes/`));
     }
   }
 });
 
+test('o «Falta pagar» do Multibanco: a entidade, a referência, o valor e a validade em texto vivo (nunca imagem), sem email à loja', () => {
+  const m = mensagens(env, 'multibanco', paraMomento('multibanco'), extras);
+  assert.equal(m.loja, null);
+  const { assunto, texto, html } = m.cliente;
+  assert.equal(assunto, 'Falta pagar: referência Multibanco da encomenda FK-20261109-7K2Q9M');
+  assert.match(texto, /^Olá Maria,\n\nPara concluíres a encomenda, paga a referência Multibanco abaixo\. Assim que o pagamento entrar, avisamos-te\.\n/);
+  assert.match(texto, /PAGAR POR MULTIBANCO\n {2}Entidade: 12345\n {2}Referência: 123 456 789\n {2}Valor: 63,70 €\n {2}Válida até: \d{2}\/\d{2}\/\d{4}\n/);
+  assert.match(html, /Courier New/);
+  assert.match(html, />12345</);
+  assert.match(html, />123 456 789</);
+  assert.match(html, />63,70 €</);
+  assert.doesNotMatch(html, /<img[^>]*voucher/);
+  // sem validade (a Stripe não a disse): a linha não aparece, nem «Invalid Date»
+  const sem = mensagens(env, 'multibanco', { ...paraMomento('multibanco'), stripe: { multibanco: { ...MB, validade: null } } }).cliente;
+  assert.doesNotMatch(sem.texto + sem.html, /Válida até|Invalid/);
+  // a referência expirada: a frase diz que foi a referência
+  const expirada = mensagens(env, 'falhou', { ...paraMomento('falhou'), stripe: { multibanco: MB } });
+  assert.match(expirada.cliente.texto, /A referência Multibanco expirou sem o pagamento\. Nada foi cobrado\./);
+  assert.match(expirada.loja.texto, /^A referência Multibanco da encomenda FK-20261109-7K2Q9M expirou sem o pagamento\. O cliente foi avisado\./);
+});
+
 test('os emails à loja: só nos momentos certos, com tudo o que precisa (telefone, NIF, email, morada, notas)', () => {
-  const comLoja = { registada: true, paga: true, pronta: false, enviada: false, anulada: false, reembolsada: false, falhou: true, expirou: true };
+  const comLoja = { registada: true, paga: true, multibanco: false, pronta: false, enviada: false, anulada: false, reembolsada: false, falhou: true, expirou: true };
   for (const momento of MOMENTOS) {
     assert.equal(Boolean(mensagens(env, momento, paraMomento(momento), { origem: 'stripe' }).loja), comLoja[momento], momento);
   }
@@ -208,6 +234,7 @@ test('as cores dos emails: cada par de texto mede 4,5:1 ou mais, no claro e no e
   const pares = [
     ['texto no cartão', C.tinta, C.cartao], ['texto secundário no cartão', C.tintaSuave, C.cartao], ['ligações no cartão', C.coral, C.cartao],
     ['rodapé no fundo', C.tintaSuave, C.fundo], ['texto do botão', C.botaoTexto, C.castanho],
+    ['caixa Multibanco: os números', C.botaoTexto, C.castanho], ['caixa Multibanco: os rótulos', C.linha, C.castanho],
     ['escuro: texto no cartão', E.tinta, E.cartao], ['escuro: secundário no cartão', E.tintaSuave, E.cartao], ['escuro: rodapé no fundo', E.tintaSuave, E.fundo],
   ];
   for (const [nome, a, b] of pares) assert.ok(contraste(a, b) >= 4.5, `${nome}: ${contraste(a, b).toFixed(2)}:1`);

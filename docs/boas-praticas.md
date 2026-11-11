@@ -22,7 +22,7 @@ Pesquisa de 9 nov 2026. As fontes são a Baymard, o W3C (WCAG 2.2), o web.dev, a
 - Checkout:
   - sem conta obrigatória e com cerca de 8 campos;
   - envio e entrega em mão (Valongo) lado a lado;
-  - Stripe com `locale: "pt"`, MB WAY e cartão;
+  - Stripe com `locale: "pt"`: MB WAY, Multibanco, cartão, Apple Pay e Google Pay (e nada mais);
   - códigos de desconto com `allow_promotion_codes`, sem caixa de cupão em destaque.
 - Encomenda confirmada pelo webhook `checkout.session.completed`, que tem de aguentar correr duas vezes para a mesma encomenda. O email de confirmação sai daí.
 

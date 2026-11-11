@@ -17,7 +17,7 @@
  * anulada). avisar() manda e devolve o que aconteceu a cada destinatário ({ em, cliente, loja }).
  */
 
-import { documento, tabelaArtigos, ficha, botao, separador, bloco, h2, p, pequeno, ligacao, esc, linhas } from './email-html.js';
+import { documento, tabelaArtigos, ficha, botao, caixaMultibanco, separador, bloco, h2, p, pequeno, ligacao, esc, linhas } from './email-html.js';
 import { pedirAoObjecto } from './objecto.js';
 import { primeiroNome, ENTREGA_EM_MAO } from './encomenda.js';
 import { horaDeLisboa } from './contas.js';
@@ -133,7 +133,7 @@ function contactos(env) {
 
 /* Inteiro: a saudação, a frase do momento, a nota do painel (se a houver), os artigos, a entrega e a
    oferta (na confirmação), o botão, e o rodapé com a livre resolução e o contacto. */
-function emailCliente(env, enc, { assunto, titulo, frase, nota = '', comEntrega = false, semDesistencia = false }) {
+function emailCliente(env, enc, { assunto, titulo, frase, nota = '', comEntrega = false, semDesistencia = false, multibanco = null }) {
   const nome = primeiroNome((enc.cliente || {}).nome);
   const subtitulo = `Encomenda ${enc.encomenda} · ${dataPT(enc.criada_em)}`;
   const ver = ligacaoDaEncomenda(env, enc);
@@ -151,6 +151,7 @@ function emailCliente(env, enc, { assunto, titulo, frase, nota = '', comEntrega 
     '',
     ...(entrega ? ['ENTREGA', `  ${entrega}`, ''] : []),
     ...(of ? ['OFERTA', ...of.texto.map((x) => `  ${x}`), ''] : []),
+    ...(multibanco ? ['PAGAR POR MULTIBANCO', `  Entidade: ${multibanco.entidade}`, `  Referência: ${multibanco.referencia}`, `  Valor: ${eur(enc.total_cents)}`, ...(multibanco.validade ? [`  Válida até: ${new Date(multibanco.validade * 1000).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' })}`] : []), ''] : []),
     ...(ver ? [`Ver a encomenda: ${ver}`, ''] : []),
     ...(d ? [d.texto, ''] : []),
     k.texto,
@@ -160,6 +161,7 @@ function emailCliente(env, enc, { assunto, titulo, frase, nota = '', comEntrega 
     tabelaArtigos(enc, totais(enc)),
     entrega ? bloco(h2('Entrega') + p(esc(entrega), true)) : '',
     of ? bloco(h2('Oferta') + of.html) : '',
+    multibanco ? caixaMultibanco(multibanco, enc.total_cents) : '',
     ver ? botao(ver, 'Ver a encomenda') : '',
     separador(),
     bloco((d ? pequeno(d.html) : '') + pequeno(k.html, true), '14px 40px 0 40px'),
@@ -307,7 +309,23 @@ const AVISOS = {
     }),
     loja: null,
   }),
-  falhou: (env, enc) => naoConcluido(env, enc, {
+  // A referência Multibanco: o pagamento ainda não entrou (o Worker manda este email; o da Stripe, com
+  // as instruções, está desligado, para não chegarem dois). Sem email à loja: ela sabe quando pagar.
+  multibanco: (env, enc) => ({
+    cliente: emailCliente(env, enc, {
+      assunto: `Falta pagar: referência Multibanco da encomenda ${enc.encomenda}`,
+      titulo: 'Falta pagar',
+      frase: 'Para concluíres a encomenda, paga a referência Multibanco abaixo. Assim que o pagamento entrar, avisamos-te.',
+      multibanco: (enc.stripe || {}).multibanco,
+      semDesistencia: true,
+    }),
+    loja: null,
+  }),
+  // Pela Stripe, só um meio diferido falha depois da página: a referência Multibanco que não se pagou a tempo.
+  falhou: (env, enc) => naoConcluido(env, enc, (enc.stripe || {}).multibanco ? {
+    razao: 'A referência Multibanco expirou sem o pagamento.', palavra: 'falhou', titulo: 'Referência Multibanco expirada',
+    cabecalho: `A referência Multibanco da encomenda ${enc.encomenda} expirou sem o pagamento.`,
+  } : {
     razao: 'O pagamento não se concluiu.', palavra: 'falhou', titulo: 'Pagamento falhado',
     cabecalho: `O pagamento da encomenda ${enc.encomenda} não se concluiu.`,
   }),

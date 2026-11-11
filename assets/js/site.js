@@ -532,7 +532,22 @@
       if (q.has('cancelado')) history.replaceState(null, '', location.pathname);  // a chave não fica na barra
       separador.largar(PAGAMENTO);
       if (!pendente && !q.has('cancelado')) return;
-      if (pendente && API) fetch(API + '/encomenda/desistir', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pendente), keepalive: true }).catch(() => {});
+      const naoConcluido = () => {
+        avisoPagamento.textContent = 'O pagamento não se concluiu e não se cobrou nada. Os teus dados estão aqui: confirma e envia outra vez.';
+        avisoPagamento.hidden = false;
+      };
+      /* A encomenda pode não se ter desfeito: pagou nesse instante, ou escolheu Multibanco — com o Multibanco a
+         Stripe fica na página da referência e não volta ao site, e o «Voltar» do browser traz a pessoa aqui. O
+         Worker diz-o (`feita`), e a pessoa vai para a «obrigado», que mostra a referência por pagar (11 nov 2026). */
+      if (pendente && API) {
+        fetch(API + '/encomenda/desistir', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ e: pendente.e, c: pendente.c }), keepalive: true })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((j) => {
+            if (j && j.feita === true) location.replace(`${BASE}/obrigado/?e=${encodeURIComponent(pendente.e)}&c=${encodeURIComponent(pendente.c)}${typeof j.s === 'string' ? `&s=${encodeURIComponent(j.s)}` : ''}`);
+            else naoConcluido();
+          })
+          .catch(naoConcluido);
+      } else naoConcluido();
       const dados = separador.ler(DADOS);
       if (dados && typeof dados === 'object') {
         for (const k of GUARDADOS) if (typeof dados[k] === 'string' && form.elements[k]) form.elements[k].value = dados[k];
@@ -540,8 +555,6 @@
         if (r) r.checked = true;
         if (dados.oferta === true) { form.elements.oferta.checked = true; $('[data-mensagem]', form).hidden = false; }
       }
-      avisoPagamento.textContent = 'O pagamento não se concluiu e não se cobrou nada. Os teus dados estão aqui: confirma e envia outra vez.';
-      avisoPagamento.hidden = false;
     };
     deVoltaDaStripe();
     desenhar();
@@ -735,10 +748,16 @@
         feita();
         const linhas = e.linhas.map((l) => `<li><span>${esc(l.nome)}${l.qtd > 1 ? ' × ' + l.qtd : ''}${l.escolhas?.length ? `<small>${l.escolhas.map(esc).join(' · ')}</small>` : ''}</span><b>${euro(l.total_cents / 100)}</b></li>`).join('');
         const pago = ['paga', 'pronta', 'enviada', 'levantada'].includes(e.estado);
+        // pagou por Multibanco e a referência ainda não foi paga: a referência, para pagar já
+        const mb = e.estado === 'pendente' && e.multibanco;
         const proximo = e.modo === 'online'
-          ? (pago ? 'O pagamento entrou. Antes de produzirmos, mandamos-te a pré-visualização para aprovares.' : 'Assim que o pagamento entrar, avisamos-te por email.')
+          ? (pago ? 'O pagamento entrou. Antes de produzirmos, mandamos-te a pré-visualização para aprovares.'
+            : mb ? 'Falta pagar: usa a referência Multibanco abaixo, no multibanco ou na app do teu banco. Assim que o pagamento entrar, avisamos-te por email.'
+              : 'Assim que o pagamento entrar, avisamos-te por email.')
           : 'Vamos confirmar a encomenda e combinar contigo o pagamento. Antes de produzirmos, mandamos-te a pré-visualização para aprovares.';
-        corpo.innerHTML = `<p>${e.cliente?.nome ? `${esc(e.cliente.nome)}, recebemos` : 'Recebemos'} a tua encomenda <strong>${esc(e.encomenda)}</strong>.</p><p>${proximo}</p>
+        const validade = mb && mb.validade ? new Date(mb.validade * 1000).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' }) : '';
+        const caixaMB = mb ? `<dl class="obrigado__multibanco" data-multibanco><dt>Entidade</dt><dd>${esc(mb.entidade)}</dd><dt>Referência</dt><dd>${esc(mb.referencia)}</dd><dt>Valor</dt><dd>${euro(e.total_cents / 100)}</dd>${validade ? `<dt>Válida até</dt><dd>${esc(validade)}</dd>` : ''}</dl>` : '';
+        corpo.innerHTML = `<p>${e.cliente?.nome ? `${esc(e.cliente.nome)}, recebemos` : 'Recebemos'} a tua encomenda <strong>${esc(e.encomenda)}</strong>.</p><p>${proximo}</p>${caixaMB}
           <ul class="obrigado__linhas">${linhas}</ul>
           <dl class="obrigado__totais"><dt>Artigos</dt><dd>${euro(e.artigos_cents / 100)}</dd>${e.cupao && e.desconto_cents > 0 ? `<dt>Cupão ${esc(e.cupao)}</dt><dd>−${euro(e.desconto_cents / 100)}</dd>` : ''}<dt>Portes</dt><dd>${e.portes_por_confirmar ? 'A confirmar' : e.portes_cents ? euro(e.portes_cents / 100) : e.cupao_portes ? 'Grátis (cupão)' : 'Grátis'}</dd><dt>Total</dt><dd>${euro(e.total_cents / 100)}${e.portes_por_confirmar ? ' + portes' : ''}</dd></dl>`;
       }).catch((estado) => {

@@ -27,14 +27,14 @@ const sessaoExpirada = (encomenda) => ({ id: 'evt_expirou', type: 'checkout.sess
 
 /* Uma encomenda «online» pendente. `aoFechar(env)` corre quando o Worker pede à Stripe para fechar a
    página (para ver em que estado a encomenda já estava nesse instante). */
-async function pendente({ aoFechar = null, fecho = null } = {}) {
+async function pendente({ aoFechar = null, fecho = null, sessao = null } = {}) {
   let env;
   rede = redeFalsa({
     catalogo: catalogoDeEnsaio({ modo: 'online' }),
     stripe: async (url, init) => {
       if (url.endsWith('/expire')) { if (aoFechar) await aoFechar(env); return fecho ? fecho() : Response.json({ id: 'cs_test_a1b2c3d4e5f6', status: 'expired' }); }
       if (init.method === 'POST') return Response.json({ id: 'cs_test_a1b2c3d4e5f6', url: 'https://checkout.stripe.com/c/pay/cs_test_a1b2c3d4e5f6' });
-      return Response.json({});
+      return Response.json(sessao ? { id: 'cs_test_a1b2c3d4e5f6', ...sessao } : {});
     },
   });
   env = envFalso({ STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: SEGREDO, RESEND_API_KEY: 're_x', STORE_EMAIL: 'loja@exemplo.pt' });
@@ -107,12 +107,37 @@ test('POST /encomenda/desistir: de volta da Stripe sem pagar, a página fecha-se
   assert.equal((await pedir(worker, env, 'POST', '/encomenda/desistir', { corpo: { e: encomenda, c: chave }, cabecalhos: origem })).json.estado, 'expirou');
 });
 
-test('desistir de uma que se pagou nesse instante: a Stripe recusa fechar, e a encomenda fica para o webhook', async () => {
-  const { env, encomenda, chave } = await pendente({ fecho: () => new Response('{"error":{"message":"This Checkout Session is complete"}}', { status: 400 }) });
+const RECUSA = () => new Response('{"error":{"message":"Only Checkout Sessions with a status of open can be expired."}}', { status: 400 });
+
+test('desistir de uma que se pagou nesse instante: a Stripe recusa fechar, a sessão diz «paga» — o site vai à «obrigado» e a encomenda fica para o webhook', async () => {
+  const { env, encomenda, chave } = await pendente({ fecho: RECUSA, sessao: { status: 'complete', payment_status: 'paid' } });
   const r = await pedir(worker, env, 'POST', '/encomenda/desistir', { corpo: { e: encomenda, c: chave } });
-  assert.equal(r.json.estado, 'pendente');
+  assert.deepEqual(r.json, { estado: 'paga', feita: true, s: 'cs_test_a1b2c3d4e5f6' });
+  assert.equal((await doObjecto(env, encomenda)).estado, 'pendente', 'quem grava o pagamento é o webhook');
   assert.equal((await webhook(env, sessaoPaga(encomenda))).status, 200);
   assert.equal((await doObjecto(env, encomenda)).estado, 'paga');
+});
+
+test('desistir à espera do Multibanco (a Stripe fica na página da referência e o «Voltar» do browser volta ao finalizar): a encomenda NÃO se desfaz, e o site vai à «obrigado» com a sessão', async () => {
+  const { env, encomenda, chave } = await pendente({ fecho: RECUSA, sessao: { status: 'complete', payment_status: 'unpaid' } });
+  const r = await pedir(worker, env, 'POST', '/encomenda/desistir', { corpo: { e: encomenda, c: chave } });
+  assert.deepEqual(r.json, { estado: 'pendente', feita: true, s: 'cs_test_a1b2c3d4e5f6' });
+  const enc = await doObjecto(env, encomenda);
+  assert.equal(enc.estado, 'pendente');
+  assert.equal(enc.historico.length, 1, 'nada mudou: a referência continua a valer');
+  assert.equal(rede.resend().length, 0);
+});
+
+test('desistir de uma sessão que já tinha expirado na Stripe: fica «expirou», como se fechasse agora; sem resposta da Stripe, fica como está', async () => {
+  const { env, encomenda, chave } = await pendente({ fecho: RECUSA, sessao: { status: 'expired', payment_status: 'unpaid' } });
+  const r = await pedir(worker, env, 'POST', '/encomenda/desistir', { corpo: { e: encomenda, c: chave } });
+  assert.deepEqual(r.json, { estado: 'expirou' });
+  assert.deepEqual([(await doObjecto(env, encomenda)).estado, (await doObjecto(env, encomenda)).historico.at(-1).por], ['expirou', 'cliente']);
+  rede.repor();   // a rede de faz-de-conta desta encomenda sai antes da outra (a de origem volta no fim)
+  const outra = await pendente({ fecho: RECUSA });
+  const r2 = await pedir(worker, outra.env, 'POST', '/encomenda/desistir', { corpo: { e: outra.encomenda, c: outra.chave } });
+  assert.deepEqual(r2.json, { estado: 'pendente' }, 'a sessão sem estado (a Stripe não disse): nem «feita», nem «expirou»');
+  assert.equal((await doObjecto(outra.env, outra.encomenda)).estado, 'pendente');
 });
 
 test(`o travão dos emails: a mesma pessoa recebe no máximo ${MAX_EMAILS_POR_PAGAR} emails de encomendas por pagar por dia; a loja recebe sempre`, async () => {

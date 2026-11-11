@@ -377,6 +377,13 @@ teste('modo online: o botão é «Encomendar e pagar» e as entregas sem portes 
   assert.match(fin, /value="mao"/);
   assert.equal(JSON.parse(pagina('assets/catalogo.json')).modo, 'online');
   assert.match(pagina('privacidade/index.html'), /Stripe/);
+  // os meios de pagamento (11 nov 2026): só os cinco ligados na Stripe, iguais no carrinho, no finalizar e nos termos
+  const meios = (h) => [...(h.match(/<p class="pagamentos">([\s\S]*?)<\/p>/)?.[1] ?? '').matchAll(/<span>([^<]+)<\/span>/g)].map((m) => m[1]);
+  assert.deepEqual(meios(fin), ['MB WAY', 'Multibanco', 'Cartão', 'Apple Pay', 'Google Pay', 'Pagamento seguro pela Stripe']);
+  assert.deepEqual(meios(pagina('carrinho/index.html')).slice(0, 5), ['MB WAY', 'Multibanco', 'Cartão', 'Apple Pay', 'Google Pay']);
+  const termos = pagina('termos/index.html');
+  assert.match(termos, /Paga-se por MB WAY, Multibanco, cartão, Apple Pay ou Google Pay, através da Stripe, no fim da encomenda\. Com Multibanco, a encomenda só avança depois de a referência ser paga/);
+  assert.doesNotMatch(termos + fin, /MB WAY ou cartão/);
 });
 teste('neutraliza: categoria que não existe esconde o produto; fotografia em falta só sai da ficha', () => {
   repor();

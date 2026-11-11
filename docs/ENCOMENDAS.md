@@ -21,7 +21,7 @@ para cada uma se construir sem ver as outras.
 
 O `content/loja.json` diz `pagamentos.modo`: `"encomenda"` (o de agora: sem chaves da Stripe; a
 encomenda regista-se e a loja confirma e combina o pagamento, por MB WAY ou transferência) ou
-`"online"` (a Stripe: cartão e MB WAY; quando o Renato ligar a conta da cliente, no fim). O catálogo
+`"online"` (a Stripe: MB WAY, Multibanco, cartão, Apple Pay e Google Pay; quando a conta da cliente estiver activa). O catálogo
 publicado leva o `modo`; o Worker lê-o de lá (`MODO` nas vars só o pode forçar para `encomenda`,
 como travão). Em modo «online» sem `STRIPE_SECRET_KEY` o Worker responde 503 com
 `{ erro: 'O pagamento no site ainda não está ligado. Encomenda por mensagem no Instagram.' }`.
@@ -86,9 +86,13 @@ O site: com `url` segue para lá; com `encomenda` esvazia o carrinho e segue par
 **`POST /encomenda/desistir` `{ "e": "<id>", "c": "<chave>" }`** (11 nov 2026): a pessoa voltou da
 página da Stripe sem pagar (o «Voltar» dela, ou o «voltar» do browser, pelo que o finalizar guardou no
 separador). O Worker fecha a página da Stripe (`/expire`) e, se fechou, passa a encomenda pendente a
-`expirou` (`por: "cliente"`), SEM emails; se a Stripe recusa fechar (a pessoa pagou nesse instante), a
-encomenda fica para o webhook. → `{ "estado": "…" }`; sem a chave certa, 404. O finalizar repõe os
-dados escritos (menos os termos) e diz que não se cobrou nada.
+`expirou` (`por: "cliente"`), SEM emails. Se a Stripe recusa fechar, o Worker pergunta-lhe pela sessão:
+completa — pagou nesse instante, ou escolheu Multibanco e já tem a referência (com o Multibanco a Stripe
+fica na página da referência e não volta ao site; o «voltar» do browser é que traz a pessoa) — a
+encomenda fica (para o webhook) e responde `{ "estado": "pendente"|"paga", "feita": true, "s": "<sessão>" }`,
+e o finalizar leva a pessoa à «obrigado» com a sessão, que mostra a referência por pagar; já expirada,
+passa a `expirou` como se fechasse agora. → `{ "estado": "…" }`; sem a chave certa, 404. Sem `feita`, o
+finalizar repõe os dados escritos (menos os termos) e diz que não se cobrou nada.
 
 CORS: só as origens de `ALLOWED_ORIGINS` (a pré-visualização `https://renatovalente5.github.io`, o
 `http://127.0.0.1:8985` do build local e, depois, o domínio); `OPTIONS` responde às duas rotas
@@ -108,7 +112,11 @@ ela, ou errada, 404):
 ```
 
 `cliente.nome` é só o primeiro nome. Pela sessão da Stripe (`s`) responde o mesmo, se a sessão for
-de uma encomenda conhecida (índice `session:`).
+de uma encomenda conhecida (índice `session:`). Uma encomenda «pendente» à espera do Multibanco leva
+também `"multibanco": { "entidade": "12345", "referencia": "123 456 789", "validade": 1800600000 }`
+(a validade em segundos desde 1970, ou `null`): a «obrigado» mostra a referência. Vem da encomenda
+(gravada pelo webhook) ou, de volta da Stripe (`s`), do PaymentIntent da sessão, se o webhook ainda não
+chegou (11 nov 2026).
 
 ## 4. Onde fica: o objecto durável de cada encomenda, e o KV (namespace `ORDERS`, só o Worker escreve)
 
@@ -224,11 +232,12 @@ pessoa; o Resend fica como plano B).
 |---|---|---|
 | encomenda registada (modo «encomenda») | «Recebemos a tua encomenda» + o que vem a seguir (confirmamos e combinamos o pagamento; a pré-visualização antes de produzir) | «Nova encomenda FK-…» com tudo, e o telefone do cliente |
 | paga (Stripe) | «Pagamento recebido» + a pré-visualização vem a seguir | «Encomenda paga FK-…» |
+| referência Multibanco (Stripe, `payment_intent.requires_action`) | «Falta pagar: referência Multibanco…» com a entidade, a referência, o valor e a validade (texto, não imagem) | — |
 | paga (marcada no painel) | «Pagamento recebido» | — |
 | pronta | «A tua encomenda está pronta» + combinamos a entrega em mão | — |
 | enviada | «A tua encomenda seguiu» + nota (registo dos CTT) | — |
 | anulada | «A tua encomenda foi anulada» + nota | — |
-| reembolsada / falhou / expirou | «Reembolso feito» / «O pagamento não se concluiu» | «FK-… falhou/expirou» |
+| reembolsada / falhou / expirou | «Reembolso feito» / «O pagamento não se concluiu» (falhou com Multibanco: «A referência Multibanco expirou sem o pagamento») | «FK-… falhou/expirou» |
 
 ## 7. Vars do Worker (wrangler)
 

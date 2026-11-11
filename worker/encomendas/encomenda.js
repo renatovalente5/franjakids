@@ -241,6 +241,9 @@ export function vistaPublica(enc) {
     ...(enc.cupao ? { cupao: enc.cupao, desconto_cents: enc.desconto_cents || 0, ...(enc.cupao_portes ? { cupao_portes: true } : {}) } : {}),
     total_cents: enc.total_cents,
     cliente: { nome: primeiroNome((enc.cliente || {}).nome) },
+    // à espera do Multibanco: a referência (a página «obrigado» mostra-a; só quem tem a chave a vê)
+    ...(enc.estado === 'pendente' && enc.stripe && enc.stripe.multibanco
+      ? { multibanco: { entidade: enc.stripe.multibanco.entidade, referencia: enc.stripe.multibanco.referencia, validade: enc.stripe.multibanco.validade ?? null } } : {}),
   };
 }
 

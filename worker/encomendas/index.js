@@ -26,7 +26,7 @@ import { json, lerCorpoJson } from './http.js';
 import { lerCatalogo, modoDe, siteUrl } from './catalogo.js';
 import { validarPedido, ErroDoPedido, hojeLisboa } from './contas.js';
 import { criarEncomenda, idLivre, novaChave, lerEncomenda, gravarEncomenda, alterarEncomenda, mudarEstado, vistaPublica, iguais, RE_ID, RE_CHAVE, TTL_ENCOMENDA, TTL_EVENTO, agoraISO } from './encomenda.js';
-import { criarSessao, stripeFetch, verificarAssinatura, aplicarEvento, idDoEvento, metodoDaCobranca } from './stripe.js';
+import { criarSessao, stripeFetch, verificarAssinatura, aplicarEvento, idDoEvento, metodoDaCobranca, multibancoDe } from './stripe.js';
 import { avisar, falhou, podeAvisarCliente } from './email.js';
 import { rotaPainel } from './painel.js';
 import { normalizarCodigo, pedirCupoes, resumoDoEmail, publico, porQueNaoVale, acertarCupao, fazerAcerto, libertarUso } from './cupoes.js';
@@ -37,6 +37,8 @@ export { Encomenda, Contador } from './objecto.js';
 export { Cupoes } from './cupoes.js';
 
 const JANELA_DE_REENTREGA_SEGUNDOS = 3600;   // até quando vale pedir à Stripe que reentregue
+// Os avisos ao cliente sem pagamento, com o travão por endereço (podeAvisarCliente).
+const TRAVADOS = Object.freeze(['expirou', 'falhou', 'multibanco']);
 const SEM_INSTAGRAM = 'manda-nos mensagem no Instagram';
 
 /* ---------------------------------------------------------------- CORS
@@ -180,12 +182,17 @@ async function checkout(request, env, cors) {
 
 /* A pessoa aterra na página «obrigado» segundos depois de pagar, antes de o webhook chegar: a sessão
    da Stripe é a fonte mais fresca. Só promove o que se mostra (gravar é do webhook), e só para a
-   frente: uma encomenda já reembolsada não volta a «paga». */
+   frente: uma encomenda já reembolsada não volta a «paga». Paga por Multibanco, a sessão completa-se
+   sem pagamento: a referência lê-se do PaymentIntent dela (o webhook pode ainda não a ter trazido). */
 async function promoverPelaSessao(env, s, vista) {
   if (!env.STRIPE_SECRET_KEY) return;
   try {
-    const sessao = await stripeFetch(env, `/checkout/sessions/${encodeURIComponent(s)}`, { method: 'GET' });
+    const sessao = await stripeFetch(env, `/checkout/sessions/${encodeURIComponent(s)}?expand%5B%5D=payment_intent`, { method: 'GET' });
     if (sessao.payment_status && sessao.payment_status !== 'unpaid') vista.estado = 'paga';
+    else if (!vista.multibanco) {
+      const mb = multibancoDe(sessao.payment_intent);
+      if (mb) vista.multibanco = { entidade: mb.entidade, referencia: mb.referencia, validade: mb.validade };
+    }
   } catch (err) {
     console.error('sessão por ler', s, err.message);
   }
@@ -237,8 +244,17 @@ async function desistir(request, env, cors) {
     try {
       await stripeFetch(env, `/checkout/sessions/${encodeURIComponent(sessao)}/expire`, { method: 'POST' });
     } catch (err) {
-      console.error('desistir: a página da Stripe não fechou (paga entretanto?)', e, err.status, err.message);
-      return json({ estado: enc.estado }, 200, cors);
+      /* A página não fechou: pergunta-se à Stripe porquê (11 nov 2026). Completou-se — pagou nesse instante, ou
+         escolheu Multibanco e já tem a referência (com o Multibanco a Stripe fica na página da referência e não
+         volta ao site; o «Voltar» do browser trazia a pessoa ao finalizar, que dizia «não se concluiu» com a
+         referência a valer) —: a encomenda está feita, e o site leva-a à «obrigado» (`feita`, com a sessão, que
+         mostra a referência). Já tinha expirado: segue para «expirou», como se fechasse agora. Sem resposta: fica. */
+      const s = await stripeFetch(env, `/checkout/sessions/${encodeURIComponent(sessao)}`, { method: 'GET' }).catch(() => null);
+      if (!s || s.status !== 'expired') {
+        if (s && s.status === 'complete') return json({ estado: s.payment_status && s.payment_status !== 'unpaid' ? 'paga' : enc.estado, feita: true, s: sessao }, 200, cors);
+        console.error('desistir: a página da Stripe não fechou', e, err.status, err.message);
+        return json({ estado: enc.estado }, 200, cors);
+      }
     }
   }
   const r = await alterarEncomenda(env, e, (x) => {
@@ -337,13 +353,14 @@ async function webhook(request, env) {
   if (pi && (await env.ORDERS.get(`pi:${pi}`)) !== id) await env.ORDERS.put(`pi:${pi}`, id, { expirationTtl: TTL_ENCOMENDA });
 
   // Cada aviso vai uma vez (a marca enc.avisos, lida da encomenda de agora). O resultado junta-se
-  // às marcas sem perder outra escrita. O «expirou» ao cliente tem o travão por endereço.
+  // às marcas sem perder outra escrita. Os emails ao cliente sem pagamento (o «expirou», o «falta
+  // pagar» do Multibanco e o «falhou» da referência que não se pagou) têm o travão por endereço.
   let enviou = false;
   for (const aviso of r.avisos) {
     const actual = (await lerEncomenda(env, id)) || r.enc;
     if (actual.avisos && actual.avisos[aviso]) continue;
     const extras = { origem: 'stripe' };
-    if (aviso === 'expirou' && !(await podeAvisarCliente(env, actual.cliente && actual.cliente.email))) extras.semCliente = 'travado: emails de mais para este endereço hoje';
+    if (TRAVADOS.includes(aviso) && !(await podeAvisarCliente(env, actual.cliente && actual.cliente.email))) extras.semCliente = 'travado: emails de mais para este endereço hoje';
     const resultado = await avisar(env, aviso, actual, extras);
     if (falhou(resultado)) {
       console.error('EMAIL NÃO ENVIADO', aviso, id, JSON.stringify(resultado), '— 500 para a Stripe reentregar');

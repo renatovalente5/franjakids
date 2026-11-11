@@ -6,6 +6,7 @@ import {
   textoGarantia, ralHtml, destinatariosHtml, direitosHtml, BOTAO_ENCOMENDA,
 } from '../legal-comum/index.mjs';
 import { url, esc, euro, icone, porConfirmar } from './util.mjs';
+import { MEIOS_ONLINE } from './lib/regras.mjs';
 import { texto } from './paginas.mjs';
 
 const valor = (v, falta) => (typeof v === 'string' && v.trim() ? esc(v.trim()) : porConfirmar(falta));
@@ -28,7 +29,9 @@ export function paginasDeTexto(loja) {
   const online = loja.pagamentos?.modo === 'online';
   const gratis = typeof ent.gratisAPartirDe === 'number' ? euro(ent.gratisAPartirDe) : null;
   const portesDe = (z) => (typeof z.portes === 'number' ? (z.portes === 0 ? 'grátis' : euro(z.portes)) : (z.id === 'continente' ? porConfirmar('portes para Portugal continental') : 'confirmamos antes do pagamento'));
-  const pagamentos = online ? ['MB WAY', 'cartão'] : [];
+  const pagamentos = online ? [...MEIOS_ONLINE] : [];
+  // «MB WAY, Multibanco, cartão, Apple Pay ou Google Pay»
+  const meios = `${MEIOS_ONLINE.slice(0, -1).join(', ')} ou ${MEIOS_ONLINE.at(-1)}`;
   const botao = online ? BOTAO_ENCOMENDA : 'Enviar encomenda';
   // «Como se faz a encomenda»: em modo «encomenda» o botão é outro e o pagamento combina-se depois
   const comoSeFaz = () => {
@@ -36,7 +39,7 @@ export function paginasDeTexto(loja) {
     return online ? h : h.replace(`«${BOTAO_ENCOMENDA}».`, `«${botao}». O pagamento combinamos contigo depois de confirmarmos a encomenda, por MB WAY ou transferência.`);
   };
   const frasePagamento = online
-    ? `Pagas no fim da encomenda, com MB WAY ou cartão. A encomenda fica feita quando carregas em «${botao}».`
+    ? `Pagas no fim da encomenda, com ${meios}. A encomenda fica feita quando carregas em «${botao}».`
     : `A encomenda fica feita quando carregas em «${botao}». Depois confirmamos tudo contigo e combinamos o pagamento, por MB WAY ou transferência.`;
   return [
     texto('/como-funciona/', 'Como funciona', 'Do pedido à tua porta, em quatro passos.', `
@@ -93,7 +96,7 @@ ${identificacao(e)}
 <h2>2. Como se faz a encomenda</h2>
 ${comoSeFaz()}
 <h2>3. Preços e pagamento</h2>
-<p>Os preços incluem IVA. Os portes aparecem antes da encomenda${gratis ? ` e são grátis em Portugal continental a partir de ${gratis} em artigos` : ''}. ${online ? 'Paga-se por MB WAY ou cartão, através da Stripe, no fim da encomenda.' : 'Depois de confirmarmos a encomenda, combinamos o pagamento por MB WAY ou transferência; só produzimos depois de recebido.'}</p>
+<p>Os preços incluem IVA. Os portes aparecem antes da encomenda${gratis ? ` e são grátis em Portugal continental a partir de ${gratis} em artigos` : ''}. ${online ? `Paga-se por ${meios}, através da Stripe, no fim da encomenda. Com Multibanco, a encomenda só avança depois de a referência ser paga, e fica sem efeito se não for paga dentro do prazo indicado.` : 'Depois de confirmarmos a encomenda, combinamos o pagamento por MB WAY ou transferência; só produzimos depois de recebido.'}</p>
 <h2>4. Personalização</h2>
 <p>Depois da encomenda, mandamos a pré-visualização por email ou mensagem; só produzimos depois da sua aprovação. O texto é usado exatamente como foi escrito na encomenda.</p>
 <h2>5. Prazos e entrega</h2>

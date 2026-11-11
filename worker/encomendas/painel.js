@@ -131,17 +131,25 @@ async function listar(env, url) {
 
 /* ---------------------------------------------------------------- mudar o estado */
 
-/* Uma encomenda «pendente» tem a página da Stripe aberta (dura uma hora). Quando a dona a anula, ou
-   a marca paga por outro meio, a página fecha-se, para a pessoa não pagar uma encomenda anulada nem
-   pagar duas vezes. Se a Stripe recusar (a página já fechou, ou a pessoa pagou nesse instante),
-   segue na mesma: um pagamento que chegue a uma encomenda anulada tem o seu caminho no webhook (a
-   loja é avisada para o devolver). */
-async function fecharPaginaDaStripe(env, id, sessao) {
+/* Uma encomenda «pendente» tem a página da Stripe aberta (dura uma hora), ou uma referência
+   Multibanco à espera de ser paga (a página já se completou). Quando a dona a anula, ou a marca paga
+   por outro meio, a página fecha-se, para a pessoa não pagar uma encomenda anulada nem pagar duas
+   vezes; se já se completou à espera do Multibanco, cancela-se o pagamento e a referência deixa de
+   valer (como na LF Mobile; a chave restrita precisa de «PaymentIntents: Write»). Se a Stripe recusar
+   (a pessoa pagou nesse instante), segue na mesma: um pagamento que chegue a uma encomenda anulada
+   tem o seu caminho no webhook (a loja é avisada para o devolver). */
+async function fecharPaginaDaStripe(env, id, sessao, pi) {
   if (!sessao || !env.STRIPE_SECRET_KEY) return;
   try {
     await stripeFetch(env, `/checkout/sessions/${encodeURIComponent(sessao)}/expire`, { method: 'POST' });
+    return;
   } catch (e) {
-    console.error('a página da Stripe não fechou', id, sessao, e.status, e.message);
+    if (!pi) { console.error('a página da Stripe não fechou', id, sessao, e.status, e.message); return; }
+  }
+  try {
+    await stripeFetch(env, `/payment_intents/${encodeURIComponent(pi)}/cancel`, { body: { cancellation_reason: 'abandoned' } });
+  } catch (e) {
+    console.error('o pagamento na Stripe não se cancelou (pago entretanto?)', id, pi, e.status, e.message);
   }
 }
 
@@ -166,7 +174,7 @@ async function mudar(request, env, id) {
     else if (enc.estado !== visto) return { razao: `A encomenda mudou entretanto: está «${enc.estado}». Veja-a outra vez antes de a mudar.`, parar: true };
     const razao = razaoParaNao(enc, novo);
     if (razao) return { razao, parar: true };
-    antes = { estado: enc.estado, sessao: enc.stripe && enc.stripe.session_id };
+    antes = { estado: enc.estado, sessao: enc.stripe && enc.stripe.session_id, pi: enc.stripe && enc.stripe.payment_intent };
     mudarEstado(enc, novo, { por, nota, em });
     return { acerto: acertarCupao(enc) };
   }, { em });
@@ -174,7 +182,7 @@ async function mudar(request, env, id) {
   if (r.razao) return json({ erro: r.razao }, 409);
   if (r.acerto) await fazerAcerto(env, r.acerto, r.enc);
 
-  if (antes.estado === 'pendente') await fecharPaginaDaStripe(env, id, antes.sessao);
+  if (antes.estado === 'pendente') await fecharPaginaDaStripe(env, id, antes.sessao, antes.pi);
   let enc = r.enc;
   // Um email que falhe não desfaz a mudança (a dona pediu-a): fica registado em `avisos`, e o painel mostra-o.
   if (avisarCliente && AVISAM.includes(novo)) {
