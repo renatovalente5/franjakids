@@ -35,10 +35,10 @@
     "modo": "encomenda"
   },
   "empresa": {
-    "nome": null,
-    "nif": null,
-    "morada": null,
-    "email": null,
-    "telefone": null
+    "nome": "Daniela Filipa Viana Faria de Andrade",
+    "nif": "265777887",
+    "morada": "Alameda Aquilino Ribeiro, Edifício 6, Entrada 288, Casa 22",
+    "email": "franjakids@gmail.com",
+    "telefone": "919099896"
   }
 }
