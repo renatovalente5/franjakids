@@ -273,6 +273,12 @@ h1, h2, h3 { font-weight: 400; }
 .escolha:hover span { box-shadow: inset 0 0 0 1px var(--tinta-suave); }
 .escolha input:checked + span { background: var(--fundo); box-shadow: inset 0 0 0 2px var(--castanho); }
 .escolha input:focus-visible + span { outline: 2px solid var(--tinta); outline-offset: 3px; }
+/* um valor esgotado: à vista, riscado, sem se poder escolher */
+.escolha input:disabled + span { opacity: .55; cursor: not-allowed; box-shadow: inset 0 0 0 1px var(--linha); background: var(--fundo); }
+.escolha input:disabled + span { text-decoration: line-through; text-decoration-color: var(--tinta-suave); }
+.escolha small.escolha__esgotado { display: inline-block; color: var(--tinta-suave); font-weight: 600; text-decoration: none; }
+.ficha__esgotado { display: inline-block; margin-left: 10px; padding: 3px 12px; border-radius: 999px; background: var(--fundo); box-shadow: inset 0 0 0 1px var(--contorno); color: var(--tinta); font-size: .875rem; font-weight: 700; vertical-align: middle; }
+.cartao__selo--esgotado { background: var(--castanho); color: #FBF3E6; }
 .amostra span { gap: 10px; padding-left: 8px; }
 .amostra i { width: 28px; height: 28px; border-radius: 50%; background: var(--amostra, #ddd); box-shadow: inset 0 0 0 1px rgb(74 52 40 / .25); }
 /* align-content: start — ao lado de um campo com erro (mais alto), o vizinho esticava e o rótulo descia */

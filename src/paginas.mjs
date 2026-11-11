@@ -37,7 +37,7 @@ export function precoHtml(p, classe = 'cartao__preco') {
    (`lazy: false`) e o 1.º com prioridade: é a imagem maior do ecrã (o LCP), e «lazy» atrasava-a. */
 export function cartao(p, { sizes = '(min-width: 1024px) 270px, (min-width: 768px) 30vw, 45vw', selo = p._linha !== 'personalizados', prioridade = false, lazy = true } = {}) {
   return `<a class="cartao" href="${url(`/produtos/${p.slug}/`)}">`
-    + `<div class="cartao__foto">${foto(p.fotos[0], { sizes, alt: '', prioridade, lazy })}${selo && p._pers ? '<span class="cartao__selo">Personalizável</span>' : ''}</div>`
+    + `<div class="cartao__foto">${foto(p.fotos[0], { sizes, alt: '', prioridade, lazy })}${p._esgotado ? '<span class="cartao__selo cartao__selo--esgotado">Esgotado</span>' : selo && p._pers ? '<span class="cartao__selo">Personalizável</span>' : ''}</div>`
     + `<h3>${esc(p.nome)}</h3>${precoHtml(p)}</a>`;
 }
 
@@ -217,13 +217,14 @@ export const listagensComProdutos = (ctx) => [
 
 // ── Ficha do produto ────────────────────────────────────────────────────────
 
-/* Um grupo de escolhas: valores = [{ nome, suplemento, marcada, foto?, amostra? }]. `campo` diz ao
-   carrinho onde guardar a escolha (tamanho, cor; sem campo, é uma das «opcoes»). */
+/* Um grupo de escolhas: valores = [{ nome, suplemento, marcada, foto?, amostra?, esgotado? }]. `campo` diz ao
+   carrinho onde guardar a escolha (tamanho, cor; sem campo, é uma das «opcoes»). Um valor esgotado fica à
+   vista, riscado e sem se poder escolher. */
 function grupo(nome, valores, { campo, amostras = false } = {}) {
   const id = 'o-' + nome.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '');
   return `<fieldset class="opcao" data-opcao="${esc(nome)}"${campo ? ` data-campo="${campo}"` : ''} data-obrigatoria aria-describedby="${id}-erro">
     <legend>${esc(nome)} <span data-escolhido></span></legend>
-    <div class="opcao__valores">${valores.map((v) => `<label class="escolha${amostras ? ' amostra' : ''}"><input type="radio" name="${esc(nome)}" value="${esc(v.nome)}" data-suplemento="${v.suplemento || 0}"${v.foto != null && v.foto >= 0 ? ` data-foto="${v.foto}"` : ''}${v.marcada ? ' checked' : ''}><span>${amostras ? `<i style="--amostra:${v.amostra || '#ddd'}"></i>` : ''}${esc(v.nome)}${v.suplemento ? ` <small>+${euro(v.suplemento)}</small>` : ''}</span></label>`).join('')}</div>
+    <div class="opcao__valores">${valores.map((v) => `<label class="escolha${amostras ? ' amostra' : ''}"><input type="radio" name="${esc(nome)}" value="${esc(v.nome)}" data-suplemento="${v.suplemento || 0}"${v.foto != null && v.foto >= 0 ? ` data-foto="${v.foto}"` : ''}${v.marcada && !v.esgotado ? ' checked' : ''}${v.esgotado ? ' disabled' : ''}><span>${amostras ? `<i style="--amostra:${v.amostra || '#ddd'}"></i>` : ''}${esc(v.nome)}${v.esgotado ? ' <small class="escolha__esgotado">esgotado</small>' : v.suplemento ? ` <small>+${euro(v.suplemento)}</small>` : ''}</span></label>`).join('')}</div>
     <p class="campo__erro" id="${id}-erro" data-erro></p>
   </fieldset>`;
 }
@@ -242,13 +243,15 @@ export function produto({ loja, catalogo, produtos }, p) {
   const linhaDe = catalogo.linhas.find((l) => l.categorias.includes(p.categoria));
   const fotos = p.fotos;
   const grupos = [];
-  if (p._tamanhos.length) grupos.push(grupo('Tamanho', p._tamanhos.map((t) => ({ nome: t })), { campo: 'tamanho' }));
+  if (p._tamanhos.length) grupos.push(grupo('Tamanho', p._tamanhos.map((t) => ({ nome: t, esgotado: p._tamanhosEsgotados.includes(t) })), { campo: 'tamanho' }));
   if (p._cores.length) {
-    grupos.push(grupo('Cor', p._cores.map((c, i) => ({ nome: c.nome, marcada: i === 0, amostra: catalogo.cores?.[c.nome], foto: c.foto ? fotos.indexOf(c.foto) : null })), { campo: 'cor', amostras: true }));
+    // marcada à partida: a primeira cor que não está esgotada
+    const primeira = Math.max(0, p._cores.findIndex((c) => !c.esgotado));
+    grupos.push(grupo('Cor', p._cores.map((c, i) => ({ nome: c.nome, marcada: i === primeira, esgotado: c.esgotado === true, amostra: catalogo.cores?.[c.nome], foto: c.foto ? fotos.indexOf(c.foto) : null })), { campo: 'cor', amostras: true }));
   }
   for (const o of p._opcoes) {
-    // marcada por omissão: a primeira sem acréscimo — o preço anunciado é o que se paga
-    const base = Math.max(0, o.valores.findIndex((v) => !v.suplemento));
+    // marcada por omissão: a primeira sem acréscimo (e sem estar esgotada) — o preço anunciado é o que se paga
+    const base = Math.max(0, o.valores.findIndex((v) => !v.suplemento && !v.esgotado));
     grupos.push(grupo(o.nome, o.valores.map((v, i) => ({ ...v, marcada: i === base }))));
   }
   const ps = p._pers;
@@ -267,7 +270,10 @@ export function produto({ loja, catalogo, produtos }, p) {
   const comprar = p.preco == null
     ? `<p class="aviso">O preço desta peça ainda não está no site. Diz-nos o que queres por mensagem e respondemos com o valor.</p>
     <a class="botao botao--cheio" href="https://ig.me/m/${loja.instagram}">${icone('mensagem', 'icone icone--pequeno')} Pedir por mensagem</a>`
-    : `<div class="ficha__comprar">
+    : p._esgotado
+      ? `<p class="aviso" data-esgotado>Esta peça está esgotada. Manda-nos mensagem para saberes quando volta.</p>
+    <a class="botao botao--linha" href="https://ig.me/m/${loja.instagram}">${icone('mensagem', 'icone icone--pequeno')} Perguntar por mensagem</a>`
+      : `<div class="ficha__comprar">
       <div class="quantidade" data-quantidade><button type="button" data-menos aria-label="Diminuir a quantidade">−</button><input type="text" inputmode="numeric" pattern="[0-9]*" value="1" aria-label="Quantidade" name="quantidade"><button type="button" data-mais aria-label="Aumentar a quantidade">+</button></div>
       <button class="botao botao--cheio" type="submit">Adicionar ao carrinho</button>
     </div>
@@ -294,12 +300,12 @@ export function produto({ loja, catalogo, produtos }, p) {
     <div class="ficha__info">
       <p class="ficha__etiqueta">${esc(catalogo.categorias[p.categoria])}${ps ? ' · Personalizável' : ''}</p>
       <h1>${esc(p.nome)}</h1>
-      ${p.preco == null ? '<p class="ficha__preco ficha__preco--falta">Preço por confirmar</p>' : `<p class="ficha__preco">${euro(p.preco)}</p>`}
+      ${p.preco == null ? '<p class="ficha__preco ficha__preco--falta">Preço por confirmar</p>' : `<p class="ficha__preco">${euro(p.preco)}${p._esgotado ? ' <span class="ficha__esgotado">Esgotado</span>' : ''}</p>`}
       <p class="ficha__resumo">${esc(p.resumo)}</p>
       <form class="ficha__form" data-ficha novalidate>
         <script type="application/json" data-produto>${JSON.stringify(dados)}</script>
         ${p.detalhes.length ? `<ul class="ficha__detalhes">${p.detalhes.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>` : ''}
-        ${p.preco == null ? semPreco(p) : grupos.join('\n        ') + personalizar + campoTexto}
+        ${p.preco == null || p._esgotado ? semPreco(p) : grupos.join('\n        ') + personalizar + campoTexto}
         ${comprar}
         <ul class="ficha__linhas">
           <li>${icone('relogio', 'icone icone--pequeno')}<span>Feito por encomenda em ${esc(loja.producao)}. Depois, ${esc(loja.entrega.prazoContinente)} por CTT no continente${mao ? `, ou ${esc(mao.nome.charAt(0).toLowerCase() + mao.nome.slice(1))}` : ''}.</span></li>

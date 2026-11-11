@@ -135,7 +135,7 @@ export function ldProduto({ loja, catalogo }, p) {
     image: p.fotos.slice(0, 6).map(fotoJpg).filter(Boolean), brand: { '@type': 'Brand', name: loja.nome },
     offers: {
       '@type': 'Offer', url: pagina, price: p.preco.toFixed(2), priceCurrency: 'EUR',
-      availability: 'https://schema.org/InStock', itemCondition: 'https://schema.org/NewCondition',
+      availability: p._esgotado ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', itemCondition: 'https://schema.org/NewCondition',
       seller: { '@id': id('loja') },
       ...(p._pers?.obrigatoria ? { hasMerchantReturnPolicy: semDevolucao() } : {}),
     },

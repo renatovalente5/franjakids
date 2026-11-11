@@ -61,14 +61,15 @@
      existe (o produto mudou no painel): essas linhas saem do carrinho. */
   const unidade = (i, cat) => {
     const p = cat.produtos[i.slug];
-    if (!p || typeof p.preco !== 'number') return null;
-    if (p.tamanhos.length && !p.tamanhos.includes(i.tamanho)) return null;
-    if (p.cores.length && !p.cores.some((c) => c.nome === i.cor)) return null;
+    // esgotado (o produto, o tamanho, a cor ou o valor escolhido): a linha sai, como as que já não se vendem
+    if (!p || typeof p.preco !== 'number' || p.esgotado) return null;
+    if (p.tamanhos.length && (!p.tamanhos.includes(i.tamanho) || (p.tamanhosEsgotados || []).includes(i.tamanho))) return null;
+    if (p.cores.length && !p.cores.some((c) => c.nome === i.cor && !c.esgotado)) return null;
     let v = cents(p.preco);
     for (const g of p.opcoes) {
       const escolhido = (i.opcoes || {})[g.nome];
-      const valor = g.valores.find((x) => x.nome === escolhido) || (escolhido == null ? g.valores.find((x) => !x.suplemento) : null);
-      if (!valor) return null;
+      const valor = g.valores.find((x) => x.nome === escolhido) || (escolhido == null ? g.valores.find((x) => !x.suplemento && !x.esgotado) : null);
+      if (!valor || valor.esgotado) return null;
       v += cents(valor.suplemento);
     }
     if (p.personalizacao?.opcional && i.personalizar) v += cents(p.personalizacao.suplemento);

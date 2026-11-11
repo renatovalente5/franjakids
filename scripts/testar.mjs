@@ -522,5 +522,47 @@ await teste('worker/www.js: segurança em todas as respostas; um ano de cache s�
   assert.equal(comCabecalhos(new Response(null, { status: 304 }), u('/assets/img/x-0123456789-360.webp')).headers.get('Cache-Control'), null);
 });
 
+// ---------------------------------------------------------------- o stock (11 nov 2026)
+console.log('stock');
+await teste('stock: um produto esgotado fica no site com «Esgotado» e sem compra; um tamanho ou uma cor esgotada não se escolhe; o catálogo e as regras recusam', () => {
+  repor();
+  mexer('produtos/manta-remalhada.json', (o) => { o.esgotado = true; });
+  mexer('produtos/babygrow-com-nome.json', (o) => { o.tamanhosEsgotados = ['1 mês']; o.cores[0].esgotado = true; });
+  const r = construir();
+  assert.equal(r.status, 0, r.stderr);
+  const manta = pagina('produtos/manta-remalhada/index.html');
+  assert.match(manta, /data-esgotado/);
+  assert.doesNotMatch(manta, /Adicionar ao carrinho/);
+  assert.match(manta, /class="ficha__esgotado">Esgotado/);
+  assert.match(manta, /"availability":"https:\/\/schema\.org\/OutOfStock"/);
+  assert.match(pagina('bebe/index.html'), /cartao__selo--esgotado">Esgotado/);
+  const bg = pagina('produtos/babygrow-com-nome/index.html');
+  assert.match(bg, /value="1 mês"[^>]*disabled/);
+  assert.doesNotMatch(bg, /value="3 meses"[^>]*disabled/);
+  assert.match(bg, /value="Rosa"[^>]*disabled/);
+  assert.match(bg, /value="Azul"[^>]*checked/, 'marcada à partida: a primeira cor que não está esgotada');
+  assert.match(bg, /"availability":"https:\/\/schema\.org\/InStock"/, 'esgotados só um tamanho e uma cor: o produto continua à venda');
+  const c = JSON.parse(pagina('assets/catalogo.json'));
+  assert.equal(c.produtos['manta-remalhada'].esgotado, true);
+  assert.deepEqual(c.produtos['babygrow-com-nome'].tamanhosEsgotados, ['1 mês']);
+  assert.equal(c.produtos['babygrow-com-nome'].cores[0].esgotado, true);
+  assert.equal(c.produtos['babygrow-com-nome'].esgotado, undefined);
+  const bgc = c.produtos['babygrow-com-nome'];
+  assert.equal(R.conferirEscolha(c.produtos['manta-remalhada'], { cor: 'Areia' }).campo, 'produto');
+  assert.equal(R.conferirEscolha(bgc, { tamanho: '1 mês', cor: 'Azul' }).campo, 'tamanho');
+  assert.equal(R.conferirEscolha(bgc, { tamanho: '3 meses', cor: 'Rosa' }).campo, 'cor');
+  assert.equal(R.conferirEscolha(bgc, { tamanho: '3 meses', cor: 'Azul' }).ok, true);
+  // todas as cores esgotadas: o produto inteiro está esgotado
+  assert.equal(R.esgotadoDe({ ...bgc, cores: bgc.cores.map((x) => ({ ...x, esgotado: true })) }), true);
+  repor();
+});
+await teste('stock: as regras do painel — «esgotado» é sim ou não; os tamanhos esgotados, uma lista', () => {
+  const bg = produto('babygrow-com-nome');
+  const chaves = (a) => R.problemasDoArtigo(a, { nome: 'babygrow-com-nome.json', catalogo: cat }).map((p) => p.chave);
+  assert.ok(!chaves({ ...bg, esgotado: true, tamanhosEsgotados: ['1 mês'] }).some((k) => /esgotad/i.test(k)));
+  assert.ok(chaves({ ...bg, esgotado: 'sim' }).some((k) => k.endsWith(':esgotado')));
+  assert.ok(chaves({ ...bg, tamanhosEsgotados: '1 mês' }).some((k) => k.endsWith(':tamanhosEsgotados')));
+});
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`\n${feitos} testes ${process.exitCode ? 'com falhas' : 'passaram'}`);

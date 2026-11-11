@@ -87,8 +87,8 @@ export const zonaComMorada = (id) => id !== 'mao';
    (ordenarComo()); as que já estão no ficheiro ficam onde estão. */
 export const CAMPOS_ARTIGO = Object.freeze([
   'nome', 'categoria', 'ocasioes', 'preco', 'resumo', 'fotos',
-  'tamanhos', 'cores', 'opcoes', 'personalizacao', 'detalhes',
-  'destaque', 'publicado', 'ordem',
+  'tamanhos', 'tamanhosEsgotados', 'cores', 'opcoes', 'personalizacao', 'detalhes',
+  'destaque', 'publicado', 'esgotado', 'ordem',
 ]);
 /* Sempre escritos pelo painel, com o valor explícito. Ausentes valem o valor por omissão (é o que
    o gerador faz). */
@@ -99,6 +99,7 @@ export const NOMES_CAMPOS = Object.freeze({
   nome: 'Nome do produto', categoria: 'Categoria', ocasioes: 'Ocasiões', preco: 'Preço', resumo: 'Frase curta', fotos: 'Fotografias',
   tamanhos: 'Tamanhos', cores: 'Cores', opcoes: 'Escolhas', personalizacao: 'Personalização', detalhes: 'Detalhes',
   destaque: 'Em «Mais pedidos» na página inicial', publicado: 'Publicado no site', ordem: 'Posição na lista',
+  esgotado: 'Esgotado', tamanhosEsgotados: 'Tamanhos esgotados',
 });
 
 /* ------------------------------------------------------------------ */
@@ -310,6 +311,7 @@ export function opcoesDe(a) {
       valores: g.valores.filter((v) => eObjecto(v) && temTexto(v.nome)).map((v) => ({
         nome: v.nome.trim(),
         suplemento: typeof v.suplemento === 'number' && Number.isFinite(v.suplemento) && v.suplemento > 0 ? v.suplemento : 0,
+        ...(v.esgotado === true ? { esgotado: true } : {}),
       })),
     }))
     .filter((g) => g.valores.length >= 2);
@@ -334,9 +336,31 @@ export function coresDe(a) {
     const nome = c.nome.trim();
     if (vistas.has(nome.toLowerCase())) continue;
     vistas.add(nome.toLowerCase());
-    out.push(temTexto(c.foto) && fotos.includes(c.foto) ? { nome, foto: c.foto } : { nome });
+    out.push({ nome, ...(temTexto(c.foto) && fotos.includes(c.foto) ? { foto: c.foto } : {}), ...(c.esgotado === true ? { esgotado: true } : {}) });
   }
   return out;
+}
+
+/* O STOCK (11 nov 2026): a dona marca no painel o que acabou.
+   - o produto inteiro: `esgotado: true`;
+   - um tamanho: `tamanhosEsgotados: ['3 meses']` no produto (os tamanhos vêm de um conjunto do catálogo);
+   - uma cor: `cores[i].esgotado: true`; um valor de uma escolha: `opcoes[g].valores[v].esgotado: true`.
+   Um produto em que acabou um grupo inteiro (todos os tamanhos, todas as cores, todos os valores de uma
+   escolha) também está esgotado. No site fica, com «Esgotado» e sem botão de compra; o carrinho e o Worker
+   recusam o que estiver esgotado (conferirEscolha). `tamanhos` é a lista de tamanhos do produto (a entrada do
+   catálogo publicado já a traz; no content/ é o id do conjunto e precisa do `cat`). */
+export function tamanhosEsgotadosDe(a, tamanhos) {
+  const marcados = eObjecto(a) && Array.isArray(a.tamanhosEsgotados) ? a.tamanhosEsgotados.filter(temTexto).map((t) => t.trim()) : [];
+  return (Array.isArray(tamanhos) ? tamanhos : []).filter((t) => marcados.includes(t));
+}
+export function esgotadoDe(a, cat = null) {
+  if (!eObjecto(a)) return false;
+  if (a.esgotado === true) return true;
+  const tamanhos = Array.isArray(a.tamanhos) ? a.tamanhos : tamanhosDe(a, cat);
+  if (tamanhos.length && tamanhosEsgotadosDe(a, tamanhos).length === tamanhos.length) return true;
+  const cores = coresDe(a);
+  if (cores.length && cores.every((c) => c.esgotado)) return true;
+  return opcoesDe(a).some((g) => g.valores.every((v) => v.esgotado));
 }
 
 /* A personalização de um produto, já limpa, ou null:
@@ -385,15 +409,19 @@ export function conferirEscolha(a, escolha = {}, cat = null) {
   const escolhas = [];
   let cents = centimos(a.preco);
 
+  if (esgotadoDe(a, cat)) return { ok: false, campo: 'produto', mensagem: `«${nome}» está esgotado.` };
   const tamanhos = Array.isArray(a.tamanhos) ? a.tamanhos : tamanhosDe(a, cat);
   if (tamanhos.length) {
     if (!tamanhos.includes(e.tamanho)) return { ok: false, campo: 'tamanho', mensagem: `Escolhe o tamanho de «${nome}».` };
+    if (tamanhosEsgotadosDe(a, tamanhos).includes(e.tamanho)) return { ok: false, campo: 'tamanho', mensagem: `O tamanho ${e.tamanho} de «${nome}» está esgotado.` };
     escolhas.push(`Tamanho: ${e.tamanho}`);
   }
-  const cores = coresDe(a).map((c) => c.nome);
+  const deCor = coresDe(a);
+  const cores = deCor.map((c) => c.nome);
   if (cores.length) {
     const cor = cores.length === 1 && ausente(e.cor) ? cores[0] : e.cor;
     if (!cores.includes(cor)) return { ok: false, campo: 'cor', mensagem: `Escolhe a cor de «${nome}».` };
+    if (deCor.find((c) => c.nome === cor).esgotado) return { ok: false, campo: 'cor', mensagem: `A cor ${cor} de «${nome}» está esgotada.` };
     escolhas.push(`Cor: ${cor}`);
   }
   const pedidas = eObjecto(e.opcoes) ? e.opcoes : {};
@@ -402,7 +430,9 @@ export function conferirEscolha(a, escolha = {}, cat = null) {
     const pedida = Object.hasOwn(pedidas, g.nome) ? pedidas[g.nome] : undefined;
     let v = g.valores.find((x) => x.nome === pedida);
     if (!v && !ausente(pedida)) return { ok: false, campo: 'opcoes', mensagem: `«${pedida}» já não é uma escolha de «${nome}». Escolhe outra vez.` };
-    if (!v) v = g.valores.find((x) => !x.suplemento) || g.valores[0];
+    // sem escolha, vale a primeira sem acréscimo que não esteja esgotada
+    if (!v) v = g.valores.find((x) => !x.suplemento && !x.esgotado) || g.valores.find((x) => !x.esgotado) || g.valores[0];
+    if (v.esgotado) return { ok: false, campo: 'opcoes', mensagem: `«${g.nome}: ${v.nome}» de «${nome}» está esgotado.` };
     escolhas.push(`${g.nome}: ${v.nome}`);
     cents += centimos(v.suplemento);
   }
@@ -545,6 +575,9 @@ export function problemasDoArtigo(a, ctx = {}) {
   }
   const t = a.tamanhos;
   if (!ausente(t) && t !== '' && (typeof t !== 'string' || (cat && !tem(cat.tamanhos, t)))) avisa('tamanhos', 'tamanhos', 'Os tamanhos escolhidos já não existem: escolha outros da lista (ou nenhuns).');
+  if (!ausente(a.esgotado) && typeof a.esgotado !== 'boolean') avisa('esgotado', 'esgotado', '«Esgotado» tem de ser sim ou não.');
+  const te = a.tamanhosEsgotados;
+  if (!ausente(te) && (!Array.isArray(te) || te.some((x) => typeof x !== 'string'))) avisa('tamanhosEsgotados', 'tamanhosEsgotados', 'Os tamanhos esgotados não estão gravados como uma lista. Marque-os outra vez.');
 
   // --- detalhes (uma linha cada) -------------------------------------------------
   const det = a.detalhes;

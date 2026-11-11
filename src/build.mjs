@@ -66,6 +66,8 @@ const produtos = Object.entries(artigos)
     _cores: R.coresDe(a),
     _opcoes: R.opcoesDe(a),
     _pers: R.personalizacaoDe(a),
+    _tamanhosEsgotados: R.tamanhosEsgotadosDe(a, R.tamanhosDe(a, cat)),
+    _esgotado: R.esgotadoDe(a, cat),
     _ordem: Number.isInteger(a.ordem) ? a.ordem : R.POR_OMISSAO.ordem,
   }))
   .sort((a, b) => a._ordem - b._ordem || a.nome.localeCompare(b.nome, 'pt'));
@@ -145,6 +147,9 @@ const paraCarrinho = {
   produtos: Object.fromEntries(produtos.filter(R.compravel).map((p) => [p.slug, {
     nome: p.nome, url: url(`/produtos/${p.slug}/`), foto: fotoPequena(p.fotos[0]), preco: p.preco,
     tamanhos: p._tamanhos, cores: p._cores, opcoes: p._opcoes, personalizacao: p._pers,
+    // o stock (R.esgotadoDe): o carrinho tira e o Worker recusa o que estiver esgotado
+    ...(p._tamanhosEsgotados.length ? { tamanhosEsgotados: p._tamanhosEsgotados } : {}),
+    ...(p._esgotado ? { esgotado: true } : {}),
   }])),
 };
 writeFileSync(SAIDA + 'assets/catalogo.json', JSON.stringify(paraCarrinho));
