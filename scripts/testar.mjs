@@ -435,6 +435,7 @@ teste('sitemap: a data de cada página é a do último commit que mudou o que el
 // ---------------------------------------------------------------- o site.js e o Worker do site (11 nov 2026)
 console.log('site.js e worker/www.js');
 const SITE_JS = fs.readFileSync(path.join(RAIZ, 'assets/js/site.js'), 'utf8');
+const SITE_JS2 = () => fs.readFileSync(path.join(RAIZ, 'assets/js/site.js'), 'utf8');
 const CONTAS_JS = fs.readFileSync(path.join(RAIZ, 'worker/encomendas/contas.js'), 'utf8');
 // um bocado do site.js, tirado pelo nome e posto a correr aqui (o site.js é um script sem módulos)
 const pedaco = (re, de = SITE_JS) => { const m = de.match(re); assert.ok(m, `não encontrei ${re}`); return m[1]; };
@@ -562,6 +563,28 @@ await teste('stock: as regras do painel — «esgotado» é sim ou não; os tama
   assert.ok(!chaves({ ...bg, esgotado: true, tamanhosEsgotados: ['1 mês'] }).some((k) => /esgotad/i.test(k)));
   assert.ok(chaves({ ...bg, esgotado: 'sim' }).some((k) => k.endsWith(':esgotado')));
   assert.ok(chaves({ ...bg, tamanhosEsgotados: '1 mês' }).some((k) => k.endsWith(':tamanhosEsgotados')));
+});
+
+// ---------------------------------------------------------------- os cupões (11 nov 2026)
+console.log('cupões');
+await teste('cupões: o campo «Tenho um cupão» só com o Worker das encomendas; o catálogo leva a categoria de cada produto e os nomes', () => {
+  repor();
+  let r = construir();
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(pagina('finalizar/index.html'), /data-cupao/, 'a pré-visualização sem o Worker não tem cupões');
+  r = construir(['--api=https://franjakids-encomendas.exemplo.workers.dev']);
+  assert.equal(r.status, 0, r.stderr);
+  const f = pagina('finalizar/index.html');
+  assert.match(f, /<details data-cupao-abrir><summary>Tenho um cupão<\/summary>/);
+  assert.match(f, /<dt data-desconto-rotulo hidden>Cupão<\/dt><dd data-desconto hidden><\/dd>/);
+  const c = JSON.parse(pagina('assets/catalogo.json'));
+  assert.equal(c.produtos['babygrow-com-nome'].categoria, produto('babygrow-com-nome').categoria);
+  assert.equal(c.categorias[produto('babygrow-com-nome').categoria], catalogo.categorias[produto('babygrow-com-nome').categoria]);
+  // a conta do desconto do finalizar é a do Worker (cupoes.js, descontoDoCupao)
+  const doWorker = fs.readFileSync(path.join(RAIZ, 'worker/encomendas/cupoes.js'), 'utf8');
+  const corpo = (de, re) => pedaco(re, de).replace(/\s+/g, ' ').replace(/regra/g, 'r');
+  assert.equal(corpo(SITE_JS2(), /const descontoDe = \(r, linhas\) => \{([\s\S]*?)\n {4}\};/), corpo(doWorker, /export function descontoDoCupao\(regra, linhas\) \{([\s\S]*?)\n\}/));
+  repor();
 });
 
 fs.rmSync(tmp, { recursive: true, force: true });

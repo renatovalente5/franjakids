@@ -55,14 +55,18 @@ export const separador = () => `<tr><td class="p" style="padding:14px 40px 0 40p
 
 /* A tabela dos produtos e dos totais: uma linha por produto, com as escolhas por baixo (o tamanho,
    a cor, as opções e o texto da personalização, tal e qual vai ser feito). */
-export function tabelaArtigos(enc, { portes, total }) {
+export function tabelaArtigos(enc, { portes, total, desconto = null }) {
   const filas = (enc.linhas || []).map((l) => `
         <tr>
           <td class="t" style="padding:9px 0;border-bottom:1px solid ${C.linha};font-family:${FONTE};font-size:15px;line-height:22px;color:${C.tinta};">${esc(l.qtd)} × ${esc(l.nome)}${l.escolhas && l.escolhas.length ? `<br><span class="t2" style="font-size:13px;line-height:19px;color:${C.tintaSuave};">${esc(l.escolhas.join(' · '))}</span>` : ''}</td>
           <td align="right" valign="top" class="t" style="padding:9px 0 9px 12px;border-bottom:1px solid ${C.linha};font-family:${FONTE};font-size:15px;line-height:22px;color:${C.tinta};white-space:nowrap;">${eurHtml(l.total_cents)}</td>
         </tr>`).join('');
   return `<tr><td class="p" style="padding:6px 40px 0 40px;">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${filas}
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${filas}${desconto ? `
+        <tr>
+          <td class="t2" style="padding:7px 0 0 0;font-family:${FONTE};font-size:14px;line-height:20px;color:${C.tintaSuave};">${esc(desconto.rotulo)}</td>
+          <td align="right" class="t2" style="padding:7px 0 0 12px;font-family:${FONTE};font-size:14px;line-height:20px;color:${C.tintaSuave};white-space:nowrap;">${esc(desconto.valor)}</td>
+        </tr>` : ''}
         <tr>
           <td class="t2" style="padding:7px 0 0 0;font-family:${FONTE};font-size:14px;line-height:20px;color:${C.tintaSuave};">${esc(portes.rotulo)}</td>
           <td align="right" class="t2" style="padding:7px 0 0 12px;font-family:${FONTE};font-size:14px;line-height:20px;color:${C.tintaSuave};white-space:nowrap;">${esc(portes.valor)}</td>

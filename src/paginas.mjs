@@ -397,7 +397,14 @@ export function finalizar({ loja, termosUrl, api }) {
   <aside class="resumo" aria-labelledby="t-resumo">
     <h2 id="t-resumo">A tua encomenda</h2>
     <div data-itens-resumo></div>
-    <dl><dt>Artigos</dt><dd data-subtotal></dd><dt>Portes</dt><dd data-portes></dd><dt class="total">Total</dt><dd class="total" data-total></dd></dl>
+    ${api ? `<div class="cupao" data-cupao>
+      <details data-cupao-abrir><summary>Tenho um cupão</summary>
+        <div class="cupao__campo"><label class="so-leitor" for="cupao">Código do cupão</label><input id="cupao" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30" placeholder="Código do cupão" aria-describedby="cupao-erro"><button class="botao botao--linha" type="button" data-cupao-aplicar>Aplicar</button></div>
+        <p class="campo__erro" id="cupao-erro" data-cupao-erro></p>
+      </details>
+      <p class="cupao__aplicado" data-cupao-aplicado role="status" hidden></p>
+    </div>` : ''}
+    <dl><dt>Artigos</dt><dd data-subtotal></dd><dt data-desconto-rotulo hidden>Cupão</dt><dd data-desconto hidden></dd><dt>Portes</dt><dd data-portes></dd><dt class="total">Total</dt><dd class="total" data-total></dd></dl>
     <p class="aviso" data-aviso-personalizado hidden>Os artigos personalizados não têm troca nem devolução por desistência. Confirma o nome, a frase, o tamanho e a cor: é assim que os vamos fazer.</p>
     <label class="marcar"><input type="checkbox" id="termos" name="termos" required aria-describedby="termos-erro"><span>Li e aceito os <a href="${url(termosUrl)}">termos e condições</a></span></label>
     <p class="campo__erro" id="termos-erro" data-erro></p>

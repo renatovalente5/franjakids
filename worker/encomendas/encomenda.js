@@ -126,6 +126,8 @@ export function criarEncomenda({ id, chave, modo, estado, pedido, termosPagina, 
     artigos_cents: contas.artigos_cents,
     portes_cents: contas.portes_cents,
     portes_por_confirmar: contas.portes_por_confirmar,
+    // o cupão: o código, o desconto e se tirou os portes; cupao_contado = o uso está reservado (cupoes.js)
+    ...(contas.cupao ? { cupao: contas.cupao, desconto_cents: contas.desconto_cents, ...(contas.cupao_portes ? { cupao_portes: true } : {}), cupao_contado: true } : {}),
     total_cents: contas.total_cents,
     cliente,
     oferta,
@@ -236,6 +238,7 @@ export function vistaPublica(enc) {
     linhas: (enc.linhas || []).map((l) => ({ nome: l.nome, qtd: l.qtd, total_cents: l.total_cents, escolhas: l.escolhas || [] })),
     artigos_cents: enc.artigos_cents,
     portes_cents: enc.portes_cents,
+    ...(enc.cupao ? { cupao: enc.cupao, desconto_cents: enc.desconto_cents || 0, ...(enc.cupao_portes ? { cupao_portes: true } : {}) } : {}),
     total_cents: enc.total_cents,
     cliente: { nome: primeiroNome((enc.cliente || {}).nome) },
   };

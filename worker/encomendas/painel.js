@@ -7,6 +7,9 @@
  *   GET  /painel/encomendas/<id>
  *   POST /painel/encomendas/<id>/estado   { estado, nota?, por, avisar? }
  *   POST /painel/encomendas/<id>/nota     { texto, por }
+ *   GET    /painel/cupoes                 os cupões, com os usos e a frase (cupoes.js)
+ *   PUT    /painel/cupoes/<CÓDIGO>        cria ou muda um cupão (a regra: cupoes.js, validarRegra) → a regra gravada
+ *   DELETE /painel/cupoes/<CÓDIGO>        apaga um cupão (as encomendas que o usaram ficam como estão)
  */
 
 import { json, lerCorpoJson } from './http.js';
@@ -15,6 +18,7 @@ import { lerCatalogo, modoDe } from './catalogo.js';
 import { avisar } from './email.js';
 import { limpar } from './contas.js';
 import { stripeFetch } from './stripe.js';
+import { pedirCupoes, normalizarCodigo, validarRegra, descricaoDe, acertarCupao, fazerAcerto } from './cupoes.js';
 
 const POR_PAGINA = 200;
 /* As transições do painel que avisam o cliente (§6). «levantada» não manda nada. */
@@ -28,6 +32,9 @@ export async function rotaPainel(request, env, url, caminho) {
   const resto = caminho.slice('/painel'.length);
   if (resto === '/saude') return request.method === 'GET' ? saude(env) : json({ erro: 'Método não permitido.' }, 405);
   if (resto === '/encomendas') return request.method === 'GET' ? listar(env, url) : json({ erro: 'Método não permitido.' }, 405);
+  if (resto === '/cupoes') return request.method === 'GET' ? listarCupoes(env) : json({ erro: 'Método não permitido.' }, 405);
+  const rc = /^\/cupoes\/([^/]+)$/.exec(resto);
+  if (rc) return cupao(request, env, decodeURIComponent(rc[1]));
   const r = /^\/encomendas\/([^/]+)(?:\/(estado|nota))?$/.exec(resto);
   if (!r) return json({ erro: 'Rota desconhecida.' }, 404);
   const id = r[1];
@@ -161,10 +168,11 @@ async function mudar(request, env, id) {
     if (razao) return { razao, parar: true };
     antes = { estado: enc.estado, sessao: enc.stripe && enc.stripe.session_id };
     mudarEstado(enc, novo, { por, nota, em });
-    return {};
+    return { acerto: acertarCupao(enc) };
   }, { em });
   if (!r.enc) return json({ erro: 'Encomenda não encontrada.' }, 404);
   if (r.razao) return json({ erro: r.razao }, 409);
+  if (r.acerto) await fazerAcerto(env, r.acerto, r.enc);
 
   if (antes.estado === 'pendente') await fecharPaginaDaStripe(env, id, antes.sessao);
   let enc = r.enc;
@@ -191,4 +199,35 @@ async function anotar(request, env, id) {
   const r = await alterarEncomenda(env, id, (enc) => { enc.notas_painel = [...(enc.notas_painel || []), { em, por, texto }]; return {}; }, { em });
   if (!r.enc) return json({ erro: 'Encomenda não encontrada.' }, 404);
   return json(r.enc);
+}
+
+/* ---------------------------------------------------------------- os cupões
+   A dona cria-os, muda-os e apaga-os no painel (o ecrã «Cupões»); vivem no objecto dos cupões
+   (cupoes.js). As categorias conferem-se com o catálogo publicado, e a frase leva os nomes delas. */
+async function nomesDasCategorias(env) {
+  try { const cat = await lerCatalogo(env); return cat && typeof cat.categorias === 'object' && cat.categorias ? cat.categorias : null; } catch { return null; }
+}
+
+async function listarCupoes(env) {
+  const [{ cupoes }, nomes] = await Promise.all([pedirCupoes(env, { op: 'listar' }), nomesDasCategorias(env)]);
+  const lista = (Array.isArray(cupoes) ? cupoes : []).map((r) => ({ ...r, descricao: descricaoDe(r, nomes || {}) }));
+  lista.sort((a, b) => String(b.actualizado_em || '').localeCompare(String(a.actualizado_em || '')));
+  return json({ cupoes: lista });
+}
+
+async function cupao(request, env, codigoUrl) {
+  const codigo = normalizarCodigo(codigoUrl);
+  if (!codigo) return json({ erro: 'Código inválido.' }, 404);
+  if (request.method === 'DELETE') {
+    const r = await pedirCupoes(env, { op: 'apagar', codigo });
+    return r.ok ? json({ ok: true }) : json({ erro: 'Cupão não encontrado.' }, 404);
+  }
+  if (request.method !== 'PUT') return json({ erro: 'Método não permitido.' }, 405);
+  const { corpo, resposta } = await lerCorpoJson(request);
+  if (resposta) return resposta;
+  const nomes = await nomesDasCategorias(env);
+  const v = validarRegra({ ...corpo, codigo }, { categorias: nomes ? Object.keys(nomes) : null });
+  if (v.erro) return json({ erro: v.erro, campo: v.campo }, 400);
+  const { regra } = await pedirCupoes(env, { op: 'gravar', codigo, regra: v.regra });
+  return json({ ...regra, descricao: descricaoDe(regra, nomes || {}) });
 }

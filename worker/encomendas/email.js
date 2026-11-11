@@ -51,10 +51,12 @@ const emMao = (enc) => enc.entrega === ENTREGA_EM_MAO;
 
 /* Os portes e o total, como o site os mostra: «Grátis», «a confirmar», ou o valor. */
 function totais(enc) {
-  const valor = enc.portes_por_confirmar ? 'a confirmar' : (enc.portes_cents ? eur(enc.portes_cents) : 'Grátis');
+  const valor = enc.portes_por_confirmar ? 'a confirmar' : (enc.portes_cents ? eur(enc.portes_cents) : enc.cupao_portes ? 'Grátis (cupão)' : 'Grátis');
   const portes = { rotulo: emMao(enc) ? 'Entrega em mão' : 'Portes', valor };
   const total = enc.portes_por_confirmar ? `${eur(enc.total_cents)} + portes` : eur(enc.total_cents);
-  return { portes, total };
+  // o desconto do cupão, quando o há (o de portes grátis diz-se nos portes)
+  const desconto = enc.cupao && enc.desconto_cents > 0 ? { rotulo: `Cupão ${enc.cupao}`, valor: `−${eur(enc.desconto_cents)}` } : null;
+  return { portes, total, desconto };
 }
 const totalCurto = (enc) => totais(enc).total;
 
@@ -64,7 +66,8 @@ function artigosTexto(enc) {
     `  ${l.qtd} × ${l.nome} — ${eur(l.total_cents)}`,
     ...(l.escolhas && l.escolhas.length ? [`      ${l.escolhas.join(' · ')}`] : []),
   ]);
-  return ['ARTIGOS', ...ls, `  ${portes.rotulo}: ${portes.valor}`, `  Total: ${total}`];
+  const { desconto } = totais(enc);
+  return ['ARTIGOS', ...ls, ...(desconto ? [`  ${desconto.rotulo}: ${desconto.valor}`] : []), `  ${portes.rotulo}: ${portes.valor}`, `  Total: ${total}`];
 }
 
 export const moradaDe = (c) => [c.morada, [c.codigoPostal, c.localidade].filter(Boolean).join(' '), c.pais].filter(Boolean).join(', ');

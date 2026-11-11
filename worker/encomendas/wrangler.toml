@@ -36,9 +36,18 @@ class_name = "Encomenda"
 name = "CONTADOR"
 class_name = "Contador"
 
+[[durable_objects.bindings]]
+name = "CUPOES"
+class_name = "Cupoes"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Encomenda", "Contador"]
+
+# os cupões (cupoes.js, 11 nov 2026): um objecto só, com as regras e os usos
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Cupoes"]
 
 [[ratelimits]]
 name = "TRAVAO_CHECKOUT"
@@ -111,9 +120,17 @@ class_name = "Encomenda"
 name = "CONTADOR"
 class_name = "Contador"
 
+[[env.ensaio.durable_objects.bindings]]
+name = "CUPOES"
+class_name = "Cupoes"
+
 [[env.ensaio.migrations]]
 tag = "v1"
 new_sqlite_classes = ["Encomenda", "Contador"]
+
+[[env.ensaio.migrations]]
+tag = "v2"
+new_sqlite_classes = ["Cupoes"]
 
 [[env.ensaio.ratelimits]]
 name = "TRAVAO_CHECKOUT"

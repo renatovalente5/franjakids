@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Encomenda, Contador } from '../objecto.js';
+import { Cupoes } from '../cupoes.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 export const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -28,32 +29,32 @@ export function catalogoBase() {
    paraCarrinho). */
 export const PRODUTOS_DE_ENSAIO = Object.freeze({
   'babygrow-com-nome': {
-    nome: 'Babygrow', preco: 16.9, tamanhos: ['0 meses', '1 mês', '3 meses'],
+    nome: 'Babygrow', categoria: 'babygrows', preco: 16.9, tamanhos: ['0 meses', '1 mês', '3 meses'],
     cores: [{ nome: 'Rosa', foto: 'babygrow-com-nome-1' }, { nome: 'Azul', foto: 'babygrow-com-nome-2' }, { nome: 'Cinzento', foto: 'babygrow-com-nome-3' }],
     opcoes: [],
     personalizacao: { rotulo: 'Nome a bordar', pista: 'Até 15 letras', max: 15, obrigatoria: false, opcional: 'Bordar um nome', suplemento: 3 },
   },
   't-shirt-adulto': {
-    nome: 'T-shirt de adulto personalizada', preco: 15, tamanhos: ['S', 'M', 'L', 'XL'],
+    nome: 'T-shirt de adulto personalizada', categoria: 't-shirts', preco: 15, tamanhos: ['S', 'M', 'L', 'XL'],
     cores: [{ nome: 'Branco' }, { nome: 'Preto' }, { nome: 'Azul-escuro' }], opcoes: [],
     personalizacao: { rotulo: 'Frase ou nome', pista: 'Diz-nos a ideia; mandamos a pré-visualização', max: 80, obrigatoria: true, opcional: null, suplemento: 0 },
   },
   't-shirt-promovido-a-irmao': {
-    nome: 'T-shirt «Fui promovido a irmão mais velho»', preco: 12, tamanhos: ['2 anos', '4 anos', '6 anos', '8 anos', '10 anos', '12 anos', '14 anos'],
+    nome: 'T-shirt «Fui promovido a irmão mais velho»', categoria: 't-shirts', preco: 12, tamanhos: ['2 anos', '4 anos', '6 anos', '8 anos', '10 anos', '12 anos', '14 anos'],
     cores: [], opcoes: [{ nome: 'Texto', valores: [{ nome: 'Irmão mais velho', suplemento: 0 }, { nome: 'Irmã mais velha', suplemento: 0 }] }],
     personalizacao: { rotulo: 'Data ou nome', pista: 'Opcional', max: 30, obrigatoria: false, opcional: null, suplemento: 0 },
   },
   'manta-remalhada': {
-    nome: 'Manta remalhada', preco: 21.9, tamanhos: [], cores: [{ nome: 'Rosa maquilhagem' }, { nome: 'Areia' }, { nome: 'Azul cobalto' }], opcoes: [], personalizacao: null,
+    nome: 'Manta remalhada', categoria: 'mantas-e-toalhas', preco: 21.9, tamanhos: [], cores: [{ nome: 'Rosa maquilhagem' }, { nome: 'Areia' }, { nome: 'Azul cobalto' }], opcoes: [], personalizacao: null,
   },
   'caixa-surpresa': {
-    nome: 'Caixa surpresa personalizada', preco: 3.5, tamanhos: [], cores: [], opcoes: [],
+    nome: 'Caixa surpresa personalizada', categoria: 'caixas', preco: 3.5, tamanhos: [], cores: [], opcoes: [],
     personalizacao: { rotulo: 'Frase da tampa', pista: 'Por exemplo: Vais ser avó', max: 120, obrigatoria: true, opcional: null, suplemento: 0 },
   },
   // Inventado: nenhum produto verdadeiro tem (ainda) uma opção com acréscimo. O «Embrulho» começa
   // por um valor COM acréscimo: o que vale quando falta é o primeiro SEM acréscimo («Saco»).
   'conjunto-de-ensaio': {
-    nome: 'Conjunto de ensaio', preco: 24.5, tamanhos: ['1 mês', '3 meses'], cores: [{ nome: 'Branco' }],
+    nome: 'Conjunto de ensaio', categoria: 'conjuntos', preco: 24.5, tamanhos: ['1 mês', '3 meses'], cores: [{ nome: 'Branco' }],
     opcoes: [
       { nome: 'Peças', valores: [{ nome: 'Body e calças', suplemento: 0 }, { nome: 'Body, calças e babete', suplemento: 6.5 }] },
       { nome: 'Embrulho', valores: [{ nome: 'Caixa', suplemento: 2 }, { nome: 'Saco', suplemento: 0 }] },
@@ -77,6 +78,7 @@ export function catalogoDeEnsaio({ modo = 'encomenda', portes = {}, gratisAParti
   cat.gratisAPartirDe = gratisAPartirDe;
   cat.zonas = ZONAS_DE_ENSAIO.map((z) => ({ ...z, portes: Object.hasOwn(portes, z.id) ? portes[z.id] : z.portes }));
   cat.produtos = { ...cat.produtos, ...clone(PRODUTOS_DE_ENSAIO) };
+  cat.categorias = { babygrows: 'Babygrows', 't-shirts': 'T-shirts', 'mantas-e-toalhas': 'Mantas e toalhas', caixas: 'Caixas', conjuntos: 'Conjuntos', bodies: 'Bodies', ...(cat.categorias || {}) };
   return cat;
 }
 
@@ -118,8 +120,11 @@ function ctxFalso() {
   return {
     dados: m,
     storage: {
-      async get(k) { return m.has(k) ? structuredClone(m.get(k)) : undefined; },
+      // como o da Cloudflare: uma lista de chaves dá um Map com as que existem
+      async get(k) { if (Array.isArray(k)) return new Map(k.filter((x) => m.has(x)).map((x) => [x, structuredClone(m.get(x))])); return m.has(k) ? structuredClone(m.get(k)) : undefined; },
       async put(k, v) { m.set(k, structuredClone(v)); },
+      async delete(k) { return m.delete(k); },
+      async list({ prefix = '' } = {}) { return new Map([...m.keys()].filter((x) => x.startsWith(prefix)).sort().map((x) => [x, structuredClone(m.get(x))])); },
       async deleteAll() { m.clear(); },
       async setAlarm() { /* o prazo não corre nos testes */ },
     },
@@ -158,6 +163,7 @@ export function envFalso(extra = {}) {
   };
   if (!('ENCOMENDA' in extra)) env.ENCOMENDA = objectosFalsos(Encomenda, env);
   if (!('CONTADOR' in extra)) env.CONTADOR = objectosFalsos(Contador, env);
+  if (!('CUPOES' in extra)) env.CUPOES = objectosFalsos(Cupoes, env);
   return env;
 }
 

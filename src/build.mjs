@@ -144,8 +144,10 @@ const paraCarrinho = {
   termos: absoluto('/termos/'),
   obrigado: absoluto('/obrigado/'),
   finalizar: absoluto('/finalizar/'),
+  // os nomes das categorias: a frase de um cupão «só em Bodies» (o Worker das encomendas, cupoes.js)
+  categorias: Object.fromEntries(Object.entries(catalogo.categorias || {}).filter(([, n]) => typeof n === 'string')),
   produtos: Object.fromEntries(produtos.filter(R.compravel).map((p) => [p.slug, {
-    nome: p.nome, url: url(`/produtos/${p.slug}/`), foto: fotoPequena(p.fotos[0]), preco: p.preco,
+    nome: p.nome, url: url(`/produtos/${p.slug}/`), foto: fotoPequena(p.fotos[0]), preco: p.preco, categoria: p.categoria,
     tamanhos: p._tamanhos, cores: p._cores, opcoes: p._opcoes, personalizacao: p._pers,
     // o stock (R.esgotadoDe): o carrinho tira e o Worker recusa o que estiver esgotado
     ...(p._tamanhosEsgotados.length ? { tamanhosEsgotados: p._tamanhosEsgotados } : {}),

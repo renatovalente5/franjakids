@@ -112,6 +112,7 @@ vir com ~50 s de atraso (medido), e escrever por cima dela perdia pagamentos —
      - formas de pagamento: cartão (com Apple Pay e Google Pay), Link e MB WAY; Amazon Pay, Klarna,
        Satispay, Bancontact e EPS desligados;
      - a chave restrita «Worker das encomendas (ensaio)» (`rk_test_…`) com escrita nas Checkout Sessions e
+       nos Coupons (os cupões, desde 11 nov 2026) e
        leitura nos PaymentIntents e nas Charges and Refunds;
      - o webhook `franjakids-encomendas-ensaio` (versão `2026-08-26.dahlia`, da mesma família da
        `STRIPE_API_VERSION`), com os 5 eventos de `EVENTOS`.
@@ -124,7 +125,8 @@ vir com ~50 s de atraso (medido), e escrever por cima dela perdia pagamentos —
      públicos (nome, site, email de apoio, descritor do extrato) só aparecem depois dela. Depois, em
      produção:
      - as formas de pagamento como no teste (a configuração é por modo);
-     - uma chave restrita `rk_live_…` com as mesmas três permissões →
+     - uma chave restrita `rk_live_…` com as mesmas permissões (Checkout Sessions e Coupons: escrita;
+       PaymentIntents e Charges and Refunds: leitura) →
        `$WR secret put STRIPE_SECRET_KEY --config $CFG < …`;
      - o webhook `https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev/stripe/webhook`, com os
        5 eventos e a versão dahlia → `$WR secret put STRIPE_WEBHOOK_SECRET --config $CFG < …`. O segredo

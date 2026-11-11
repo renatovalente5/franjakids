@@ -104,6 +104,24 @@ export async function verificarAssinatura(corpo, cabecalho, segredo, agoraSegund
    escolhas, nem o texto da personalização (o nome do bebé não sai daqui). Os portes, quando os há,
    são mais uma linha. Os meios de pagamento não se fixam (payment_method_types): são os que
    estiverem ligados na conta da Stripe (cartão e MB WAY). */
+/* O CUPÃO NA STRIPE (como na LF Mobile): um cupão de uso único com o desconto que ESTE Worker calculou —
+   os nossos artigos vão como price_data, sem produto fixo, por isso as regras (o mínimo, as categorias, os
+   usos) são nossas (cupoes.js). Aparece na página da Stripe como «Cupão X −5,00 €»; o amount_off tira-se
+   ao subtotal, e o total dá o mesmo (artigos − desconto + portes). Precisa da permissão «Coupons: Write»
+   na chave restrita. */
+export async function criarCupaoDaSessao(env, enc) {
+  const params = {
+    amount_off: enc.desconto_cents,
+    currency: 'eur',
+    duration: 'once',
+    max_redemptions: 1,
+    name: `Cupão ${enc.cupao}`.slice(0, 40),
+    redeem_by: Math.floor(Date.now() / 1000) + DURACAO_SESSAO_SEGUNDOS + 600,
+    metadata: { encomenda: enc.encomenda, cupao: enc.cupao },
+  };
+  return stripeFetch(env, '/coupons', { body: params, idempotencyKey: `cup_${enc.encomenda}` });
+}
+
 export async function criarSessao(env, enc, zona) {
   const site = siteUrl(env);
   const params = {
@@ -134,6 +152,10 @@ export async function criarSessao(env, enc, zona) {
     });
   }
   if (zona && zona.nome) params.custom_text = { submit: { message: zona.nome } };
+  if (enc.desconto_cents > 0) {
+    const cupao = await criarCupaoDaSessao(env, enc);
+    params.discounts = [{ coupon: cupao.id }];
+  }
   return stripeFetch(env, '/checkout/sessions', { body: params, idempotencyKey: `chk_${enc.encomenda}` });
 }
 

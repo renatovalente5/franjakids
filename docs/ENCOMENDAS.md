@@ -260,3 +260,35 @@ porquê, está na secção «Decisões» do `worker/encomendas/README.md`):
   porquê). Mudar a forma do catálogo no `build.mjs` = subir a versão nos dois sítios.
 - A mensagem do cartão e as notas acima de 240 e 600 caracteres recusam-se (400), não se cortam; o
   corpo do pedido pode ir até 64 KiB (50 linhas personalizadas).
+
+## 9. Stock e cupões (11 nov 2026)
+
+**O stock** vive nos produtos (`content/produtos/*.json`, o painel, a gaveta «Stock»): `esgotado: true` (o
+produto todo), `tamanhosEsgotados: ["3 meses"]`, `cores[i].esgotado` e `opcoes[g].valores[v].esgotado`.
+O catálogo publicado leva-os (e `esgotado: true` quando um grupo inteiro acabou: `R.esgotadoDe`), o
+carrinho tira as linhas esgotadas e o `/checkout` recusa-as (`R.conferirEscolha`: 400 com `campo`
+`produto`, `tamanho`, `cor` ou `opcoes`).
+
+**Os cupões** vivem no objecto durável `Cupoes` deste Worker (worker/encomendas/cupoes.js), nunca no
+repositório (é público). A regra: `{ codigo, tipo: "percentagem" | "valor" | "portes", valor, minimo?,
+desde?, ate?, limite?, porCliente?, categorias?, ativo, nota? }`.
+
+- `POST /cupao` `{ codigo, linhas, entrega }` (público, CORS, o travão do `/checkout`) → `{ cupao: {
+  codigo, tipo, valor, minimo, categorias, descricao }, desconto_cents }`, ou 400 `{ erro, campo: "cupao" }`.
+  O finalizar mostra o campo «Tenho um cupão» só com o Worker ligado (`--api`).
+- `/checkout` com `"cupao": "BEMVINDO"`: a regra lê-se do objecto, as contas fazem-se com ela
+  (`descontoDoCupao`: a percentagem arredonda ao cêntimo, o valor fixo não passa dos artigos, o de portes
+  grátis só com os portes sabidos e a encomenda toda das categorias dele) e o uso RESERVA-SE num passo só
+  no objecto (as datas, o mínimo, o limite e o «um por pessoa» — pelo resumo SHA-256 do email canónico):
+  dois clientes ao mesmo tempo nunca passam o limite. Um cupão que não vale, ou que nesta encomenda não
+  dá nada: 400 com `campo: "cupao"` (o finalizar tira-o e refaz o total). A encomenda guarda `cupao`,
+  `desconto_cents`, `cupao_portes` e `cupao_contado`; `total_cents = artigos − desconto + portes`. A vista
+  pública e os emails mostram a linha «Cupão X −Y».
+- Em modo «online», a Stripe recebe um cupão de uso único com o valor calculado (`POST /v1/coupons`
+  `amount_off`, `max_redemptions: 1`) e a sessão leva `discounts: [{ coupon }]`. **A chave restrita
+  precisa de «Coupons: Write».**
+- O uso volta quando a encomenda acaba sem se fazer (expirou, falhou, a pessoa desistiu, a dona anulou-a)
+  e volta a contar quando se paga depois disso (`acertarCupao`).
+- O painel: `GET /painel/cupoes` → `{ cupoes: [regra + usos + descricao] }`; `PUT /painel/cupoes/<CÓDIGO>`
+  (400 `{ erro, campo }`; as categorias conferem-se com o catálogo publicado); `DELETE /painel/cupoes/<CÓDIGO>`.
+

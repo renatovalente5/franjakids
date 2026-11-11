@@ -414,6 +414,66 @@
     const erroEnvio = $('[data-erro-envio]', form);
     let totalMostrado = null;
     const zonaEscolhida = () => $('input[name="envio"]:checked', form);
+    /* O CUPÃO (11 nov 2026; o Worker: cupoes.js). Só com o Worker das encomendas no ar (a pré-visualização não tem o
+       campo). O finalizar confere o código (POST /cupao) e faz a mesma conta do Worker para mostrar o total; o
+       /checkout confere tudo outra vez. Fica neste separador (sessionStorage), para o «voltar» da Stripe. */
+    let cupao = null;
+    let ultimasLinhas = [];
+    const descontoDe = (r, linhas) => {
+      const cats = Array.isArray(r.categorias) ? r.categorias : [];
+      const daCategoria = (l) => !cats.length || cats.includes(l.categoria);
+      if (r.tipo === 'portes') return { cents: 0, portes: linhas.length > 0 && linhas.every(daCategoria) };
+      const base = linhas.filter(daCategoria).reduce((s, l) => s + l.total_cents, 0);
+      if (r.tipo === 'percentagem') return { cents: Math.round((base * r.valor) / 100), portes: false };
+      if (r.tipo === 'valor') return { cents: Math.min(Math.round(r.valor * 100), base), portes: false };
+      return { cents: 0, portes: false };
+    };
+    const linhasDoPedido = (itens) => itens.map((i) => ({ produto: i.slug, ...(i.tamanho ? { tamanho: i.tamanho } : {}), ...(i.cor ? { cor: i.cor } : {}), opcoes: i.opcoes || {}, personalizar: !!i.personalizar, texto: i.texto || '', qtd: i.qtd }));
+    const CUPAO = 'franja:cupao';
+    const blocoCupao = $('[data-cupao]', form);
+    const mostrarCupao = () => {
+      if (!blocoCupao) return;
+      const aplicado = $('[data-cupao-aplicado]', blocoCupao);
+      $('[data-cupao-abrir]', blocoCupao).hidden = Boolean(cupao);
+      aplicado.hidden = !cupao;
+      aplicado.innerHTML = cupao ? `Cupão <strong>${esc(cupao.codigo)}</strong>: ${esc(cupao.descricao)}. <button type="button" class="cupao__tirar" data-cupao-tirar>Tirar</button>` : '';
+    };
+    const porCupao = (c) => {
+      cupao = c;
+      try { if (c) sessionStorage.setItem(CUPAO, JSON.stringify(c)); else sessionStorage.removeItem(CUPAO); } catch { /* sem armazenamento */ }
+      mostrarCupao();
+    };
+    if (blocoCupao) {
+      try { const c = JSON.parse(sessionStorage.getItem(CUPAO)); if (c && typeof c.codigo === 'string') cupao = c; } catch { /* nada guardado */ }
+      mostrarCupao();
+      const campoCupao = $('#cupao', blocoCupao);
+      const erroCupao = $('[data-cupao-erro]', blocoCupao);
+      const aplicar = async () => {
+        const codigo = campoCupao.value.trim();
+        erroCupao.textContent = '';
+        if (!codigo) { erroCupao.textContent = 'Escreve o código do cupão.'; campoCupao.focus(); return; }
+        const b = $('[data-cupao-aplicar]', blocoCupao);
+        b.disabled = true;
+        try {
+          const r = await fetch(API + '/cupao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo, linhas: linhasDoPedido(ultimasLinhas), entrega: zonaEscolhida().value }) });
+          const j = await r.json().catch(() => ({}));
+          if (r.ok && j.cupao) { porCupao(j.cupao); campoCupao.value = ''; await desenhar(); $('[data-cupao-tirar]', blocoCupao)?.focus(); }
+          else { erroCupao.textContent = j.erro || 'Este cupão não existe ou já não vale.'; campoCupao.focus(); }
+        } catch {
+          erroCupao.textContent = 'Não conseguimos confirmar o cupão (sem ligação?). Tenta outra vez.';
+        }
+        b.disabled = false;
+      };
+      $('[data-cupao-aplicar]', blocoCupao).addEventListener('click', aplicar);
+      // o Enter no campo aplica o cupão (e não envia a encomenda)
+      campoCupao.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); aplicar(); } });
+      blocoCupao.addEventListener('click', async (e) => {
+        if (!e.target.closest('[data-cupao-tirar]')) return;
+        porCupao(null);
+        await desenhar();
+        $('[data-cupao-abrir] summary', blocoCupao)?.focus();
+      });
+    }
     /* O resumo, com os preços do catálogo publicado. → as linhas; ou null, sem linhas (vai para o carrinho) ou sem o
        catálogo (e diz que não deu). */
     const desenhar = async (fresco = false) => {
@@ -431,10 +491,18 @@
       // a conta do Worker (regras.mjs, portesDe): acima do valor, o continente é grátis mesmo sem os portes escritos
       let portes = zona && typeof zona.portes === 'number' ? cents(zona.portes) : null;
       if (zona?.id === 'continente' && typeof cat.gratisAPartirDe === 'number' && artigos >= cents(cat.gratisAPartirDe)) portes = 0;
-      totalMostrado = portes == null ? artigos : artigos + portes;
+      // o cupão, com a conta do Worker (cupoes.js, descontoDoCupao)
+      const d = cupao ? descontoDe(cupao, itens.map((i) => ({ total_cents: unidade(i, cat) * i.qtd, categoria: cat.produtos[i.slug].categoria || '' }))) : { cents: 0, portes: false };
+      const portesDoCupao = d.portes && portes != null && portes > 0;
+      if (portesDoCupao) portes = 0;
+      totalMostrado = artigos - d.cents + (portes == null ? 0 : portes);
       $('[data-subtotal]', form).textContent = euro(artigos / 100);
-      $('[data-portes]', form).textContent = portes === 0 ? 'Grátis' : portes == null ? 'A confirmar' : euro(portes / 100);
-      $('[data-total]', form).textContent = portes == null ? `${euro(artigos / 100)} + portes` : euro(totalMostrado / 100);
+      $('[data-desconto-rotulo]', form).hidden = $('[data-desconto]', form).hidden = !(d.cents > 0);
+      $('[data-desconto-rotulo]', form).textContent = cupao ? `Cupão ${cupao.codigo}` : 'Cupão';
+      $('[data-desconto]', form).textContent = d.cents > 0 ? `−${euro(d.cents / 100)}` : '';
+      $('[data-portes]', form).textContent = portes === 0 ? (portesDoCupao ? 'Grátis (cupão)' : 'Grátis') : portes == null ? 'A confirmar' : euro(portes / 100);
+      $('[data-total]', form).textContent = portes == null ? `${euro(totalMostrado / 100)} + portes` : euro(totalMostrado / 100);
+      ultimasLinhas = itens;
       $('[data-aviso-personalizado]', form).hidden = !itens.some((i) => i.texto);
       const z = zonaEscolhida().value;
       $('[data-morada]', form).hidden = z === 'mao';
@@ -584,7 +652,7 @@
       if (!API) { $('#pre-visualizacao')?.showModal(); return; }
       const cp = v('codigo-postal');
       const pedido = {
-        linhas: itens.map((i) => ({ produto: i.slug, ...(i.tamanho ? { tamanho: i.tamanho } : {}), ...(i.cor ? { cor: i.cor } : {}), opcoes: i.opcoes || {}, personalizar: !!i.personalizar, texto: i.texto || '', qtd: i.qtd })),
+        linhas: linhasDoPedido(itens),
         entrega: zona,
         cliente: {
           nome: v('nome'), email: v('email'), telefone: v('telemovel'),
@@ -596,6 +664,7 @@
         ...(form.elements.oferta.checked && v('mensagem') ? { mensagem: v('mensagem') } : {}),
         ...(v('notas') ? { notas: v('notas') } : {}),
         termos: true,
+        ...(cupao ? { cupao: cupao.codigo } : {}),
         total_cents: totalMostrado,
       };
       botao.disabled = true;
@@ -617,7 +686,11 @@
         }
         const id = { codigoPostal: 'codigo-postal', telefone: 'telemovel' }[resposta.campo] || resposta.campo;
         if (r.status === 409) { await desenhar(true); erroEnvio.textContent = resposta.erro || 'Os preços mudaram. Confirma o total e envia outra vez.'; }
-        else if (r.status === 400 && regras[id] && form.elements[id]) { marcar(id, resposta.erro); mostrarErros([[id, resposta.erro]]); }
+        else if (r.status === 400 && resposta.campo === 'cupao') {
+          porCupao(null);
+          await desenhar();
+          erroEnvio.textContent = resposta.erro || 'O cupão já não vale. Tirámo-lo: vê o total outra vez.';
+        } else if (r.status === 400 && regras[id] && form.elements[id]) { marcar(id, resposta.erro); mostrarErros([[id, resposta.erro]]); }
         else {
           // um produto que deixou de se vender (ou mudou) entretanto: o resumo volta a desenhar-se sem ele
           if (r.status === 400 && ['produto', 'tamanho', 'cor', 'opcoes'].includes(resposta.campo)) await desenhar(true);
@@ -640,7 +713,7 @@
     const s = q.get('s');
     const pedido = id && q.get('c') ? `e=${encodeURIComponent(id)}&c=${encodeURIComponent(q.get('c'))}${s ? `&s=${encodeURIComponent(s)}` : ''}` : s ? `s=${encodeURIComponent(s)}` : '';
     // a encomenda está feita: o carrinho e o que o finalizar guardou para o «voltar» já não servem
-    const feita = () => { gravar([]); try { sessionStorage.removeItem('franja:pagamento'); sessionStorage.removeItem('franja:finalizar'); } catch { /* sem armazenamento */ } };
+    const feita = () => { gravar([]); try { for (const k of ['franja:pagamento', 'franja:finalizar', 'franja:cupao']) sessionStorage.removeItem(k); } catch { /* sem armazenamento */ } };
     const simples = (n) => `<p>Recebemos a tua encomenda${n ? ` <strong>${esc(n)}</strong>` : ''}. Mandámos-te um email com o resumo; se não o vires, espreita o spam.</p>`;
     // aberta à mão (sem encomenda no endereço), não diz que recebeu nada
     if (!pedido) corpo.innerHTML = '<p>Aqui aparece a tua encomenda logo depois de a fazeres. Se já encomendaste, tens o resumo no teu email.</p>';
@@ -667,7 +740,7 @@
           : 'Vamos confirmar a encomenda e combinar contigo o pagamento. Antes de produzirmos, mandamos-te a pré-visualização para aprovares.';
         corpo.innerHTML = `<p>${e.cliente?.nome ? `${esc(e.cliente.nome)}, recebemos` : 'Recebemos'} a tua encomenda <strong>${esc(e.encomenda)}</strong>.</p><p>${proximo}</p>
           <ul class="obrigado__linhas">${linhas}</ul>
-          <dl class="obrigado__totais"><dt>Artigos</dt><dd>${euro(e.artigos_cents / 100)}</dd><dt>Portes</dt><dd>${e.portes_por_confirmar ? 'A confirmar' : e.portes_cents ? euro(e.portes_cents / 100) : 'Grátis'}</dd><dt>Total</dt><dd>${euro(e.total_cents / 100)}${e.portes_por_confirmar ? ' + portes' : ''}</dd></dl>`;
+          <dl class="obrigado__totais"><dt>Artigos</dt><dd>${euro(e.artigos_cents / 100)}</dd>${e.cupao && e.desconto_cents > 0 ? `<dt>Cupão ${esc(e.cupao)}</dt><dd>−${euro(e.desconto_cents / 100)}</dd>` : ''}<dt>Portes</dt><dd>${e.portes_por_confirmar ? 'A confirmar' : e.portes_cents ? euro(e.portes_cents / 100) : e.cupao_portes ? 'Grátis (cupão)' : 'Grátis'}</dd><dt>Total</dt><dd>${euro(e.total_cents / 100)}${e.portes_por_confirmar ? ' + portes' : ''}</dd></dl>`;
       }).catch((estado) => {
         // não existe (um endereço inventado, ou de outra encomenda): não diz que recebeu nada, e o carrinho fica
         if (estado === 404) { corpo.innerHTML = '<p>Não encontrámos esta encomenda. Se acabaste de encomendar, tens o resumo no teu email.</p>'; return; }

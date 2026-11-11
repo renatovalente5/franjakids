@@ -8,6 +8,8 @@
  *   GET  /encomenda?e=&c=     o que a página «obrigado» mostra (sem dados pessoais); ou ?s=<sessão>.
  *   POST /encomenda/desistir  { e, c } — a pessoa voltou da página da Stripe sem pagar: fecha-a, e a
  *                             encomenda pendente fica «expirou», sem emails (11 nov 2026).
+ *   POST /cupao               { codigo, linhas, entrega } — o finalizar confere um cupão: → { cupao, desconto_cents }
+ *                             ou 400 { erro, campo: 'cupao' } (cupoes.js; 11 nov 2026).
  *   POST /stripe/webhook      os eventos da Stripe (a fonte da verdade do pagamento).
  *   /painel/…                 as rotas do painel, com o PAINEL_SEGREDO (painel.js).
  *
@@ -27,9 +29,12 @@ import { criarEncomenda, idLivre, novaChave, lerEncomenda, gravarEncomenda, alte
 import { criarSessao, stripeFetch, verificarAssinatura, aplicarEvento, idDoEvento, metodoDaCobranca } from './stripe.js';
 import { avisar, falhou, podeAvisarCliente } from './email.js';
 import { rotaPainel } from './painel.js';
+import { normalizarCodigo, pedirCupoes, resumoDoEmail, publico, porQueNaoVale, acertarCupao, fazerAcerto, libertarUso } from './cupoes.js';
+import { hojeLisboa as hoje, contas as fazerContas } from './contas.js';
 
-// Os objectos duráveis (objecto.js): cada encomenda, e o contador dos emails por endereço.
+// Os objectos duráveis (objecto.js, cupoes.js): cada encomenda, o contador dos emails por endereço e os cupões.
 export { Encomenda, Contador } from './objecto.js';
+export { Cupoes } from './cupoes.js';
 
 const JANELA_DE_REENTREGA_SEGUNDOS = 3600;   // até quando vale pedir à Stripe que reentregue
 const SEM_INSTAGRAM = 'manda-nos mensagem no Instagram';
@@ -93,18 +98,38 @@ async function checkout(request, env, cors) {
   const modo = modoDe(cat, env);
   if (modo === 'online' && !env.STRIPE_SECRET_KEY) return json({ erro: 'O pagamento no site ainda não está ligado. Encomenda por mensagem no Instagram.' }, 503, cors);
 
+  // O cupão (cupoes.js): a regra lê-se do objecto dos cupões; um que já não vale recusa a encomenda com
+  // campo «cupao» (o finalizar tira-o e refaz o total).
+  const tirado = (razao) => json({ erro: `${razao} Tirámo-lo: vê o total outra vez.`, campo: 'cupao' }, 400, cors);
+  let cupao = null;
+  if (corpo && corpo.cupao !== undefined && corpo.cupao !== null && corpo.cupao !== '') {
+    const codigo = normalizarCodigo(corpo.cupao);
+    try { cupao = codigo ? (await pedirCupoes(env, { op: 'ler', codigo })).regra : null; } catch (e) { console.error('cupões por ler', e.message); return json({ erro: 'Não conseguimos confirmar o cupão agora. Tenta daqui a um minuto.' }, 503, cors); }
+    if (!cupao || cupao.ativo === false) return tirado('Este cupão não existe ou já não vale.');
+  }
+
   let pedido;
   try {
-    pedido = validarPedido(corpo, cat, modo);
+    pedido = validarPedido(corpo, cat, modo, { cupao });
   } catch (e) {
     if (e instanceof ErroDoPedido) return json(e.campo ? { erro: e.message, campo: e.campo } : { erro: e.message }, e.status, cors);
     throw e;
+  }
+  if (cupao && pedido.contas.cupao_sem_efeito) {
+    return tirado(cupao.tipo === 'portes' ? `O cupão ${cupao.codigo} é de portes grátis e não se aplica a esta entrega.` : `O cupão ${cupao.codigo} não dá desconto nestes artigos.`);
   }
   // O que o site mostrou tem de ser o que se cobra: se um preço mudou entretanto, o site redesenha.
   if (pedido.contas.total_cents !== corpo.total_cents) return json({ erro: 'Os preços mudaram. Confirma o total e envia outra vez.' }, 409, cors);
 
   const em = agoraISO();
   const id = await idLivre(env, hojeLisboa());
+  // O uso do cupão reserva-se já, num passo só no objecto (as datas, o mínimo, o limite e o «um por pessoa»
+  // conferem-se lá): dois clientes ao mesmo tempo não passam o limite. Volta se a encomenda não se gravar.
+  if (cupao) {
+    let r;
+    try { r = await pedirCupoes(env, { op: 'reservar', codigo: cupao.codigo, cliente: await resumoDoEmail(pedido.cliente.email), encomenda: id, hoje: hojeLisboa(), artigos_cents: pedido.contas.artigos_cents }); } catch (e) { console.error('cupão por reservar', e.message); return json({ erro: 'Não conseguimos confirmar o cupão agora. Tenta daqui a um minuto.' }, 503, cors); }
+    if (r.erro) return tirado(r.erro);
+  }
   const enc = criarEncomenda({ id, chave: novaChave(), modo, estado: modo === 'online' ? 'pendente' : 'registada', pedido, termosPagina: `${siteUrl(env)}/termos/`, em });
 
   if (modo === 'online') {
@@ -116,6 +141,7 @@ async function checkout(request, env, cors) {
       sessao = await criarSessao(env, enc, pedido.zona);
     } catch (e) {
       console.error('a Stripe não abriu a sessão', id, e.status, e.codigo, e.message);
+      await libertarUso(env, enc);
       return json({ erro: `Não foi possível abrir o pagamento. Tenta outra vez ou ${SEM_INSTAGRAM}.` }, 502, cors);
     }
     enc.stripe = { session_id: sessao.id };
@@ -123,7 +149,8 @@ async function checkout(request, env, cors) {
       await gravarEncomenda(env, enc, { em });
       await env.ORDERS.put(`session:${sessao.id}`, id, { expirationTtl: TTL_ENCOMENDA });
     } catch (e) {
-      console.error('ENCOMENDA NÃO GRAVADA (KV)', id, sessao.id, e.message);
+      console.error('ENCOMENDA NÃO GRAVADA', id, sessao.id, e.message);
+      await libertarUso(env, enc);
       return json({ erro: `Não foi possível registar a encomenda agora. Tenta daqui a pouco ou ${SEM_INSTAGRAM}.` }, 503, cors);
     }
     return json({ encomenda: id, chave: enc.chave, url: sessao.url, total_cents: enc.total_cents }, 200, cors);
@@ -132,7 +159,8 @@ async function checkout(request, env, cors) {
   try {
     await gravarEncomenda(env, enc, { em });
   } catch (e) {
-    console.error('ENCOMENDA NÃO GRAVADA (KV)', id, e.message);
+    console.error('ENCOMENDA NÃO GRAVADA', id, e.message);
+    await libertarUso(env, enc);
     return json({ erro: `Não foi possível registar a encomenda agora. Tenta daqui a pouco ou ${SEM_INSTAGRAM}.` }, 503, cors);
   }
   // Os emails saem antes de responder (num waitUntil um erro não se vê: memória
@@ -216,9 +244,39 @@ async function desistir(request, env, cors) {
   const r = await alterarEncomenda(env, e, (x) => {
     if (x.estado !== 'pendente') return { parar: true };
     mudarEstado(x, 'expirou', { por: 'cliente', nota: 'Voltou da página de pagamento sem pagar.' });
-    return {};
+    return { acerto: acertarCupao(x) };
   });
+  if (r.enc && r.acerto) await fazerAcerto(env, r.acerto, r.enc);
   return json({ estado: r.enc ? r.enc.estado : 'expirou' }, 200, cors);
+}
+
+/* ---------------------------------------------------------------- POST /cupao
+   O finalizar confere um código e mostra o desconto (a mesma conta do /checkout, que confere tudo outra
+   vez). O mesmo travão do /checkout: não serve para adivinhar códigos. O «um por pessoa» e o limite só
+   se conferem a sério no /checkout (aqui ainda não há email nem reserva). */
+async function conferirCupao(request, env, cors) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'desconhecido';
+  if (await travado(env, ip)) return json({ erro: 'Demasiadas tentativas. Espera um minuto e tenta outra vez.' }, 429, cors);
+  const { corpo, resposta } = await lerCorpoJson(request, cors);
+  if (resposta) return resposta;
+  const codigo = normalizarCodigo(corpo.codigo);
+  if (!codigo) return json({ erro: 'Escreve o código do cupão como está (letras e algarismos).', campo: 'cupao' }, 400, cors);
+  let lido, cat;
+  try {
+    [lido, cat] = await Promise.all([pedirCupoes(env, { op: 'ler', codigo }), lerCatalogo(env)]);
+  } catch (e) {
+    console.error('cupão por conferir', e.message);
+    return json({ erro: 'Não conseguimos confirmar o cupão agora. Tenta daqui a um minuto.' }, 503, cors);
+  }
+  const regra = lido && lido.regra;
+  const zona = (Array.isArray(cat.zonas) ? cat.zonas : []).find((z) => z && z.id === corpo.entrega) || null;
+  let c = null;
+  // as contas das linhas que o finalizar tem (sem elas, ou com um produto que já não se vende, só a regra)
+  try { if (regra && zona) c = fazerContas(cat, corpo.linhas, zona, { cupao: regra }); } catch { c = null; }
+  const razao = porQueNaoVale(regra, { hoje: hoje(), artigos_cents: c ? c.artigos_cents : null, usos: lido ? lido.usos : 0 })
+    || (c && c.cupao_sem_efeito ? (regra.tipo === 'portes' ? `O cupão ${regra.codigo} é de portes grátis e não se aplica a esta entrega.` : `O cupão ${regra.codigo} não dá desconto nestes artigos.`) : null);
+  if (razao) return json({ erro: razao, campo: 'cupao' }, 400, cors);
+  return json({ cupao: publico(regra, cat.categorias || {}), desconto_cents: c ? c.desconto_cents : 0 }, 200, cors);
 }
 
 /* ---------------------------------------------------------------- POST /stripe/webhook
@@ -268,10 +326,12 @@ async function webhook(request, env) {
       const metodo = await metodoDaCobranca(env, x.stripe.payment_intent);
       if (metodo) x.stripe.metodo = metodo;
     }
+    const acerto = acertarCupao(x);
     const mudou = JSON.stringify(x) !== antes;
-    return mudou ? { avisos, mudou } : { avisos, mudou, parar: true };
+    return mudou ? { avisos, mudou, acerto } : { avisos, mudou, parar: true };
   }, { em });
   if (!r.enc) return new Response('sem encomenda');
+  if (r.acerto) await fazerAcerto(env, r.acerto, r.enc);
   // O índice pi: quando se fica a saber o pagamento (é por ele que um reembolso chega cá).
   const pi = r.enc.stripe && r.enc.stripe.payment_intent;
   if (pi && (await env.ORDERS.get(`pi:${pi}`)) !== id) await env.ORDERS.put(`pi:${pi}`, id, { expirationTtl: TTL_ENCOMENDA });
@@ -309,11 +369,12 @@ export default {
 
       const cors = corsDe(request, env);
       if (!cors) return json({ erro: 'Origem não autorizada.' }, 403);
-      const publica = caminho === '/checkout' || caminho === '/encomenda' || caminho === '/encomenda/desistir';
+      const publica = caminho === '/checkout' || caminho === '/encomenda' || caminho === '/encomenda/desistir' || caminho === '/cupao';
       if (request.method === 'OPTIONS') return publica ? new Response(null, { status: 204, headers: cors }) : json({ erro: 'Rota desconhecida.' }, 404, cors);
       if (caminho === '/checkout') return request.method === 'POST' ? await checkout(request, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
       if (caminho === '/encomenda') return request.method === 'GET' ? await encomenda(url, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
       if (caminho === '/encomenda/desistir') return request.method === 'POST' ? await desistir(request, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
+      if (caminho === '/cupao') return request.method === 'POST' ? await conferirCupao(request, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
       if (caminho === '/') return json({ ok: true, servico: 'franjakids-encomendas' }, 200, cors);
       return json({ erro: 'Rota desconhecida.' }, 404, cors);
     } catch (e) {

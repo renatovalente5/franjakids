@@ -17,6 +17,7 @@
  * mesmo quer recuse o browser quer o Worker.
  */
 
+import { descontoDoCupao } from './cupoes.js';
 import { conferirEscolha, portesDe, nifValido, emailValido, zonaComMorada } from '../../src/lib/regras.mjs';
 
 export const MAX_QTD = 20;          // a mesma do carrinho (site.js, MAX_QTD)
@@ -125,7 +126,7 @@ function opcoesPedidas(p, l) {
 /* As linhas da encomenda com os preços do catálogo, e os totais. Lança ErroDoPedido quando um
    produto não existe, não se compra, uma escolha já não existe ou falta, ou a quantidade não
    presta. `zona` é a zona de entrega escolhida (uma de cat.zonas: { id, nome, portes, morada }). */
-export function contas(cat, linhas, zona) {
+export function contas(cat, linhas, zona, { cupao = null } = {}) {
   if (!Array.isArray(linhas) || !linhas.length) throw new ErroDoPedido('O carrinho está vazio.');
   if (linhas.length > MAX_LINHAS) throw new ErroDoPedido('O carrinho tem produtos a mais: divide a encomenda em duas.');
   const saida = [];
@@ -161,10 +162,19 @@ export function contas(cat, linhas, zona) {
   // Os portes da zona; grátis no continente a partir de gratisAPartirDe em artigos; null quando a
   // zona os tem por escrever (por confirmar). Sem portes conhecidos o total é só os artigos, como
   // no site.
-  const portes = portesDe(zona, artigos_cents, cat.gratisAPartirDe);
-  const portes_por_confirmar = portes === null;
-  const portes_cents = portes_por_confirmar ? 0 : portes;
-  return { linhas: saida, artigos_cents, portes_cents, portes_por_confirmar, total_cents: artigos_cents + portes_cents };
+  const portesSemCupao = portesDe(zona, artigos_cents, cat.gratisAPartirDe);
+  const portes_por_confirmar = portesSemCupao === null;
+  /* O CUPÃO (cupoes.js, descontoDoCupao): o desconto nos artigos (os das categorias dele), ou os portes
+     grátis — só quando os portes se sabem (uns por confirmar nem o cupão os apaga). Um cupão que nesta
+     encomenda não dá nada (cupao_sem_efeito) o /checkout recusa, para não se gastar um uso. */
+  const desc = cupao ? descontoDoCupao(cupao, saida.map((l) => ({ total_cents: l.total_cents, categoria: (cat.produtos[l.produto] || {}).categoria || '' }))) : { cents: 0, portes: false };
+  const tiraPortes = desc.portes && !portes_por_confirmar && portesSemCupao > 0;
+  const portes_cents = portes_por_confirmar || tiraPortes ? 0 : portesSemCupao;
+  return {
+    linhas: saida, artigos_cents, portes_cents, portes_por_confirmar,
+    ...(cupao ? { cupao: cupao.codigo, desconto_cents: desc.cents, cupao_portes: tiraPortes, cupao_sem_efeito: desc.cents === 0 && !tiraPortes } : {}),
+    total_cents: artigos_cents - desc.cents + portes_cents,
+  };
 }
 
 /* ---------------------------------------------------------------- o cliente */
@@ -246,11 +256,11 @@ export function validarExtras(corpo) {
 /* O pedido do /checkout: a zona, as contas, o cliente, a oferta, as notas, os termos. Devolve o que
    a encomenda vai levar; lança ErroDoPedido com a frase para o site. O total que o site mostrou
    compara-se no index.js (409), depois de tudo o resto estar certo. */
-export function validarPedido(corpo, cat, modo) {
+export function validarPedido(corpo, cat, modo, { cupao = null } = {}) {
   if (!eObjecto(corpo)) throw new ErroDoPedido('Pedido inválido.');
   const zona = (Array.isArray(cat.zonas) ? cat.zonas : []).find((z) => eObjecto(z) && z.id === corpo.entrega);
   if (!zona) throw new ErroDoPedido('Escolhe como queres receber a encomenda.', { campo: 'entrega' });
-  const c = contas(cat, corpo.linhas, zona);
+  const c = contas(cat, corpo.linhas, zona, { cupao });
   // Portes por confirmar: em modo «online» não há como os cobrar, por isso não se segue (o site
   // nem mostra essas zonas); em modo «encomenda» a encomenda segue e o email di-lo.
   if (c.portes_por_confirmar && modo === 'online') {
