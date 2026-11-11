@@ -47,6 +47,7 @@ test('modo «encomenda»: regista, devolve o número e a chave, e grava a encome
     historico: [{ em, estado: 'registada', por: 'site' }],
     criada_em: em,
     actualizada_em: em,
+    versao: 1,   // a 1.ª escrita no objecto da encomenda (objecto.js): cada escrita confere-a e sobe-a
   });
   // O dia do id é o de Lisboa (o mesmo que o painel usa para filtrar).
   assert.equal(r.json.encomenda.slice(3, 11), new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lisbon' }).format(new Date(em)).replace(/-/g, ''));
@@ -243,8 +244,9 @@ test('modo «online»: abre a página da Stripe (hosted, em português) só com 
   assert.equal(params.get('mode'), 'payment');
   assert.equal(params.get('client_reference_id'), r.json.encomenda);
   assert.equal(params.get('customer_email'), 'maria@exemplo.pt');
-  assert.equal(params.get('success_url'), 'https://renatovalente5.github.io/franjakids/obrigado/?s={CHECKOUT_SESSION_ID}');
-  assert.equal(params.get('cancel_url'), 'https://renatovalente5.github.io/franjakids/finalizar/?cancelado=1');
+  // o número e a chave nos dois: a «obrigado» lê a encomenda pelo objecto dela, e o «Voltar» fecha-a (desistir)
+  assert.equal(params.get('success_url'), `https://renatovalente5.github.io/franjakids/obrigado/?e=${r.json.encomenda}&c=${r.json.chave}&s={CHECKOUT_SESSION_ID}`);
+  assert.equal(params.get('cancel_url'), `https://renatovalente5.github.io/franjakids/finalizar/?cancelado=${r.json.encomenda}&c=${r.json.chave}`);
   assert.equal(params.has('payment_method_types[]'), false, 'os meios são os que estiverem ligados na conta');
   assert.equal(params.get('line_items[0][quantity]'), '1');
   assert.equal(params.get('line_items[0][price_data][unit_amount]'), '1990');

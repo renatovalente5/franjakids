@@ -90,10 +90,13 @@ Segredos (nunca no repositório; o valor passa pelo stdin a partir de um ficheir
 $WR secret put PAINEL_SEGREDO --config $CFG < ~/Websites/franjakids/_cliente/segredos/PAINEL_SEGREDO
 ```
 
-Apagar uma encomenda de teste: `$WR kv key delete "order:FK-…" --binding ORDERS --remote --preview false --config $CFG`.
+Uma encomenda de teste vive no objecto dela (a verdade) e no KV (a cópia da lista): apagar só a chave do
+KV (`$WR kv key delete "order:FK-…" --binding ORDERS --remote --preview false --config $CFG`) tira-a da
+lista, mas a ficha continua a lê-la do objecto, que se apaga sozinho 400 dias depois.
 
 Nota: a lista do painel (o `list()` do KV) pode levar até um minuto a reflectir uma mudança de estado;
-a ficha (`get`) é imediata.
+a ficha é a de agora (o objecto da encomenda). ANTES DE 11 NOV 2026 não era: a ficha vinha do KV e podia
+vir com ~50 s de atraso (medido), e escrever por cima dela perdia pagamentos — ver docs/ENCOMENDAS.md §4.
 
 ## O que está ligado (11 nov 2026) e o que falta
 

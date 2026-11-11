@@ -1,7 +1,10 @@
-/* A ENCOMENDA NO KV: a forma (docs/ENCOMENDAS.md, §4), os ids, a chave, os estados e as vistas.
+/* A ENCOMENDA: a forma (docs/ENCOMENDAS.md, §4), os ids, a chave, os estados e as vistas.
+ *
+ * A VERDADE DE CADA ENCOMENDA ESTÁ NO OBJECTO DURÁVEL DELA (objecto.js, desde 11 nov 2026): lê-se
+ * sempre a de agora, e cada escrita confere a versão. O KV guarda uma cópia, para a lista do painel.
  *
  * Chaves do namespace ORDERS (só este Worker escreve; o painel lê pelas rotas /painel/…):
- *   order:<id>       a encomenda inteira, 400 dias (cada escrita renova o prazo)
+ *   order:<id>       a cópia da encomenda, com os metadados da lista, 400 dias (cada escrita renova)
  *   session:<cs_…>   → <id>   (modo «online»: a página da Stripe que a abriu)
  *   pi:<pi_…>        → <id>   (modo «online»: o pagamento; é por ele que um reembolso chega cá)
  *   evt:<evt_…>      → 1, 30 dias (um webhook repetido não repete emails)
@@ -11,6 +14,7 @@
  */
 
 import { cortar } from './contas.js';
+import { pedirAoObjecto } from './objecto.js';
 
 export const TTL_ENCOMENDA = 400 * 86400;
 export const TTL_EVENTO = 30 * 86400;
@@ -133,11 +137,15 @@ export function criarEncomenda({ id, chave, modo, estado, pedido, termosPagina, 
   };
 }
 
-/* ---------------------------------------------------------------- KV */
+/* ---------------------------------------------------------------- guardar (o objecto e o KV) */
 
 export const chaveKV = (id) => `order:${id}`;
 
+/* A encomenda como está AGORA: a do objecto dela (objecto.js); uma de antes do objecto, do KV (até à
+   primeira escrita, que a passa para o objecto). Traz `versao`, que a escrita seguinte devolve. */
 export async function lerEncomenda(env, id) {
+  const { enc } = await pedirAoObjecto(env, 'ENCOMENDA', id, { op: 'ler' });
+  if (enc) return enc;
   const bruto = await env.ORDERS.get(chaveKV(id));
   return bruto ? JSON.parse(bruto) : null;
 }
@@ -169,18 +177,47 @@ export function metadadosDe(enc) {
   return m;
 }
 
+/* Outra escrita passou entre a leitura e esta escrita: volta-se a ler e a fazer (alterarEncomenda). */
+export class Conflito extends Error {
+  constructor(id) { super(`a encomenda ${id} mudou entretanto`); this.name = 'Conflito'; }
+}
+
+/* Grava a encomenda SE ninguém a mudou desde que se leu (a `versao` que trouxe; uma nova vai com 0).
+   O objecto copia-a para o KV. Lança Conflito quando outra escrita passou primeiro. */
 export async function gravarEncomenda(env, enc, { em = agoraISO() } = {}) {
   enc.actualizada_em = em;
-  await env.ORDERS.put(chaveKV(enc.encomenda), JSON.stringify(enc), { expirationTtl: TTL_ENCOMENDA, metadata: metadadosDe(enc) });
+  const r = await pedirAoObjecto(env, 'ENCOMENDA', enc.encomenda, { op: 'gravar', enc, versao: Number(enc.versao) || 0 });
+  if (r.conflito) throw new Conflito(enc.encomenda);
+  enc.versao = r.enc.versao;
   return enc;
 }
 
+/* LER, MUDAR E GRAVAR SEM PERDER A ESCRITA DE OUTRO: `fn(enc)` muda a encomenda (a de agora) e devolve
+   o que quiser; com `{ parar: true }` não se grava nada. Se outra escrita passou entretanto, lê-se
+   outra vez e repete-se o `fn` (até 6 vezes). → { enc, ...o que o fn devolveu }; { enc: null } se a
+   encomenda não existe. O `fn` pode repetir-se: não deve mandar emails nem mudar nada fora dela. */
+export async function alterarEncomenda(env, id, fn, { em } = {}) {
+  for (let tentativa = 0; tentativa < 6; tentativa++) {
+    const enc = await lerEncomenda(env, id);
+    if (!enc) return { enc: null };
+    const r = (await fn(enc)) || {};
+    if (r.parar) return { ...r, enc };
+    try {
+      await gravarEncomenda(env, enc, { em: em || agoraISO() });
+      return { ...r, enc };
+    } catch (e) {
+      if (!(e instanceof Conflito)) throw e;
+    }
+  }
+  throw new Error(`a encomenda ${id} não se gravou: escritas ao mesmo tempo de mais`);
+}
+
 /* Um id que ainda não existe (uma colisão em 32^6 por dia é improvável, mas uma leitura custa pouco
-   e evita gravar por cima da encomenda de outra pessoa). */
+   e evita gravar por cima da encomenda de outra pessoa; a escrita nova também confere: versão 0). */
 export async function idLivre(env, hoje) {
   for (let i = 0; i < 5; i++) {
     const id = novoId(hoje);
-    if (!(await env.ORDERS.get(chaveKV(id)))) return id;
+    if (!(await lerEncomenda(env, id))) return id;
   }
   throw new Error('não se arranjou um id livre');
 }

@@ -60,6 +60,11 @@ teste('conferirEscolha: o tamanho e a cor são precisos; o preço soma os acrés
   assert.equal(R.conferirEscolha(bg, { tamanho: '1 mês', cor: 'Rosa', texto: 'Clara' }, cat).unidade_cents, 1690);
   // um nome feito só de invisíveis não é um nome (o trim não os tira)
   assert.equal(R.conferirEscolha(bg, { tamanho: '1 mês', cor: 'Rosa', personalizar: true, texto: '\u200B\u2060\uFEFF' }, cat).campo, 'texto');
+  // os juntores ficam (a mãe com o biberão é um emoji só, e não dois); um texto só deles não é um nome
+  const ZWJ = String.fromCodePoint(0x200d), ZWNJ = String.fromCodePoint(0x200c);
+  const mae = `B${String.fromCodePoint(0xe9)}${String.fromCodePoint(0x1f469)}${ZWJ}${String.fromCodePoint(0x1f37c)}`;
+  assert.equal(R.conferirEscolha(bg, { tamanho: '1 mês', cor: 'Rosa', personalizar: true, texto: mae }, cat).texto, mae);
+  assert.equal(R.conferirEscolha(bg, { tamanho: '1 mês', cor: 'Rosa', personalizar: true, texto: `${ZWJ}${ZWNJ} ` }, cat).campo, 'texto');
   assert.equal(R.conferirEscolha(bg, { tamanho: '1 mês', cor: 'Rosa', personalizar: true, texto: 'Cla\u200Bra' }, cat).texto, 'Clara');
 });
 teste('conferirEscolha: uma escolha que falta vale a primeira sem acréscimo; uma que não existe recusa', () => {
@@ -443,8 +448,8 @@ await teste('finalizar: as regras dos campos são as do Worker (o que passa no s
   const nif = new Function('nif', pedaco(/const nifValido = \(nif\) => \{([\s\S]*?)\n {4}\};/));
   for (const n of ['123456789', '123456780', '023456789', '501964843', '501964842', '999999990', '12345678', '1234567890', '', 'abcdefghi']) assert.equal(nif(n), R.nifValido(n), `NIF ${n}`);
   // o telemóvel: de 9 a 15 algarismos, como o telefoneValido do Worker
-  assert.ok(SITE_JS.includes('return n >= 9 && n <= 15 ?'));
-  for (const t of ['912345678', '+351 912 345 678', '1234567890123456', '91234567']) assert.equal(C.telefoneValido(t), t.replace(/\D/g, '').length >= 9 && t.replace(/\D/g, '').length <= 15, t);
+  const tel = new Function('v', `return (${pedaco(/telemovel: (\(v\) => \{[^\n]*?\}),\n/)})(v) === ''`);
+  for (const t of ['912345678', '+351 912 345 678', '(+351) 912.345-678', '1234567890123456', '91234567', 'visita evil.example 912345678']) assert.equal(tel(t), C.telefoneValido(t), t);
 });
 teste('carrinho guardado: uma linha estragada não parte o site; a quantidade é sempre um inteiro de 1 a 20', () => {
   const limpa = new Function('MAX_QTD', `return ${pedaco(/const linhaLimpa = (\(i\) => \{[\s\S]*?\n {2}\});/)}`)(20);

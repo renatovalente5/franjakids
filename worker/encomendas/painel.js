@@ -10,7 +10,7 @@
  */
 
 import { json, lerCorpoJson } from './http.js';
-import { lerEncomenda, gravarEncomenda, mudarEstado, razaoParaNao, resumoDeMetadados, RE_ID, iguais, agoraISO } from './encomenda.js';
+import { lerEncomenda, alterarEncomenda, mudarEstado, razaoParaNao, resumoDeMetadados, RE_ID, iguais, agoraISO } from './encomenda.js';
 import { lerCatalogo, modoDe } from './catalogo.js';
 import { avisar } from './email.js';
 import { limpar } from './contas.js';
@@ -68,8 +68,8 @@ async function saude(env) {
 
 /* Todas as chaves order:, com os metadados (o list() dá 1 000 de cada vez). A lista do painel
    faz-se SÓ dos metadados: ler cada encomenda esgotava os subpedidos de um pedido. Por isso uma
-   mudança de estado pode levar até 60 s a aparecer na lista (o list() do KV atrasa-se); a ficha é
-   imediata. */
+   mudança de estado pode levar até 60 s a aparecer na lista (o list() do KV atrasa-se); a ficha é a
+   de agora (lê o objecto da encomenda: objecto.js). */
 async function todasAsChaves(env) {
   const chaves = [];
   let cursor;
@@ -129,39 +129,52 @@ async function listar(env, url) {
    pagar duas vezes. Se a Stripe recusar (a página já fechou, ou a pessoa pagou nesse instante),
    segue na mesma: um pagamento que chegue a uma encomenda anulada tem o seu caminho no webhook (a
    loja é avisada para o devolver). */
-async function fecharPaginaDaStripe(env, enc) {
-  const sessao = enc.stripe && enc.stripe.session_id;
-  if (enc.estado !== 'pendente' || !sessao || !env.STRIPE_SECRET_KEY) return;
+async function fecharPaginaDaStripe(env, id, sessao) {
+  if (!sessao || !env.STRIPE_SECRET_KEY) return;
   try {
     await stripeFetch(env, `/checkout/sessions/${encodeURIComponent(sessao)}/expire`, { method: 'POST' });
   } catch (e) {
-    console.error('a página da Stripe não fechou', enc.encomenda, sessao, e.status, e.message);
+    console.error('a página da Stripe não fechou', id, sessao, e.status, e.message);
   }
 }
 
+/* MUDAR O ESTADO, sem perder outra escrita (alterarEncomenda). A ordem importa (11 nov 2026, da
+   revisão a fundo): primeiro GRAVA-SE o estado novo; só depois se fecha a página da Stripe (o
+   «expired» que ela manda logo a seguir encontra a encomenda já anulada, ou paga, e não lhe mexe —
+   antes, lia «pendente» e gravava «expirou» por cima, com emails); por fim, o email, cujo resultado
+   se junta às marcas. Se a encomenda mudou entre a leitura e a escrita (outro aparelho, um pagamento
+   que chegou), a mudança não se faz: 409, com o estado de agora — quem pediu decidiu sobre outro. */
 async function mudar(request, env, id) {
   const { corpo, resposta } = await lerCorpoJson(request);
   if (resposta) return resposta;
   const novo = typeof corpo.estado === 'string' ? corpo.estado : '';
   const por = limpar(corpo.por, 160) || 'painel';
   const nota = limpar(corpo.nota, 1000, { linhas: true });
-  const enc = await lerEncomenda(env, id);
-  if (!enc) return json({ erro: 'Encomenda não encontrada.' }, 404);
-  const razao = razaoParaNao(enc, novo);
-  if (razao) return json({ erro: razao }, 409);
-
-  await fecharPaginaDaStripe(env, enc);
+  const avisarCliente = !(corpo.avisar === false || corpo.avisar === 'false');
   const em = agoraISO();
-  // O email vai primeiro, com a encomenda já no estado novo, e o resultado grava-se com ela: uma
-  // escrita só. Um email que falhe não impede a mudança (a dona pediu-a); fica registado em
-  // `avisos` para o painel o mostrar.
-  let resultado = null;
-  if (corpo.avisar !== false && AVISAM.includes(novo)) {
-    resultado = await avisar(env, novo, { ...enc, estado: novo }, { nota, origem: 'painel' });
+  let visto = null;   // o estado da 1.ª leitura: foi sobre esse que se decidiu
+  let antes = null;
+  const r = await alterarEncomenda(env, id, (enc) => {
+    if (visto === null) visto = enc.estado;
+    else if (enc.estado !== visto) return { razao: `A encomenda mudou entretanto: está «${enc.estado}». Veja-a outra vez antes de a mudar.`, parar: true };
+    const razao = razaoParaNao(enc, novo);
+    if (razao) return { razao, parar: true };
+    antes = { estado: enc.estado, sessao: enc.stripe && enc.stripe.session_id };
+    mudarEstado(enc, novo, { por, nota, em });
+    return {};
+  }, { em });
+  if (!r.enc) return json({ erro: 'Encomenda não encontrada.' }, 404);
+  if (r.razao) return json({ erro: r.razao }, 409);
+
+  if (antes.estado === 'pendente') await fecharPaginaDaStripe(env, id, antes.sessao);
+  let enc = r.enc;
+  // Um email que falhe não desfaz a mudança (a dona pediu-a): fica registado em `avisos`, e o painel mostra-o.
+  if (avisarCliente && AVISAM.includes(novo)) {
+    const resultado = await avisar(env, novo, enc, { nota, origem: 'painel' });
+    // com a mesma hora da mudança: o email faz parte dela (actualizada_em continua a ser a da linha do histórico)
+    const r2 = await alterarEncomenda(env, id, (x) => { x.avisos = { ...(x.avisos || {}), [novo]: resultado }; return {}; }, { em });
+    if (r2.enc) enc = r2.enc;
   }
-  mudarEstado(enc, novo, { por, nota, em });
-  if (resultado) enc.avisos = { ...(enc.avisos || {}), [novo]: resultado };
-  await gravarEncomenda(env, enc, { em });
   return json(enc);
 }
 
@@ -173,10 +186,9 @@ async function anotar(request, env, id) {
   const texto = limpar(corpo.texto, 1000, { linhas: true });
   if (!texto) return json({ erro: 'Escreva a nota.', campo: 'texto' }, 400);
   const por = limpar(corpo.por, 160) || 'painel';
-  const enc = await lerEncomenda(env, id);
-  if (!enc) return json({ erro: 'Encomenda não encontrada.' }, 404);
   const em = agoraISO();
-  enc.notas_painel = [...(enc.notas_painel || []), { em, por, texto }];
-  await gravarEncomenda(env, enc, { em });
-  return json(enc);
+  // a nota junta-se à encomenda de AGORA (antes, gravada por cima de uma leitura atrasada, apagava um pagamento)
+  const r = await alterarEncomenda(env, id, (enc) => { enc.notas_painel = [...(enc.notas_painel || []), { em, por, texto }]; return {}; }, { em });
+  if (!r.enc) return json({ erro: 'Encomenda não encontrada.' }, 404);
+  return json(r.enc);
 }

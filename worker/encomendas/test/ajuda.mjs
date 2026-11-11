@@ -11,6 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Encomenda, Contador } from '../objecto.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 export const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -108,8 +109,40 @@ export const CATALOGO_URL = `${SITE}/assets/catalogo.json`;
 export const SEGREDO = 'segredo-do-painel-de-teste';
 export const ORIGEM = 'https://renatovalente5.github.io';
 
-export function envFalso(extra = {}) {
+/* OS OBJECTOS DURÁVEIS DE FAZ-DE-CONTA (objecto.js): uma instância por nome, com um storage em memória e o
+   blockConcurrencyWhile como uma fila (como na Cloudflare: o que corre lá dentro não se mistura). A
+   jurisdição devolve o mesmo espaço (aqui não há sítios). `instancias` deixa os testes ver dentro. */
+function ctxFalso() {
+  const m = new Map();
+  let fila = Promise.resolve();
   return {
+    dados: m,
+    storage: {
+      async get(k) { return m.has(k) ? structuredClone(m.get(k)) : undefined; },
+      async put(k, v) { m.set(k, structuredClone(v)); },
+      async deleteAll() { m.clear(); },
+      async setAlarm() { /* o prazo não corre nos testes */ },
+    },
+    blockConcurrencyWhile(fn) { const p = fila.then(fn); fila = p.catch(() => {}); return p; },
+  };
+}
+export function objectosFalsos(Classe, env) {
+  const instancias = new Map();
+  const ns = {
+    instancias,
+    jurisdiction() { return ns; },
+    idFromName(n) { return String(n); },
+    get(id) {
+      if (!instancias.has(id)) instancias.set(id, new Classe(ctxFalso(), env));
+      const o = instancias.get(id);
+      return { fetch: (url, init) => o.fetch(new Request(url, init)) };
+    },
+  };
+  return ns;
+}
+
+export function envFalso(extra = {}) {
+  const env = {
     ORDERS: kvFalso(),
     TRAVAO_CHECKOUT: { limit: async () => ({ success: true }) },
     SITE_URL: SITE,
@@ -123,6 +156,9 @@ export function envFalso(extra = {}) {
     PAINEL_SEGREDO: SEGREDO,
     ...extra,
   };
+  if (!('ENCOMENDA' in extra)) env.ENCOMENDA = objectosFalsos(Encomenda, env);
+  if (!('CONTADOR' in extra)) env.CONTADOR = objectosFalsos(Contador, env);
+  return env;
 }
 
 /* A rede: `catalogo` é o objecto (ou uma função que o devolve, para o mudar a meio); `stripe` e

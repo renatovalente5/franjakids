@@ -25,6 +25,21 @@ id = "3afbbc5cd6fd441c8584df75faeafb2c"
 # O travão do /checkout que vale em TODAS as localizações da Cloudflare (o de memória, em index.js,
 # só vale no seu isolate): 5 pedidos por minuto por IP. O namespace_id é único na conta: 1001 e 1002
 # são do Carimbo, 1101 do Armazém dos Pneus, 1102 da LF Mobile.
+# Cada encomenda num objecto durável (objecto.js): a verdade dela, lida sempre a de agora, com
+# escritas que conferem a versão (o KV fica com a cópia para a lista do painel). E o contador dos
+# emails por endereço. SQLite: o único tipo do plano gratuito. Na jurisdição da UE (objecto.js).
+[[durable_objects.bindings]]
+name = "ENCOMENDA"
+class_name = "Encomenda"
+
+[[durable_objects.bindings]]
+name = "CONTADOR"
+class_name = "Contador"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Encomenda", "Contador"]
+
 [[ratelimits]]
 name = "TRAVAO_CHECKOUT"
 namespace_id = "1103"
@@ -86,6 +101,19 @@ name = "franjakids-encomendas-ensaio"
 [[env.ensaio.kv_namespaces]]
 binding = "ORDERS"
 id = "853c1409b16a42698b74f0e40a206279"
+
+# os objectos e as migrações repetem-se em cada ambiente (memória do-jurisdicao-no-workerd)
+[[env.ensaio.durable_objects.bindings]]
+name = "ENCOMENDA"
+class_name = "Encomenda"
+
+[[env.ensaio.durable_objects.bindings]]
+name = "CONTADOR"
+class_name = "Contador"
+
+[[env.ensaio.migrations]]
+tag = "v1"
+new_sqlite_classes = ["Encomenda", "Contador"]
 
 [[env.ensaio.ratelimits]]
 name = "TRAVAO_CHECKOUT"

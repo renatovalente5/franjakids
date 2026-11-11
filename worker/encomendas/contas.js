@@ -78,7 +78,9 @@ export function cortar(v, max) {
    ferramentas de escrita trocam esses escapes pelos caracteres verdadeiros (memória
    bytes-de-controlo-no-codigo). */
 export function limpar(v, max = Infinity, { linhas = false } = {}) {
-  let s = String(v == null ? '' : v)
+  // só texto (ou um número): um objecto ou uma lista gravava-se «[object Object]» (as notas, num pedido à mão)
+  if (typeof v !== 'string' && typeof v !== 'number') v = '';
+  let s = String(v)
     .replace(/\r\n?/g, '\n')
     .replace(/\p{Cc}/gu, (c) => (linhas && c === '\n' ? c : ' '))
     .replace(/\p{Cf}/gu, (c) => (c === ZWNJ || c === ZWJ ? c : ''));
@@ -88,7 +90,9 @@ export function limpar(v, max = Infinity, { linhas = false } = {}) {
   return cortar(s, max).trim();
 }
 
-export const telefoneValido = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.length >= 9 && d.length <= 15; };
+/* De 9 a 15 algarismos, e só os sinais de um número escrito à mão (+, espaços, parênteses, pontos e
+   hífens): «visita evil.example 912345678» não é um telefone. O finalizar confere o mesmo (site.js). */
+export const telefoneValido = (t) => { const s = String(t || ''); const d = s.replace(/\D/g, ''); return /^[+\d\s().-]+$/.test(s) && d.length >= 9 && d.length <= 15; };
 
 /* ---------------------------------------------------------------- as recusas */
 

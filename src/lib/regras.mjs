@@ -191,6 +191,9 @@ export function gerarSlug(nome, existentes = [], vazio = 'produto') {
    e hífens (um espaço num nome parte o srcset — memória srcset-nome-com-espaco). */
 export const nomeDeFotoValido = (n) => typeof n === 'string' && n.length <= TAMANHOS.nomeFoto && RE_SLUG.test(n);
 
+/* Os juntores de emojis (U+200C, U+200D), por código e nunca literais no código (memória bytes-de-controlo-no-codigo). */
+const JUNTORES = [String.fromCodePoint(0x200c), String.fromCodePoint(0x200d)];
+
 /* Caracteres de controlo, por escape e nunca literais no código. */
 const RE_CONTROLO_LINHA = /[\u0000-\u001F\u007F]/;
 const RE_CONTROLO_TEXTO = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
@@ -409,7 +412,10 @@ export function conferirEscolha(a, escolha = {}, cat = null) {
   if (ps) {
     /* Os invisíveis (espaços de largura zero, marcas de direcção) saem antes do trim, que não os tira:
        um nome feito só deles não é um nome, e não se cobra (memória trim-nao-tira-invisiveis). */
-    const t = typeof e.texto === 'string' ? e.texto.replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim() : '';
+    /* Os juntores (U+200C e U+200D) ficam: compõem emojis (a mãe com o biberão é três símbolos juntos) e escritas
+       como o persa, como no limpar() do Worker; um texto só deles fica vazio. */
+    const t0 = typeof e.texto === 'string' ? e.texto.replace(/\p{Cf}/gu, (c) => (JUNTORES.includes(c) ? c : '')).replace(/\s+/g, ' ').trim() : '';
+    const t = [...t0].every((c) => JUNTORES.includes(c) || /\s/.test(c)) ? '' : t0;
     if (ps.opcional) {
       if (e.personalizar === true) {
         if (!t) return { ok: false, campo: 'texto', mensagem: `Escreve «${ps.rotulo}» de «${nome}», ou tira a personalização.` };

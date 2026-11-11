@@ -112,8 +112,10 @@ export async function criarSessao(env, enc, zona) {
     locale: 'pt',
     client_reference_id: enc.encomenda,
     customer_email: enc.cliente.email,
-    success_url: `${site}/obrigado/?s={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${site}/finalizar/?cancelado=1`,
+    // o número e a chave vão nos dois endereços: a página «obrigado» lê a encomenda pelo objecto dela (a de
+    // agora), e o «Voltar» fecha esta página e a encomenda (POST /encomenda/desistir) sem depender do browser
+    success_url: `${site}/obrigado/?e=${enc.encomenda}&c=${enc.chave}&s={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${site}/finalizar/?cancelado=${enc.encomenda}&c=${enc.chave}`,
     expires_at: Math.floor(Date.now() / 1000) + DURACAO_SESSAO_SEGUNDOS,
     line_items: enc.linhas.map((l) => ({
       quantity: l.qtd,

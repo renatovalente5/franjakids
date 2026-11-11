@@ -6,6 +6,8 @@
  *                             «encomenda», manda os emails e devolve o número e a chave; em modo
  *                             «online», abre a página segura da Stripe.
  *   GET  /encomenda?e=&c=     o que a página «obrigado» mostra (sem dados pessoais); ou ?s=<sessão>.
+ *   POST /encomenda/desistir  { e, c } — a pessoa voltou da página da Stripe sem pagar: fecha-a, e a
+ *                             encomenda pendente fica «expirou», sem emails (11 nov 2026).
  *   POST /stripe/webhook      os eventos da Stripe (a fonte da verdade do pagamento).
  *   /painel/…                 as rotas do painel, com o PAINEL_SEGREDO (painel.js).
  *
@@ -21,10 +23,13 @@
 import { json, lerCorpoJson } from './http.js';
 import { lerCatalogo, modoDe, siteUrl } from './catalogo.js';
 import { validarPedido, ErroDoPedido, hojeLisboa } from './contas.js';
-import { criarEncomenda, idLivre, novaChave, lerEncomenda, gravarEncomenda, vistaPublica, iguais, RE_ID, RE_CHAVE, TTL_ENCOMENDA, TTL_EVENTO, agoraISO } from './encomenda.js';
+import { criarEncomenda, idLivre, novaChave, lerEncomenda, gravarEncomenda, alterarEncomenda, mudarEstado, vistaPublica, iguais, RE_ID, RE_CHAVE, TTL_ENCOMENDA, TTL_EVENTO, agoraISO } from './encomenda.js';
 import { criarSessao, stripeFetch, verificarAssinatura, aplicarEvento, idDoEvento, metodoDaCobranca } from './stripe.js';
-import { avisar, falhou } from './email.js';
+import { avisar, falhou, podeAvisarCliente } from './email.js';
 import { rotaPainel } from './painel.js';
+
+// Os objectos duráveis (objecto.js): cada encomenda, e o contador dos emails por endereço.
+export { Encomenda, Contador } from './objecto.js';
 
 const JANELA_DE_REENTREGA_SEGUNDOS = 3600;   // até quando vale pedir à Stripe que reentregue
 const SEM_INSTAGRAM = 'manda-nos mensagem no Instagram';
@@ -131,18 +136,32 @@ async function checkout(request, env, cors) {
     return json({ erro: `Não foi possível registar a encomenda agora. Tenta daqui a pouco ou ${SEM_INSTAGRAM}.` }, 503, cors);
   }
   // Os emails saem antes de responder (num waitUntil um erro não se vê: memória
-  // erro-em-waituntil-nao-falha-nada). Uma falha do Resend não apaga a encomenda, que já está
-  // gravada: fica registada nela, e só então se grava outra vez.
-  const resultado = await avisar(env, 'registada', enc);
-  if (falhou(resultado)) {
-    console.error('EMAIL NÃO ENVIADO', id, JSON.stringify(resultado));
-    enc.avisos = { registada: resultado };
-    try { await gravarEncomenda(env, enc); } catch (e) { console.error('aviso por gravar', id, e.message); }
+  // erro-em-waituntil-nao-falha-nada). Uma falha do envio não apaga a encomenda, que já está
+  // gravada: fica registada nela, e só então se grava outra vez. O email ao cliente tem travão por
+  // endereço (qualquer pessoa pode encomendar com o email de outra): o da loja sai sempre.
+  const extras = (await podeAvisarCliente(env, enc.cliente.email)) ? {} : { semCliente: 'travado: emails de mais para este endereço hoje' };
+  const resultado = await avisar(env, 'registada', enc, extras);
+  if (falhou(resultado) || extras.semCliente) {
+    if (falhou(resultado)) console.error('EMAIL NÃO ENVIADO', id, JSON.stringify(resultado));
+    try { await alterarEncomenda(env, id, (x) => { x.avisos = { ...(x.avisos || {}), registada: resultado }; }); } catch (e) { console.error('aviso por gravar', id, e.message); }
   }
   return json({ encomenda: id, chave: enc.chave, estado: enc.estado, total_cents: enc.total_cents }, 200, cors);
 }
 
 /* ---------------------------------------------------------------- GET /encomenda */
+
+/* A pessoa aterra na página «obrigado» segundos depois de pagar, antes de o webhook chegar: a sessão
+   da Stripe é a fonte mais fresca. Só promove o que se mostra (gravar é do webhook), e só para a
+   frente: uma encomenda já reembolsada não volta a «paga». */
+async function promoverPelaSessao(env, s, vista) {
+  if (!env.STRIPE_SECRET_KEY) return;
+  try {
+    const sessao = await stripeFetch(env, `/checkout/sessions/${encodeURIComponent(s)}`, { method: 'GET' });
+    if (sessao.payment_status && sessao.payment_status !== 'unpaid') vista.estado = 'paga';
+  } catch (err) {
+    console.error('sessão por ler', s, err.message);
+  }
+}
 
 async function encomenda(url, env, cors) {
   const e = url.searchParams.get('e'), c = url.searchParams.get('c') || '', s = url.searchParams.get('s');
@@ -151,7 +170,10 @@ async function encomenda(url, env, cors) {
     if (!RE_ID.test(e) || !RE_CHAVE.test(c)) return naoHa();
     const enc = await lerEncomenda(env, e);
     if (!enc || !iguais(enc.chave, c)) return naoHa();
-    return json(vistaPublica(enc), 200, cors);
+    const vista = vistaPublica(enc);
+    // de volta da Stripe (o success_url leva o número, a chave e a sessão): a sessão é a mais fresca
+    if (vista.estado === 'pendente' && s && enc.stripe && enc.stripe.session_id === s) await promoverPelaSessao(env, s, vista);
+    return json(vista, 200, cors);
   }
   if (s) {
     // Só por sessões que este Worker abriu (o índice session:): não serve de procurador à Stripe.
@@ -160,20 +182,43 @@ async function encomenda(url, env, cors) {
     const enc = id ? await lerEncomenda(env, id) : null;
     if (!enc) return naoHa();
     const vista = vistaPublica(enc);
-    // A pessoa aterra na página «obrigado» segundos depois de pagar, antes de o webhook chegar: a
-    // sessão é a fonte mais fresca. Só promove o que se mostra (o KV é do webhook), e só para a
-    // frente: uma encomenda já reembolsada não volta a «paga».
-    if (vista.estado === 'pendente' && env.STRIPE_SECRET_KEY) {
-      try {
-        const sessao = await stripeFetch(env, `/checkout/sessions/${encodeURIComponent(s)}`, { method: 'GET' });
-        if (sessao.payment_status && sessao.payment_status !== 'unpaid') vista.estado = 'paga';
-      } catch (err) {
-        console.error('sessão por ler', s, err.message);
-      }
-    }
+    if (vista.estado === 'pendente') await promoverPelaSessao(env, s, vista);
     return json(vista, 200, cors);
   }
   return json({ erro: 'Falta o número da encomenda.' }, 400, cors);
+}
+
+/* ---------------------------------------------------------------- POST /encomenda/desistir
+   A pessoa voltou da página da Stripe sem pagar («Voltar», ou o «voltar» do browser): a página dela
+   fecha-se já, e a encomenda pendente fica «expirou», sem emails (a pessoa está no site; antes, a
+   página ficava aberta uma hora — dava para pagar esta e a seguinte — e uma hora depois chegava-lhe
+   «o pagamento não se concluiu», mesmo que entretanto tivesse pago outra). A página fecha-se
+   PRIMEIRO: se a pessoa pagou nesse instante, a Stripe recusa, e a encomenda fica para o webhook.
+   Pede o número e a chave da encomenda (só quem a fez os tem). */
+async function desistir(request, env, cors) {
+  const { corpo, resposta } = await lerCorpoJson(request, cors);
+  if (resposta) return resposta;
+  const e = String(corpo.e ?? ''), c = String(corpo.c ?? '');
+  const naoHa = () => json({ erro: 'Encomenda não encontrada.' }, 404, cors);
+  if (!RE_ID.test(e) || !RE_CHAVE.test(c)) return naoHa();
+  const enc = await lerEncomenda(env, e);
+  if (!enc || !iguais(enc.chave, c)) return naoHa();
+  if (enc.estado !== 'pendente') return json({ estado: enc.estado }, 200, cors);
+  const sessao = enc.stripe && enc.stripe.session_id;
+  if (sessao && env.STRIPE_SECRET_KEY) {
+    try {
+      await stripeFetch(env, `/checkout/sessions/${encodeURIComponent(sessao)}/expire`, { method: 'POST' });
+    } catch (err) {
+      console.error('desistir: a página da Stripe não fechou (paga entretanto?)', e, err.status, err.message);
+      return json({ estado: enc.estado }, 200, cors);
+    }
+  }
+  const r = await alterarEncomenda(env, e, (x) => {
+    if (x.estado !== 'pendente') return { parar: true };
+    mudarEstado(x, 'expirou', { por: 'cliente', nota: 'Voltou da página de pagamento sem pagar.' });
+    return {};
+  });
+  return json({ estado: r.enc ? r.enc.estado : 'expirou' }, 200, cors);
 }
 
 /* ---------------------------------------------------------------- POST /stripe/webhook
@@ -211,42 +256,44 @@ async function webhook(request, env) {
     return new Response('sem encomenda');
   }
 
+  /* O evento aplica-se à encomenda como está AGORA, e grava-se sem perder outra escrita
+     (alterarEncomenda: se outra passou entretanto — o painel, outro evento —, relê-se e aplica-se
+     outra vez; o aplicarEvento só depende do estado e do evento). O meio de pagamento, quando a
+     sessão não o diz sem dúvida, pergunta-se à cobrança antes de gravar. */
   const em = agoraISO();
-  const antes = JSON.stringify(enc);
-  const { avisos } = aplicarEvento(enc, evento, em);
-  // O meio de pagamento, quando a sessão não o diz sem dúvida (aceitava mais de um): pergunta-se à
-  // cobrança, antes de gravar, para ir no estado e no email à loja.
-  if (avisos.includes('paga') && !enc.stripe.metodo) {
-    const metodo = await metodoDaCobranca(env, enc.stripe.payment_intent);
-    if (metodo) enc.stripe.metodo = metodo;
-  }
+  const r = await alterarEncomenda(env, id, async (x) => {
+    const antes = JSON.stringify(x);
+    const { avisos } = aplicarEvento(x, evento, em);
+    if (avisos.includes('paga') && !x.stripe.metodo) {
+      const metodo = await metodoDaCobranca(env, x.stripe.payment_intent);
+      if (metodo) x.stripe.metodo = metodo;
+    }
+    const mudou = JSON.stringify(x) !== antes;
+    return mudou ? { avisos, mudou } : { avisos, mudou, parar: true };
+  }, { em });
+  if (!r.enc) return new Response('sem encomenda');
   // O índice pi: quando se fica a saber o pagamento (é por ele que um reembolso chega cá).
-  const pi = enc.stripe && enc.stripe.payment_intent;
+  const pi = r.enc.stripe && r.enc.stripe.payment_intent;
   if (pi && (await env.ORDERS.get(`pi:${pi}`)) !== id) await env.ORDERS.put(`pi:${pi}`, id, { expirationTtl: TTL_ENCOMENDA });
-  const mudou = JSON.stringify(enc) !== antes;
-  if (mudou) await gravarEncomenda(env, enc, { em });
 
-  // Cada aviso vai uma vez (a marca enc.avisos). Relê-se antes de cada envio: um evento que chegue
-  // ao mesmo tempo pode já ter avisado. Da releitura só se aproveitam as marcas — o que se grava é
-  // o objecto deste pedido (memória reler-kv-apaga-o-que-se-escreveu: logo a seguir a uma
-  // escrita, o KV pode devolver a versão anterior). A janela não fecha de todo (o KV não tem
-  // escrita condicional): antes um email repetido, que se vê, do que um que nunca sai.
+  // Cada aviso vai uma vez (a marca enc.avisos, lida da encomenda de agora). O resultado junta-se
+  // às marcas sem perder outra escrita. O «expirou» ao cliente tem o travão por endereço.
   let enviou = false;
-  for (const aviso of avisos) {
-    const actual = (await lerEncomenda(env, id)) || enc;
-    const marcas = { ...(enc.avisos || {}), ...(actual.avisos || {}) };
-    if (marcas[aviso]) { enc.avisos = marcas; continue; }
-    const resultado = await avisar(env, aviso, { ...actual, ...enc, avisos: marcas }, { origem: 'stripe' });
+  for (const aviso of r.avisos) {
+    const actual = (await lerEncomenda(env, id)) || r.enc;
+    if (actual.avisos && actual.avisos[aviso]) continue;
+    const extras = { origem: 'stripe' };
+    if (aviso === 'expirou' && !(await podeAvisarCliente(env, actual.cliente && actual.cliente.email))) extras.semCliente = 'travado: emails de mais para este endereço hoje';
+    const resultado = await avisar(env, aviso, actual, extras);
     if (falhou(resultado)) {
       console.error('EMAIL NÃO ENVIADO', aviso, id, JSON.stringify(resultado), '— 500 para a Stripe reentregar');
       return new Response('emails por enviar', { status: 500 });
     }
-    enc.avisos = { ...marcas, [aviso]: resultado };
+    await alterarEncomenda(env, id, (x) => { x.avisos = { ...(x.avisos || {}), [aviso]: resultado }; return {}; });
     enviou = true;
   }
-  if (enviou) await gravarEncomenda(env, enc);
   // A marca do evento só quando houve efeitos que não se querem repetir: cada escrita conta.
-  if (mudou || enviou) await env.ORDERS.put(marca, '1', { expirationTtl: TTL_EVENTO });
+  if (r.mudou || enviou) await env.ORDERS.put(marca, '1', { expirationTtl: TTL_EVENTO });
   return new Response('ok');
 }
 
@@ -262,10 +309,11 @@ export default {
 
       const cors = corsDe(request, env);
       if (!cors) return json({ erro: 'Origem não autorizada.' }, 403);
-      const publica = caminho === '/checkout' || caminho === '/encomenda';
+      const publica = caminho === '/checkout' || caminho === '/encomenda' || caminho === '/encomenda/desistir';
       if (request.method === 'OPTIONS') return publica ? new Response(null, { status: 204, headers: cors }) : json({ erro: 'Rota desconhecida.' }, 404, cors);
       if (caminho === '/checkout') return request.method === 'POST' ? await checkout(request, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
       if (caminho === '/encomenda') return request.method === 'GET' ? await encomenda(url, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
+      if (caminho === '/encomenda/desistir') return request.method === 'POST' ? await desistir(request, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
       if (caminho === '/') return json({ ok: true, servico: 'franjakids-encomendas' }, 200, cors);
       return json({ erro: 'Rota desconhecida.' }, 404, cors);
     } catch (e) {

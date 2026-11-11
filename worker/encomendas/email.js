@@ -18,6 +18,7 @@
  */
 
 import { documento, tabelaArtigos, ficha, botao, separador, bloco, h2, p, pequeno, ligacao, esc, linhas } from './email-html.js';
+import { pedirAoObjecto } from './objecto.js';
 import { primeiroNome, ENTREGA_EM_MAO } from './encomenda.js';
 import { horaDeLisboa } from './contas.js';
 import { siteUrl } from './catalogo.js';
@@ -376,10 +377,32 @@ export async function avisar(env, aviso, enc, extras = {}) {
   const m = mensagens(env, aviso, enc, extras);
   const email = (enc.cliente || {}).email;
   const [cliente, loja] = await Promise.all([
-    !m.cliente ? 'não se aplica' : !email ? 'sem email' : enviar(env, { para: email, ...m.cliente, responderA: env.STORE_EMAIL || undefined }),
+    !m.cliente ? 'não se aplica' : !email ? 'sem email' : extras.semCliente ? String(extras.semCliente) : enviar(env, { para: email, ...m.cliente, responderA: env.STORE_EMAIL || undefined }),
     !m.loja ? 'não se aplica' : !env.STORE_EMAIL ? 'sem destinatário' : enviar(env, { para: env.STORE_EMAIL, ...m.loja, responderA: email || undefined }),
   ]);
   return { em: new Date().toISOString(), cliente, loja };
 }
 
 export const falhou = (r) => Boolean(r) && (r.cliente === 'falhou' || r.loja === 'falhou');
+
+/* O TRAVÃO DOS EMAILS DE ENCOMENDAS POR PAGAR (11 nov 2026, da revisão a fundo). Qualquer pessoa pode
+   encomendar com o email de outra, e a «registada» (modo encomenda) e a «expirou» (modo online) levam
+   a essa pessoa o nome, a morada e os textos que quem encomendou escreveu, a partir de franjakids.com.
+   Por endereço, no máximo MAX_EMAILS_POR_PAGAR por dia; o da loja sai sempre, e o «paga» não tem
+   travão (houve pagamento). Conta-se num objecto durável por endereço (o resumo SHA-256, nunca o
+   email); se o contador falhar, o email segue (antes um a mais do que uma encomenda sem aviso). */
+export const MAX_EMAILS_POR_PAGAR = 3;
+async function resumoDe(texto) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+export async function podeAvisarCliente(env, email) {
+  if (!email || !env.CONTADOR) return true;
+  try {
+    const { ok } = await pedirAoObjecto(env, 'CONTADOR', `email:${await resumoDe(String(email).trim().toLowerCase())}`, { max: MAX_EMAILS_POR_PAGAR });
+    return ok !== false;
+  } catch (e) {
+    console.error('o contador dos emails falhou (o email segue):', e.message);
+    return true;
+  }
+}

@@ -240,7 +240,9 @@
     /* As letras contam-se como o Worker as conta (regras.mjs, conferirEscolha): sem os invisíveis, os espaços seguidos
        num só e sem os das pontas, em unidades de JavaScript (um emoji conta 2, com o tom de pele 4). Contadas de
        outra maneira, um nome perto do máximo passava aqui e era recusado no envio. */
-    const letras = () => campo.value.replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim().length;
+    const JUNTORES = [String.fromCodePoint(0x200c), String.fromCodePoint(0x200d)];  // os juntores dos emojis ficam (os do Worker também)
+    const semInvisiveis = (s) => s.replace(/\p{Cf}/gu, (c) => (JUNTORES.includes(c) ? c : '')).replace(/\s+/g, ' ').trim();
+    const letras = () => { const t = semInvisiveis(campo.value); return [...t].every((c) => JUNTORES.includes(c) || /\s/.test(c)) ? 0 : t.length; };
     const contarLetras = () => {
       if (!campo) return true;
       const max = Number(campo.dataset.max);
@@ -283,7 +285,7 @@
         tamanho: valorDe(grupos.find((f) => f.dataset.campo === 'tamanho') || document.createElement('i')),
         cor: valorDe(grupos.find((f) => f.dataset.campo === 'cor') || document.createElement('i')),
         opcoes: Object.fromEntries(grupos.filter((f) => !f.dataset.campo).map((f) => [f.dataset.opcao, valorDe(f)]).filter(([, v]) => v)),
-        texto: campo && !blocoTexto.hidden ? campo.value.replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim() : '',
+        texto: campo && !blocoTexto.hidden ? semInvisiveis(campo.value) : '',
         personalizar: !!caixa?.checked,
         qtd: quantos(),
       };
@@ -438,7 +440,50 @@
       $('[data-pais]', form).hidden = z !== 'estrangeiro';
       return itens;
     };
+    // ── De volta da página da Stripe sem pagar ──
+    /* O «Voltar» da Stripe traz o número e a chave da encomenda (o cancel_url); o «voltar» do browser não traz nada,
+       mas a encomenda que se foi pagar ficou guardada neste separador. Nos dois casos, a página da Stripe fecha-se e a
+       encomenda fica sem efeito (POST /encomenda/desistir, sem emails: antes ficava aberta uma hora, dava para pagar
+       duas, e uma hora depois chegava «o pagamento não se concluiu»), e o que se escreveu volta aos campos (os termos
+       aceitam-se outra vez). Tudo isto vive só neste separador (sessionStorage) e sai quando a encomenda fica feita. */
+    const PAGAMENTO = 'franja:pagamento';
+    const DADOS = 'franja:finalizar';
+    const GUARDADOS = ['nome', 'email', 'telemovel', 'nif', 'morada', 'codigo-postal', 'localidade', 'pais', 'mensagem', 'notas'];
+    const separador = {
+      ler: (k) => { try { return JSON.parse(sessionStorage.getItem(k)); } catch { return null; } },
+      gravar: (k, v) => { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch { /* sem armazenamento: não se repõe */ } },
+      largar: (k) => { try { sessionStorage.removeItem(k); } catch { /* idem */ } },
+    };
+    const textoInicial = botao.textContent;
+    const avisoPagamento = $('[data-aviso-pagamento]', form);
+    const deVoltaDaStripe = () => {
+      const q = new URLSearchParams(location.search);
+      const pelaMorada = q.get('cancelado') && q.get('c') ? { e: q.get('cancelado'), c: q.get('c') } : null;
+      const pendente = pelaMorada || separador.ler(PAGAMENTO);
+      if (q.has('cancelado')) history.replaceState(null, '', location.pathname);  // a chave não fica na barra
+      separador.largar(PAGAMENTO);
+      if (!pendente && !q.has('cancelado')) return;
+      if (pendente && API) fetch(API + '/encomenda/desistir', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pendente), keepalive: true }).catch(() => {});
+      const dados = separador.ler(DADOS);
+      if (dados && typeof dados === 'object') {
+        for (const k of GUARDADOS) if (typeof dados[k] === 'string' && form.elements[k]) form.elements[k].value = dados[k];
+        const r = typeof dados.envio === 'string' && $$('input[name="envio"]', form).find((x) => x.value === dados.envio);
+        if (r) r.checked = true;
+        if (dados.oferta === true) { form.elements.oferta.checked = true; $('[data-mensagem]', form).hidden = false; }
+      }
+      avisoPagamento.textContent = 'O pagamento não se concluiu e não se cobrou nada. Os teus dados estão aqui: confirma e envia outra vez.';
+      avisoPagamento.hidden = false;
+    };
+    deVoltaDaStripe();
     desenhar();
+    // ao voltar atrás para esta página (bfcache), ela volta como estava: com o botão em «A enviar…»
+    addEventListener('pageshow', (e) => {
+      if (!e.persisted) return;
+      botao.disabled = false;
+      botao.textContent = textoInicial;
+      deVoltaDaStripe();
+      desenhar();
+    });
 
     /* AS REGRAS DOS CAMPOS SÃO AS DO WORKER DAS ENCOMENDAS (worker/encomendas/contas.js, validarCliente; o email e o
        NIF de src/lib/regras.mjs; scripts/testar.mjs confere que não se afastam): o que passa aqui não é recusado
@@ -461,7 +506,7 @@
     const regras = {
       nome: (v) => (v ? '' : 'Escreve o teu nome.'),
       email: (v) => (v.length <= MAX_EMAIL && RE_EMAIL.test(v) ? '' : 'Escreve um email como nome@exemplo.pt.'),
-      telemovel: (v) => { const n = v.replace(/\D/g, '').length; return n >= 9 && n <= 15 ? '' : 'Escreve o telemóvel com 9 algarismos.'; },
+      telemovel: (v) => { const n = v.replace(/\D/g, '').length; return /^[+\d\s().-]+$/.test(v) && n >= 9 && n <= 15 ? '' : 'Escreve o telemóvel com 9 algarismos.'; },
       nif: (v) => (!v || nifValido(v) ? '' : 'O NIF não está certo. Confirma-o ou deixa-o em branco.'),
       morada: (v) => (v ? '' : 'Escreve a morada.'),
       'codigo-postal': (v, zona) => {
@@ -558,7 +603,12 @@
       try {
         const r = await fetch(API + '/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedido) });
         const resposta = await r.json().catch(() => ({}));
-        if (r.ok && resposta.url) { location.assign(resposta.url); return; }
+        if (r.ok && resposta.url) {
+          separador.gravar(PAGAMENTO, { e: resposta.encomenda, c: resposta.chave });
+          separador.gravar(DADOS, { ...Object.fromEntries(GUARDADOS.map((k) => [k, form.elements[k]?.value || ''])), envio: zona, oferta: !!form.elements.oferta.checked });
+          location.assign(resposta.url);
+          return;
+        }
         if (r.ok && resposta.encomenda) {
           gravar([]);
           location.assign(`${BASE}/obrigado/?e=${encodeURIComponent(resposta.encomenda)}&c=${encodeURIComponent(resposta.chave)}`);
@@ -586,14 +636,29 @@
     const q = new URLSearchParams(location.search);
     const corpo = $('[data-obrigado-corpo]', obrigado);
     const id = q.get('e');
-    const pedido = id && q.get('c') ? `e=${encodeURIComponent(id)}&c=${encodeURIComponent(q.get('c'))}` : q.get('s') ? `s=${encodeURIComponent(q.get('s'))}` : '';
-    if (q.get('s')) gravar([]);  // voltou da Stripe: o carrinho já foi
+    const s = q.get('s');
+    const pedido = id && q.get('c') ? `e=${encodeURIComponent(id)}&c=${encodeURIComponent(q.get('c'))}${s ? `&s=${encodeURIComponent(s)}` : ''}` : s ? `s=${encodeURIComponent(s)}` : '';
+    // a encomenda está feita: o carrinho e o que o finalizar guardou para o «voltar» já não servem
+    const feita = () => { gravar([]); try { sessionStorage.removeItem('franja:pagamento'); sessionStorage.removeItem('franja:finalizar'); } catch { /* sem armazenamento */ } };
     const simples = (n) => `<p>Recebemos a tua encomenda${n ? ` <strong>${esc(n)}</strong>` : ''}. Mandámos-te um email com o resumo; se não o vires, espreita o spam.</p>`;
     // aberta à mão (sem encomenda no endereço), não diz que recebeu nada
     if (!pedido) corpo.innerHTML = '<p>Aqui aparece a tua encomenda logo depois de a fazeres. Se já encomendaste, tens o resumo no teu email.</p>';
     else if (!API) corpo.innerHTML = simples(id);
     else {
       fetch(`${API}/encomenda?${pedido}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((e) => {
+        // fechada sem pagamento (ou anulada, ou devolvida): diz-se isso, e o carrinho fica para tentar outra vez
+        const FECHADAS = {
+          anulada: 'Esta encomenda foi anulada. Se tiveres alguma dúvida, manda-nos mensagem.',
+          expirou: 'O pagamento não se concluiu e a encomenda ficou sem efeito. Não se cobrou nada.',
+          falhou: 'O pagamento falhou e não se cobrou nada. Podes encomendar outra vez.',
+          reembolsada: 'O pagamento desta encomenda foi devolvido.',
+        };
+        if (FECHADAS[e.estado]) {
+          $('h1', obrigado).textContent = 'A tua encomenda';
+          corpo.innerHTML = `<p>A encomenda <strong>${esc(e.encomenda)}</strong>: ${FECHADAS[e.estado]}</p>`;
+          return;
+        }
+        feita();
         const linhas = e.linhas.map((l) => `<li><span>${esc(l.nome)}${l.qtd > 1 ? ' × ' + l.qtd : ''}${l.escolhas?.length ? `<small>${l.escolhas.map(esc).join(' · ')}</small>` : ''}</span><b>${euro(l.total_cents / 100)}</b></li>`).join('');
         const pago = ['paga', 'pronta', 'enviada', 'levantada'].includes(e.estado);
         const proximo = e.modo === 'online'
@@ -602,7 +667,13 @@
         corpo.innerHTML = `<p>${e.cliente?.nome ? `${esc(e.cliente.nome)}, recebemos` : 'Recebemos'} a tua encomenda <strong>${esc(e.encomenda)}</strong>.</p><p>${proximo}</p>
           <ul class="obrigado__linhas">${linhas}</ul>
           <dl class="obrigado__totais"><dt>Artigos</dt><dd>${euro(e.artigos_cents / 100)}</dd><dt>Portes</dt><dd>${e.portes_por_confirmar ? 'A confirmar' : e.portes_cents ? euro(e.portes_cents / 100) : 'Grátis'}</dd><dt>Total</dt><dd>${euro(e.total_cents / 100)}${e.portes_por_confirmar ? ' + portes' : ''}</dd></dl>`;
-      }).catch(() => { corpo.innerHTML = simples(id); });
+      }).catch((estado) => {
+        // não existe (um endereço inventado, ou de outra encomenda): não diz que recebeu nada, e o carrinho fica
+        if (estado === 404) { corpo.innerHTML = '<p>Não encontrámos esta encomenda. Se acabaste de encomendar, tens o resumo no teu email.</p>'; return; }
+        // sem rede: vinda da Stripe, só se chega aqui depois de pagar
+        if (s) feita();
+        corpo.innerHTML = simples(id);
+      });
     }
     $('h1', obrigado).focus();
   }

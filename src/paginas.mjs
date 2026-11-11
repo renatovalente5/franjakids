@@ -357,6 +357,7 @@ export function finalizar({ loja, termosUrl, api }) {
     corpo: `<section class="contentor pagina" aria-labelledby="t-finalizar"><h1 id="t-finalizar">Finalizar a encomenda</h1></section>
 <form class="contentor finalizar" data-finalizar data-portes-gratis="${gratisDe(loja)}" data-modo="${pagaAgora ? 'online' : 'encomenda'}" novalidate>
   <div>
+    <p class="aviso" data-aviso-pagamento role="status" hidden></p>
     <div class="resumo-erros" data-resumo-erros tabindex="-1" hidden><h2>Falta corrigir:</h2><ul></ul></div>
     <section class="bloco" aria-labelledby="t-contacto">
       <h2 id="t-contacto">Contacto</h2>

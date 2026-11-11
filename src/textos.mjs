@@ -115,7 +115,7 @@ ${identificacao(e)}
 <ul>
   <li><strong>Encomendas:</strong> nome, email, telemóvel, NIF (se o der), morada e o texto da personalização, para fazer, enviar e faturar a encomenda (execução do contrato e obrigações fiscais). Guardamos as encomendas 10 anos, como a lei fiscal obriga; o texto da personalização apaga-se no fim da garantia.</li>
   <li><strong>Mensagens:</strong> o que nos escreve por mensagem ou email, para responder (12 meses).</li>
-  <li><strong>Carrinho:</strong> fica guardado só no seu browser (armazenamento local), para não o perder entre páginas. Não usamos cookies nem estatísticas.</li>
+  <li><strong>Carrinho:</strong> fica guardado só no seu browser (armazenamento local), para não o perder entre páginas. Enquanto paga na página da Stripe, os dados do finalizar ficam também só neste separador do browser, para voltarem aos campos se voltar atrás; saem quando a encomenda fica feita ou o separador se fecha. Não usamos cookies nem estatísticas.</li>
 </ul>
 <h2>A quem os damos</h2>
 ${destinatariosHtml({ alojamento: 'cloudflare', dns: 'cloudflare', ...(online ? { pagamentos: 'stripe' } : {}), instagram: true }, { formato: 'lista' })
