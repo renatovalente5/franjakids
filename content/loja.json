@@ -21,8 +21,8 @@
       },
       {
         "id": "estrangeiro",
-        "nome": "Fora de Portugal",
-        "portes": null
+        "nome": "Fora de Portugal (Europa)",
+        "portes": 8
       },
       {
         "id": "mao",
