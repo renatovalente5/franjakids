@@ -127,23 +127,26 @@ vir com ~50 s de atraso (medido), e escrever por cima dela perdia pagamentos —
      [chromium|webkit]. O carrinho, o finalizar, o Checkout com o cartão 4242 e com o MB WAY de teste, a
      volta à «obrigado», a encomenda «paga» com o meio certo (`card`/`mb_way`), os emails à loja e ao
      cliente e, com um reembolso no painel da Stripe, a encomenda «reembolsada». 7/7 em Chromium e WebKit.
-   - **Falta a ativação**, que é da dona: «Ativar Payments» na conta (empresa, banco, extras). Os dados
-     públicos (nome, site, email de apoio, descritor do extrato) só aparecem depois dela. Depois, em
-     produção:
-     - as formas de pagamento como no teste — **só** cartão, Apple Pay, Google Pay, MB WAY e Multibanco
-       (a configuração é por modo, e o modo real vem com outros ligados: desligá-los um a um) — e as
-       instruções do Multibanco por email desligadas (é por conta, mas confirmar);
-     - uma chave restrita `rk_live_…` com as mesmas permissões (Checkout Sessions, Coupons e
-       PaymentIntents: escrita; Charges and Refunds: leitura) →
-       `$WR secret put STRIPE_SECRET_KEY --config $CFG < …`;
-     - o webhook `https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev/stripe/webhook`, com os
-       6 eventos e a versão dahlia → `$WR secret put STRIPE_WEBHOOK_SECRET --config $CFG < …`. O segredo
-       copia-se pelo botão «Copiar», com o clipboard direto para o `wrangler`: as ferramentas de procura
-       do browser leem o texto revelado (aconteceu com o de teste, que foi trocado);
-     - o `/painel/saude` com `stripe` e `webhook` a `true`, e a gaveta «Pagamento» do painel a dizer
-       «Stripe ligado»;
-     - por fim, `pagamentos.modo = "online"` no painel (o catálogo leva o modo) e o «Construir» do site com
-       `--producao --api=https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev`.
+   - **A ativação foi feita pela dona** («Ativar Payments»), e o modo real ficou configurado a 17 nov 2026:
+     - formas de pagamento: **só** cartão, Apple Pay, Google Pay, MB WAY e Multibanco. O modo real vinha
+       com 15 ligados: desliguei Amazon Pay, Kakao Pay, Link, Naver Pay, PAYCO, Samsung Pay, Satispay,
+       Bancontact, BLIK, EPS, Klarna e PIX, e liguei o Google Pay e o Multibanco. O Link e alguns outros
+       pedem confirmação e um motivo;
+     - «E-mails de clientes»: os recibos e as instruções do Multibanco desligados, a língua pt-PT;
+     - a chave restrita «Worker das encomendas» (`rk_live_…`): Checkout Sessions, Coupons e
+       PaymentIntents com escrita, Charges and Refunds com leitura → `STRIPE_SECRET_KEY` do Worker a sério.
+       Criar uma chave real pede o link de verificação por email e o código da app autenticadora do
+       Renato (é ele que os põe). Provada com um GET às Checkout Sessions (200);
+     - o webhook `franjakids-encomendas` (`we_1UcvRT…`): o endereço
+       `https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev/stripe/webhook`, os 6 eventos e a
+       versão `2026-08-26.dahlia` → `STRIPE_WEBHOOK_SECRET`. O segredo copiou-se pelo botão «Copiar»
+       (aparece depois de «Revelar»), sem o ler: a área de transferência foi direta para o `wrangler` e
+       limpou-se a seguir. No modo real a Stripe não manda eventos de teste;
+     - o `/painel/saude` com `stripe` e `webhook` a `true`, e ainda `modo: "encomenda"`.
+   - **Falta, no dia em que a loja abrir os pagamentos:** `pagamentos.modo = "online"` no painel (o
+     catálogo leva o modo), o «Construir» do site com
+     `--producao --api=https://franjakids-encomendas.renato-lima-valente-dcb.workers.dev`, e um primeiro
+     pagamento real pequeno, devolvido a seguir, para provar o webhook de ponta a ponta.
 6. ~~O domínio~~ — `SITE_URL`, `LOGO_URL` e `ALLOWED_ORIGINS` no `franjakids.com`; os endereços locais
    passaram para o Worker de ensaio (127.0.0.1:8986).
 7. **Os portes** — são do `content/loja.json` (o painel), não do Worker: enquanto o continente não os
