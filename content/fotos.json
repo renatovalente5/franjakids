@@ -307,10 +307,6 @@
     "alt": "Dois conjuntos de Natal aos quadrados vermelhos, um de menino e um vestido de menina, pendurados numa escada de bambu",
     "foco": "50% 45%"
   },
-  "ocasiao-padrinhos": {
-    "alt": "Body com «Prima Lili, aceitas ser minha madrinha?» e a data",
-    "foco": "50% 45%"
-  },
   "ocasiao-papa": {
     "alt": "Body com «Papá, dentro da mamã agora batem dois corações apaixonados por ti»",
     "foco": "50% 40%"
@@ -361,6 +357,10 @@
   },
   "presentes-71a21467": {
     "alt": "Box presente Franja Kids em tons de rosa, composta por manta personalizada, prendedor de chupeta, placa \"Hello World\", escova de cabelo, doudou e carapins, cuidadosamente organizados numa caixa presente.",
+    "foco": "50% 50%"
+  },
+  "padrinhos-19ea8a8e": {
+    "alt": "Body branco personalizado com a pergunta «Querem ser os meus padrinhos?», decorado com um ursinho a segurar um coração e pequenos corações vermelhos.",
     "foco": "50% 50%"
   }
 }
