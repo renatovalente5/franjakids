@@ -52,7 +52,7 @@
   "ocasioes": [
     {
       "id": "bebe-a-caminho",
-      "nome": "Bebé a caminho",
+      "nome": "Bebé a Caminho",
       "foto": "ocasiao-gravidez"
     },
     {
@@ -93,6 +93,16 @@
     {
       "id": "familia",
       "nome": "Tios e primos",
+      "foto": null
+    },
+    {
+      "id": "nascimento",
+      "nome": "Nascimento",
+      "foto": null
+    },
+    {
+      "id": "aniversarios",
+      "nome": "Aniversários",
       "foto": null
     }
   ],
