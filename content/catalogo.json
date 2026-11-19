@@ -140,14 +140,12 @@
       ]
     },
     "camisola": {
-      "nome": "Camisolas (2 anos a XL)",
+      "nome": "Sweatshirts (3 anos a XL)",
       "valores": [
-        "2 anos",
-        "4 anos",
-        "6 anos",
-        "8 anos",
-        "10 anos",
-        "12 anos",
+        "3 anos",
+        "4/5 anos",
+        "6/8 anos",
+        "10/12 anos",
         "S",
         "M",
         "L",
@@ -163,11 +161,13 @@
       ]
     },
     "natal": {
-      "nome": "Natal (6 a 18 meses)",
+      "nome": "Natal (6 a 36 meses)",
       "valores": [
         "6 meses",
         "12 meses",
-        "18 meses"
+        "18 meses",
+        "24 meses",
+        "36 meses"
       ]
     }
   },
@@ -181,7 +181,7 @@
     "Azul": "#9CC3E4",
     "Azul bebé": "#BFD9EF",
     "Azul cobalto": "#2F5DA8",
-    "Azul-escuro": "#1F2A44",
+    "Azul marinho": "#1F2A44",
     "Cinzento": "#B9B9B9",
     "Cru": "#F1E9D6",
     "Bege": "#D9C3A0",
