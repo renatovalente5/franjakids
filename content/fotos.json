@@ -207,10 +207,6 @@
     "alt": "Box Franja com escova e placa de madeira gravadas com o nome «Salvador», roca de croché e mantinha",
     "foco": "50% 50%"
   },
-  "cat-conjuntos": {
-    "alt": "Conjunto de malha azul de três peças: casaco, gorro com pompom e luvas",
-    "foco": "50% 50%"
-  },
   "conjunto-de-malha-tres-pecas-1": {
     "alt": "Conjunto de malha azul: casaco, gorro com pompom e luvas",
     "foco": "50% 45%"
@@ -361,6 +357,10 @@
   },
   "personalizados-a9a1ac19": {
     "alt": "Personalizados com Amor.",
+    "foco": "50% 50%"
+  },
+  "bebe-a6c0b9b1": {
+    "alt": "Descobre a nossa coleção de roupinhas, conjuntos de malha, mantas e acessórios para bebé. Peças delicadas, confortáveis e escolhidas com carinho para acompanhar os primeiros momentos de vida.",
     "foco": "50% 50%"
   }
 }
