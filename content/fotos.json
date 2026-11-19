@@ -203,10 +203,6 @@
     "alt": "Duas camisolas azul-escuras com carapuço, «Papa» e «Mini»",
     "foco": "50% 45%"
   },
-  "cat-bodies": {
-    "alt": "Body de manga comprida com o nome «Raul» em letra manuscrita azul",
-    "foco": "50% 45%"
-  },
   "cat-box": {
     "alt": "Box Franja com escova e placa de madeira gravadas com o nome «Salvador», roca de croché e mantinha",
     "foco": "50% 50%"
@@ -362,5 +358,9 @@
   "vais-ser-avo": {
     "alt": "Caixa de cartão com «Vais ser avó» escrito na tampa e, lá dentro, um body personalizado",
     "foco": "50% 55%"
+  },
+  "personalizados-a9a1ac19": {
+    "alt": "Personalizados com Amor.",
+    "foco": "50% 50%"
   }
 }
