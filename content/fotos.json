@@ -295,10 +295,6 @@
     "alt": "Body branco com a inscrição Baby 2027 em cores neutras, perfeito para anunciar a chegada de um bebé.",
     "foco": "50% 45%"
   },
-  "ocasiao-irmaos": {
-    "alt": "Body com «Promovida a irmã mais fixe» e a data de nascimento",
-    "foco": "50% 45%"
-  },
   "ocasiao-mama": {
     "alt": "Body branco personalizado com a frase «A melhor mãe do mundo é a minha», em tons de rosa, com uma ilustração do planeta Terra.",
     "foco": "50% 40%"
@@ -361,6 +357,10 @@
   },
   "papa-6497dedf": {
     "alt": "Body branco personalizado com a frase «Papá, prepara o colinho pois estou a caminho.», em letras pretas e com um coração vermelho.",
+    "foco": "50% 50%"
+  },
+  "irmaos-f8385ef2": {
+    "alt": "Body branco personalizado com a frase «Promovida a irmã mais velha», em tons de verde e dourado, decorado com um ursinho e pequenos corações.",
     "foco": "50% 50%"
   }
 }
