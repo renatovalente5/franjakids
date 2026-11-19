@@ -307,10 +307,6 @@
     "alt": "Dois conjuntos de Natal aos quadrados vermelhos, um de menino e um vestido de menina, pendurados numa escada de bambu",
     "foco": "50% 45%"
   },
-  "ocasiao-papa": {
-    "alt": "Body com «Papá, dentro da mamã agora batem dois corações apaixonados por ti»",
-    "foco": "50% 40%"
-  },
   "placa-o-meu-primeiro-1": {
     "alt": "Placas de madeira «O meu primeiro Dia do Pai», «Dia da Mãe» e «Aniversário»",
     "foco": "50% 45%"
@@ -361,6 +357,10 @@
   },
   "padrinhos-19ea8a8e": {
     "alt": "Body branco personalizado com a pergunta «Querem ser os meus padrinhos?», decorado com um ursinho a segurar um coração e pequenos corações vermelhos.",
+    "foco": "50% 50%"
+  },
+  "papa-6497dedf": {
+    "alt": "Body branco personalizado com a frase «Papá, prepara o colinho pois estou a caminho.», em letras pretas e com um coração vermelho.",
     "foco": "50% 50%"
   }
 }
