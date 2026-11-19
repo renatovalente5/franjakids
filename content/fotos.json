@@ -203,10 +203,6 @@
     "alt": "Duas camisolas azul-escuras com carapuço, «Papa» e «Mini»",
     "foco": "50% 45%"
   },
-  "cat-box": {
-    "alt": "Box Franja com escova e placa de madeira gravadas com o nome «Salvador», roca de croché e mantinha",
-    "foco": "50% 50%"
-  },
   "conjunto-de-malha-tres-pecas-1": {
     "alt": "Conjunto de malha azul: casaco, gorro com pompom e luvas",
     "foco": "50% 45%"
@@ -361,6 +357,10 @@
   },
   "bebe-a6c0b9b1": {
     "alt": "Descobre a nossa coleção de roupinhas, conjuntos de malha, mantas e acessórios para bebé. Peças delicadas, confortáveis e escolhidas com carinho para acompanhar os primeiros momentos de vida.",
+    "foco": "50% 50%"
+  },
+  "presentes-71a21467": {
+    "alt": "Box presente Franja Kids em tons de rosa, composta por manta personalizada, prendedor de chupeta, placa \"Hello World\", escova de cabelo, doudou e carapins, cuidadosamente organizados numa caixa presente.",
     "foco": "50% 50%"
   }
 }
