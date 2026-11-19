@@ -30,7 +30,10 @@
     "pista": "Opcional",
     "max": 30
   },
-  "destaque": false,
+  "detalhes": [
+    "100% Algodão"
+  ],
+  "destaque": true,
   "publicado": true,
   "ordem": 40
 }
