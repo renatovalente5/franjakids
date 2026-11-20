@@ -169,6 +169,14 @@ teste('suplementosTamanho: o acréscimo do tamanho entra no preço, no «desde»
   assert.ok(chaves({ ...bg, suplementosTamanho: Object.fromEntries(tamanhos.map((t) => [t, 2])) }).includes('artigo:x:suplementosTamanho:sem-base'), 'sem um tamanho sem acréscimo, o preço anunciado não se paga');
   assert.ok(chaves({ ...bg, suplementosTamanho: { '3 meses': 'dois' } }).some((k) => k.startsWith('artigo:x:suplementosTamanho')));
 });
+teste('precoMinimo: o preço mais baixo que se pode pagar, com os tamanhos e os valores esgotados de fora', () => {
+  const a = { preco: 22, tamanhos: ['4 anos', '6 anos', 'S', 'M'], suplementosTamanho: { S: 6, M: 6 }, tamanhosEsgotados: ['4 anos', '6 anos'] };
+  assert.equal(R.precoMinimo(a), 28);
+  assert.equal(R.precoMinimo({ ...a, tamanhosEsgotados: ['4 anos'] }), 22);
+  assert.equal(R.precoMinimo({ preco: 10, opcoes: [{ nome: 'X', valores: [{ nome: 'a', suplemento: 0, esgotado: true }, { nome: 'b', suplemento: 2.5 }] }] }), 12.5);
+  assert.equal(R.precoMinimo(produto('babygrow-com-nome'), R.tamanhosDe(produto('babygrow-com-nome'), cat)), 16.9, 'a personalização opcional não conta');
+  assert.equal(R.precoMinimo({ preco: null }), null);
+});
 teste('temSuplementos: «desde» com acréscimos nas escolhas, na personalização opcional ou num tamanho', () => {
   assert.ok(R.temSuplementos(produto('babygrow-com-nome')));
   assert.ok(R.temSuplementos(produto('body-dad-mini')));
@@ -732,6 +740,17 @@ await teste('preço por tamanho: a ficha mostra o acréscimo, o catálogo public
   const pub = { produtos: { 'body-dad-mini': c.produtos['body-dad-mini'] } };
   for (const t of tb) assert.equal(unidade({ slug: 'body-dad-mini', tamanho: t, opcoes: {} }, pub), R.conferirEscolha(c.produtos['body-dad-mini'], { tamanho: t }).unidade_cents, t);
   assert.equal(unidade({ slug: 'body-dad-mini', tamanho: ultimo, opcoes: {} }, pub), 1490 + 250);
+  // com os tamanhos sem acréscimo esgotados, o preço anunciado é o mais baixo que se paga: no cartão, na ficha, no
+  // total da ficha e no Google (a revisão de 20 nov 2026: anunciava-se 14,90 € que já não se podia pagar)
+  repor();
+  mexer('produtos/body-dad-mini.json', (o) => { o.suplementosTamanho = Object.fromEntries(tb.slice(1).map((t) => [t, 2.5])); o.tamanhosEsgotados = [tb[0]]; });
+  assert.equal(construir(['--producao', '--site=https://franjakids.com']).status, 1, 'sem os dados legais, a produção pára (a pré-visualização chega)');
+  assert.equal(construir().status, 0);
+  const f2 = pagina('produtos/body-dad-mini/index.html');
+  assert.match(f2, /<p class="ficha__preco">17,40 €<\/p>/);
+  assert.match(f2, /Total: <strong data-total>17,40 €<\/strong>/);
+  assert.match(f2, /"price":"17\.40"/);
+  assert.match(pagina('personalizados/bodies/index.html'), /<h3>Body[^<]*<\/h3><p class="cartao__preco">desde 17,40 €<\/p>/);
   repor();
 });
 await teste('textos da loja: o «Como funciona», os «Envios e prazos», as «Informações legais» e as páginas novas do «Sobre Nós»', () => {
@@ -749,7 +768,7 @@ await teste('textos da loja: o «Como funciona», os «Envios e prazos», as «I
   assert.match(env, /<h2>Levantamento em mão em Valongo<\/h2>/);
   assert.match(env, /<li>União Europeia: 8,00 €\.<\/li>/);
   assert.match(env, /<li>Restantes países: sob consulta\.<\/li>/);
-  assert.match(env, /<li>Levantamento em mão — Valongo: gratuito\.<\/li>/);
+  assert.match(env, /<li>Levantamento em mão em Valongo: gratuito\.<\/li><li>Restantes países: sob consulta\.<\/li>/, 'a lista da loja: o levantamento antes dos restantes países');
   assert.match(env, /Os prazos de transporte acrescem aos prazos de produção ou preparação\./);
   assert.match(env, /Envios para o resto do mundo/);
   assert.match(env, /taxas alfandegárias/);
@@ -763,12 +782,21 @@ await teste('textos da loja: o «Como funciona», os «Envios e prazos», as «I
   assert.match(pf, /Para a União Europeia, sim, com portes de 8,00 €\./);
   // os termos dizem os prazos e o que é sob consulta
   const t = pagina('termos/index.html');
-  assert.match(t, /os artigos sem personalização são preparados para envio em 2 a 3 dias úteis\. Os prazos de transporte acrescem a estes\./);
-  assert.match(t, /Para os Açores e a Madeira e os restantes países, os portes e o prazo são sob consulta, e a encomenda não se faz no site\./);
+  assert.match(t, /os outros artigos são preparados para envio em 2 a 3 dias úteis\. A página de cada artigo diz o prazo dele, e os prazos de transporte acrescem a estes\./);
+  assert.match(t, /Para os Açores e a Madeira, e para os restantes países, os portes e o prazo são sob consulta, e a encomenda não se faz no site\./);
+  // (a revisão de 20 nov 2026) o pagamento combinado por «você»; a confirmação diz o que o email leva; o telefone com o custo
+  assert.match(t, /O pagamento é combinado consigo depois de confirmarmos a encomenda/);
+  assert.match(t, /até ao fim do próprio dia e sempre antes da entrega, a confirmação da encomenda por email, com o resumo/);
+  assert.doesNotMatch(t, /em anexo|até no próprio dia|combinamos contigo/);
   // a ficha diz o prazo da peça: a personalizada, o de produção; a sem personalização, o de preparação
-  assert.match(pagina('produtos/manta-remalhada/index.html'), /Preparado para envio em 2 a 3 dias úteis\. Depois, até /);
-  assert.match(pagina('produtos/body-dad-mini/index.html'), /Feito por encomenda em 1 a 2 semanas\. Depois, até [^.]+ por CTT no continente, ou levantamento em mão em Valongo, sem portes\./);
-  assert.match(pagina('produtos/box-franja/index.html'), /Sem personalização, sai em 2 a 3 dias úteis; personalizado, em 1 a 2 semanas\./);
+  assert.match(pagina('produtos/manta-remalhada/index.html'), /Sai em 2 a 3 dias úteis\. Depois, até /);
+  assert.match(pagina('produtos/body-dad-mini/index.html'), /Fazemos por encomenda em 1 a 2 semanas\. Depois, até [^.]+ por CTT no continente, ou levantamento em mão em Valongo, sem portes\./);
+  assert.match(pagina('produtos/box-franja/index.html'), /Sem personalização, sai em 2 a 3 dias úteis; com personalização, em 1 a 2 semanas\./);
+  // o Google: a manta não se faz por encomenda; o body sim
+  assert.match(pagina('produtos/manta-remalhada/index.html'), /<meta name="description" content="[^"]*Da Franja Kids, com envio para todo o país\.">/);
+  // o formulário de livre resolução sem o marcador (os dados da loja entram quando os há), e sem o «feito à mão» que nenhuma ficha descreve
+  const tr = pagina('trocas-e-devolucoes/index.html');
+  assert.doesNotMatch(tr, /descrevem-se na ficha/);
 });
 
 // ---------------------------------------------------------------- os cupões (11 nov 2026)

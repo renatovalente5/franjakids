@@ -250,9 +250,16 @@
     const blocoTexto = $('[data-campo-texto]', ficha);
     const qtd = $('[data-quantidade] input', ficha);
     const total = $('[data-total]', ficha);
+    /* O preço de uma unidade com o que está escolhido; num grupo ainda por escolher (o tamanho não vem marcado), o
+       acréscimo mais pequeno dos que se podem escolher — o total começa no preço que a ficha anuncia
+       (R.precoMinimo), e nunca abaixo do que se paga. */
     const unitario = () => {
       let v = cents(dados.preco || 0);
-      $$('input[type="radio"]:checked', ficha).forEach((r) => { v += cents(Number(r.dataset.suplemento) || 0); });
+      $$('[data-opcao]', ficha).forEach((f) => {
+        const r = $('input[type="radio"]:checked', f);
+        const livres = $$('input[type="radio"]:not(:disabled)', f).map((x) => cents(Number(x.dataset.suplemento) || 0));
+        v += r ? cents(Number(r.dataset.suplemento) || 0) : livres.length ? Math.min(...livres) : 0;
+      });
       if (caixa?.checked) v += cents(Number(caixa.dataset.suplemento) || 0);
       return v / 100;
     };
@@ -848,12 +855,14 @@
         const pago = ['paga', 'pronta', 'enviada', 'levantada'].includes(e.estado);
         // pagou por Multibanco e a referência ainda não foi paga: a referência, para pagar já
         const mb = e.estado === 'pendente' && e.multibanco;
+        // a pré-visualização, só quando há o que pré-visualizar (uma peça com nome ou frase), como nos emails
+        const previa = e.linhas.some((l) => l.personalizada) ? ' Antes de produzirmos, mandamos-te a pré-visualização para aprovares.' : '';
         const proximo = e.modo === 'online'
-          ? (pago ? 'O pagamento entrou. Antes de produzirmos, mandamos-te a pré-visualização para aprovares.'
+          ? (pago ? `O pagamento entrou.${previa}`
             : mb ? 'Falta pagar: usa a referência Multibanco abaixo, no multibanco ou na app do teu banco. Assim que o pagamento entrar, avisamos-te por email.'
               : 'Assim que o pagamento entrar, avisamos-te por email.')
-          : 'Vamos confirmar a encomenda e combinar contigo o pagamento. Antes de produzirmos, mandamos-te a pré-visualização para aprovares.';
-        const levantamento = e.entrega === 'mao' ? '<p>Quando estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.</p>' : '';
+          : `Vamos confirmar a encomenda e combinar contigo o pagamento.${previa}`;
+        const levantamento = e.entrega === 'mao' ? '<p>Quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.</p>' : '';
         const validade = mb && mb.validade ? new Date(mb.validade * 1000).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' }) : '';
         const caixaMB = mb ? `<dl class="obrigado__multibanco" data-multibanco><dt>Entidade</dt><dd>${esc(mb.entidade)}</dd><dt>Referência</dt><dd>${esc(mb.referencia)}</dd><dt>Valor</dt><dd>${euro(e.total_cents / 100)}</dd>${validade ? `<dt>Válida até</dt><dd>${esc(validade)}</dd>` : ''}</dl>` : '';
         corpo.innerHTML = `<p>${e.cliente?.nome ? `${esc(e.cliente.nome)}, recebemos` : 'Recebemos'} a tua encomenda <strong>${esc(e.encomenda)}</strong>.</p><p>${proximo}</p>${levantamento}${caixaMB}

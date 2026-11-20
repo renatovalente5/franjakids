@@ -75,8 +75,11 @@ function travadoEmMemoria(ip, agora = Date.now()) {
   if (batidas.size > 5000) batidas.clear();
   return r.n > 10;
 }
-/* `tipo`: cada rota conta à parte (o aviso de stock não gasta as tentativas do /checkout). */
+/* `tipo`: cada rota conta à parte (o aviso de stock não gasta as tentativas do /checkout). No IPv6, cada ligação tem
+   uma rede /64 inteira: conta-se a rede, não o endereço (a revisão de 20 nov 2026). */
+export const chaveDoIp = (ip) => (String(ip).includes(':') ? String(ip).toLowerCase().split(':').slice(0, 4).join(':') + '::/64' : String(ip));
 async function travado(env, ip, tipo = 'checkout') {
+  if (tipo !== 'checkout') ip = chaveDoIp(ip);
   if (env.TRAVAO_CHECKOUT && typeof env.TRAVAO_CHECKOUT.limit === 'function') {
     try {
       const { success } = await env.TRAVAO_CHECKOUT.limit({ key: `${tipo}:${ip}` });
@@ -322,7 +325,7 @@ async function pedirAviso(request, env, cors) {
   if (disponivel(p, variante)) return json({ erro: 'Já há outra vez! Recarrega a página para encomendar.' }, 409, cors);
   let r;
   try { r = await pedirAvisos(env, { op: 'pedir', produto: corpo.produto, variante, email }); } catch (e) { console.error('aviso por guardar', e.message); return json({ erro: 'Não conseguimos guardar o aviso agora. Tenta daqui a um minuto.' }, 503, cors); }
-  if (r.erro === 'cheio') return json({ erro: 'Este email já tem muitos avisos à espera. Fala connosco no Instagram.' }, 429, cors);
+  if (r.erro === 'cheio') return json({ erro: r.de === 'email' ? 'Este email já tem muitos avisos à espera. Fala connosco no Instagram.' : 'Não conseguimos guardar mais avisos agora. Fala connosco no Instagram.' }, 429, cors);
   if (!r.ok) return json({ erro: 'Não conseguimos guardar o aviso agora. Tenta daqui a um minuto.' }, 503, cors);
   return json({ ok: true }, 200, cors);
 }

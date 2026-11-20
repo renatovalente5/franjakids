@@ -19,7 +19,7 @@ test('GET /encomenda: com a chave certa dá só o que a pessoa já sabe (§3); s
   assert.equal(r.headers.get('Access-Control-Allow-Origin'), ORIGEM);
   assert.deepEqual(r.json, {
     encomenda, estado: 'registada', modo: 'encomenda', entrega: 'continente', portes_por_confirmar: false,
-    linhas: [{ nome: 'Babygrow', qtd: 1, total_cents: 1990, escolhas: ['Tamanho: 1 mês', 'Cor: Rosa', 'Nome a bordar: Clara'] }],
+    linhas: [{ nome: 'Babygrow', qtd: 1, total_cents: 1990, escolhas: ['Tamanho: 1 mês', 'Cor: Rosa', 'Nome a bordar: Clara'], personalizada: true }],
     artigos_cents: 1990, portes_cents: 390, total_cents: 2380,
     cliente: { nome: 'Maria' },
   });
@@ -212,7 +212,7 @@ test('entrega em mão: «registada» não passa a «pronta»; registada → paga
   let emails = rede.resend();
   assert.equal(emails.length, 1, 'marcada pela dona, só o cliente é avisado');
   assert.equal(emails[0].subject, `Pagamento recebido — encomenda ${encomenda}`);
-  assert.match(emails[0].text, /Recebemos o teu pagamento\. Quando estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./);
+  assert.match(emails[0].text, /Recebemos o teu pagamento\. Quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./);
   assert.doesNotMatch(emails[0].text, /pré-visualização/, 'em modo «encomenda», a pré-visualização combina-se antes');
   assert.deepEqual({ ...paga.json.avisos.paga, em: 'x' }, { em: 'x', cliente: 'enviado', loja: 'não se aplica' });
 

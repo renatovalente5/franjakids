@@ -97,7 +97,7 @@ function oferta(enc) {
 /* O que vem a seguir. A pré-visualização só quando há o que pré-visualizar (um produto com nome ou
    frase); numa encomenda sem personalização ficava uma promessa que ninguém cumpre. */
 const previa = (enc) => (temPersonalizados(enc) ? 'Antes de produzirmos, mandamos-te a pré-visualização para aprovares.' : '');
-const seguinte = (enc) => (emMao(enc) ? 'Quando estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.' : 'Avisamos-te quando a encomenda seguir.');
+const seguinte = (enc) => (emMao(enc) ? 'Quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.' : 'Avisamos-te quando a encomenda seguir.');
 
 const ligacaoDaEncomenda = (env, enc) => (enc.chave ? `${siteUrl(env)}/obrigado/?e=${encodeURIComponent(enc.encomenda)}&c=${encodeURIComponent(enc.chave)}` : null);
 

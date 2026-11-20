@@ -12,7 +12,7 @@ import * as R from './lib/regras.mjs';
 import { RAIZ, BASE, SITE_URL, PRODUCAO, lerTexto, absoluto, url, carregarFotos, FOTOS, fotoPequena } from './util.mjs';
 import { pagina, SOBRE_NOS } from './layout.mjs';
 import { VERIFICACOES } from './seo.mjs';
-import { inicio, listas, seccoesComProdutos, produto, carrinho, finalizar, obrigado, procurar, sobre, naoEncontrada } from './paginas.mjs';
+import { inicio, listas, seccoesComProdutos, produto, carrinho, finalizar, obrigado, procurar, sobre, naoEncontrada, feitaPorEncomenda } from './paginas.mjs';
 import { paginasDeTexto } from './textos.mjs';
 
 const SAIDA = RAIZ + '_site/';
@@ -78,6 +78,7 @@ const produtos = Object.entries(artigos)
     };
   })
   .sort((a, b) => a._ordem - b._ordem || a.nome.localeCompare(b.nome, 'pt'));
+for (const p of produtos) p._porEncomenda = feitaPorEncomenda(p);
 for (const p of produtos) for (const f of p.fotos) if (!FOTOS[f]) { console.error(`falta a versão web de «${f}»: correr python3 scripts/imagens.py`); process.exit(1); }
 
 const seccoes = seccoesComProdutos(cat, produtos);

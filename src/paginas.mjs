@@ -20,8 +20,11 @@ export const coracao = (html) => html.replace(/\s*♡/g, ' <span class="coracao"
    pela ordem dos produtos. As listas entram no Google com MINIMO_INDEXAR produtos ou mais: uma lista de um produto
    só é quase a ficha dele. */
 export const MINIMO_INDEXAR = 2;
-/* As secções em que tudo é personalizado: os cartões delas não levam a etiqueta «Personalizável». */
-const SECCOES_PERSONALIZADAS = new Set(['personalizados', 'crianca-e-familia']);
+/* As secções em que tudo é personalizado: os cartões delas não levam a etiqueta «Personalizável», e as peças delas
+   (estampadas ou bordadas) fazem-se por encomenda. */
+export const SECCOES_PERSONALIZADAS = new Set(['personalizados', 'crianca-e-familia']);
+/* Uma peça feita por encomenda: com personalização, ou de uma secção personalizada. */
+export const feitaPorEncomenda = (p) => Boolean(p._pers) || p._categorias.some((k) => SECCOES_PERSONALIZADAS.has(R.seccaoDaChave(k)));
 
 /** [{ id, nome, frase, foto, href, produtos, itens: [{ id, nome, frase, foto, chave, href, produtos }] }] */
 export function seccoesComProdutos(cat, produtos) {
@@ -57,9 +60,11 @@ const descricaoDeLista = (frase, nome) => {
 
 // ── Produtos ────────────────────────────────────────────────────────────────
 
+/* O preço de um cartão: o mais baixo que se pode pagar (R.precoMinimo), com «desde» quando alguma escolha o pode
+   fazer subir. */
 export function precoHtml(p, classe = 'cartao__preco') {
   if (p.preco == null) return `<p class="${classe} ${classe}--falta">Preço por confirmar</p>`;
-  return `<p class="${classe}">${R.temSuplementos(p, p._tamanhos) ? 'desde ' : ''}${euro(p.preco)}</p>`;
+  return `<p class="${classe}">${R.temSuplementos(p, p._tamanhos) ? 'desde ' : ''}${euro(R.precoMinimo(p, p._tamanhos))}</p>`;
 }
 
 /* Um cartão de produto. Numa grelha, os primeiros (os que se vêem logo, até 4 por fila) carregam sem esperar
@@ -101,7 +106,7 @@ export function inicio({ loja, produtos, seccoes }) {
   const passos = [
     ['Escolhe o teu favorito', 'Explora os nossos artigos e encontra o que mais gostas.', 'saco'],
     ['Personaliza ao teu gosto', 'Acrescenta o nome, a frase ou os detalhes que tornam a tua peça única.', 'lapis'],
-    ['Finaliza a encomenda', online(loja) ? 'Confirma os teus dados e paga de forma simples e segura.' : 'Confirma os teus dados e envia a encomenda; o pagamento combinamos contigo.', 'cartao'],
+    ['Finaliza a encomenda', online(loja) ? 'Confirma os teus dados e paga de forma simples e segura.' : 'Confirma os teus dados e envia a encomenda; depois combinamos contigo o pagamento.', 'cartao'],
     ['Recebe com carinho', 'Preparamos a tua encomenda com todo o cuidado e enviamos até ti.', 'carrinha'],
   ];
   const fh = fotoDaHistoria(loja);
@@ -285,12 +290,12 @@ function avisoDeStock(p, esgotados) {
    personalizada (uma peça estampada é feita por encomenda), o de produção; sem nada disso, o de preparação. */
 function prazoDaPeca(loja, p) {
   const ps = p._pers;
-  const fazer = `Feito por encomenda em ${esc(loja.producao)}.`;
+  const fazer = `Fazemos por encomenda em ${esc(loja.producao)}.`;
   const preparar = typeof loja.preparacao === 'string' && loja.preparacao.trim() ? esc(loja.preparacao.trim()) : null;
   if (!preparar) return fazer;
-  if (ps?.opcional) return `Sem personalização, sai em ${preparar}; personalizado, em ${esc(loja.producao)}.`;
-  if (ps || p._categorias.some((k) => SECCOES_PERSONALIZADAS.has(R.seccaoDaChave(k)))) return fazer;
-  return `Preparado para envio em ${preparar}.`;
+  if (ps?.opcional) return `Sem personalização, sai em ${preparar}; com personalização, em ${esc(loja.producao)}.`;
+  if (feitaPorEncomenda(p)) return fazer;
+  return `Sai em ${preparar}.`;
 }
 
 export function produto({ loja, catalogo, produtos, seccoes, api }, p) {
@@ -340,7 +345,7 @@ export function produto({ loja, catalogo, produtos, seccoes, api }, p) {
       <div class="quantidade" data-quantidade><button type="button" data-menos aria-label="Diminuir a quantidade">−</button><input type="text" inputmode="numeric" pattern="[0-9]*" value="1" aria-label="Quantidade" name="quantidade"><button type="button" data-mais aria-label="Aumentar a quantidade">+</button></div>
       <button class="botao botao--cheio" type="submit">Adicionar ao carrinho</button>
     </div>
-    <p class="ficha__total" aria-live="polite">Total: <strong data-total>${euro(p.preco)}</strong></p>`;
+    <p class="ficha__total" aria-live="polite">Total: <strong data-total>${euro(R.precoMinimo(p, p._tamanhos))}</strong></p>`;
   const mao = zonaMao(loja);
   // «Também podes gostar»: primeiro os da mesma categoria, depois os que partilham outra
   const outrosQue = (f) => produtos.filter((o) => o.slug !== p.slug && f(o));
@@ -365,7 +370,7 @@ export function produto({ loja, catalogo, produtos, seccoes, api }, p) {
     <div class="ficha__info">
       <p class="ficha__etiqueta">${esc(categoria.nome)}${ps ? ' · Personalizável' : ''}</p>
       <h1>${esc(p.nome)}</h1>
-      ${p.preco == null ? '<p class="ficha__preco ficha__preco--falta">Preço por confirmar</p>' : `<p class="ficha__preco">${euro(p.preco)}${p._esgotado ? ' <span class="ficha__esgotado">Esgotado</span>' : ''}</p>`}
+      ${p.preco == null ? '<p class="ficha__preco ficha__preco--falta">Preço por confirmar</p>' : `<p class="ficha__preco">${euro(R.precoMinimo(p, p._tamanhos))}${p._esgotado ? ' <span class="ficha__esgotado">Esgotado</span>' : ''}</p>`}
       <p class="ficha__resumo">${esc(p.resumo)}</p>
       <form class="ficha__form" data-ficha novalidate>
         <script type="application/json" data-produto>${JSON.stringify(dados)}</script>
@@ -376,7 +381,7 @@ export function produto({ loja, catalogo, produtos, seccoes, api }, p) {
       ${comAviso ? avisoDeStock(p, esgotados) : ''}
       <ul class="ficha__linhas">
         <li>${icone('relogio', 'icone icone--pequeno')}<span>${prazoDaPeca(loja, p)} Depois, até ${esc(loja.entrega.prazoContinente)} por CTT no continente${mao ? `, ou levantamento em mão em ${esc(loja.entrega.concelho)}, sem portes` : ''}.</span></li>
-        <li>${icone('troca', 'icone icone--pequeno')}<span>${ps?.obrigatoria ? 'Por ser personalizada, esta peça não tem troca nem devolução por desistência.' : ps ? 'Sem personalização, tens 14 dias para desistir; personalizada, não há troca nem devolução por desistência.' : 'Tens 14 dias para desistir depois de receberes.'} <a href="${url('/trocas-e-devolucoes/')}">Trocas e devoluções</a></span></li>
+        <li>${icone('troca', 'icone icone--pequeno')}<span>${ps?.obrigatoria ? 'Por ser personalizada, esta peça não tem troca nem devolução por desistência.' : ps ? 'Sem personalização, tens 14 dias para desistir; com personalização, não há troca nem devolução por desistência.' : 'Tens 14 dias para desistir depois de receberes.'} <a href="${url('/trocas-e-devolucoes/')}">Trocas e devoluções</a></span></li>
       </ul>
     </div>
   </div>
@@ -421,7 +426,7 @@ export function finalizar({ loja, termosUrl, api }) {
   const ent = loja.entrega;
   const gratis = typeof ent.gratisAPartirDe === 'number' ? ent.gratisAPartirDe : null;
   const nota = (z) => (R.zonaSobConsulta(z) ? 'Portes e prazo sob consulta, pelo Instagram'
-    : z.id === 'mao' ? 'Quando estiver pronta, combinamos o levantamento pelo WhatsApp'
+    : z.id === 'mao' ? 'Quando a encomenda estiver pronta, combinamos o levantamento pelo WhatsApp'
       : z.id === 'continente' ? `Correio registado CTT; chega em até ${ent.prazoContinente} depois de enviada${gratis != null ? `. Grátis a partir de ${euro(gratis)}` : ''}`
         : z.id === 'ilhas' ? 'Correio registado CTT; o prazo varia consoante a ilha'
           : 'Correio registado; o prazo varia consoante o destino');
@@ -490,7 +495,7 @@ export function finalizar({ loja, termosUrl, api }) {
       <button class="botao botao--cheio" type="submit" data-enviar>${pagaAgora ? esc(BOTAO_ENCOMENDA) : 'Enviar encomenda'}</button>
     </div>
     <p class="aviso" data-sob-consulta-resumo hidden>Esta entrega é sob consulta: a encomenda não se faz aqui. <a href="${mensagemInstagram(loja)}">Fala connosco no Instagram</a>.</p>
-    <p class="pagamentos">${pagaAgora ? `${meiosOnline()}<span>Pagamento seguro pela Stripe</span>` : '<span>O pagamento combinamos contigo depois de confirmarmos a encomenda</span>'}</p>
+    <p class="pagamentos">${pagaAgora ? `${meiosOnline()}<span>Pagamento seguro pela Stripe</span>` : '<span>Combinamos contigo o pagamento depois de confirmarmos a encomenda</span>'}</p>
   </aside>
 </form>${api ? '' : `
 <dialog class="caixa" id="pre-visualizacao" aria-labelledby="t-pre">

@@ -12,18 +12,25 @@
  * próxima vez. Uma escolha que continua esgotada fica à espera.
  *
  * O OBJECTO DURÁVEL (Avisos, um só, na UE — objecto.js): os pedidos e os contadores mudam num passo só, sem outro
- * pedido a meio. Os travões: um email pede cada coisa uma vez (repetir não junta nada); MAX_POR_EMAIL pedidos à
- * espera por email; MAX_TOTAL no objecto; o travão por IP do /checkout (outra chave). Um pedido dura DURACAO_DIAS
- * (6 meses): os mais velhos apagam-se no primeiro pedido de cada dia. O email guarda-se só para o aviso (a
- * política de privacidade di-lo) e nunca vai para o painel.
+ * pedido a meio. Os travões (a revisão de 20 nov 2026: sem eles, um script enchia o objecto e um clique mandava
+ * milhares de emails): um email pede cada coisa uma vez (repetir não junta nada); MAX_POR_EMAIL pedidos à espera
+ * por email, contado como pessoa (emailCanonico: ana+1@gmail.com é a ana@gmail.com); MAX_POR_PRODUTO por produto
+ * e MAX_TOTAL no objecto; o travão por IP do /checkout (outra chave; no IPv6, a rede /64 inteira); e cada clique
+ * no painel manda no máximo MAX_POR_ENVIO emails (os outros ficam para o clique seguinte). Cada pedido sai logo a
+ * seguir ao seu email: um envio que pára a meio não repete os que já foram. Um pedido dura DURACAO_DIAS (6 meses):
+ * os mais velhos apagam-se no primeiro pedido de cada dia. O email guarda-se só para o aviso (a política de
+ * privacidade di-lo) e nunca vai para o painel.
  *
  * No objecto: `p:<produto>:<id>` → { produto, variante, email, em, a_enviar? } (o id: o resumo do email e da
  * escolha, que não deixa repetir), `e:<resumo do email>` → quantos à espera, `total`, `limpo_em`. */
 
 import { pedirAoObjecto } from './objecto.js';
+import { emailCanonico } from './cupoes.js';
 
 export const MAX_POR_EMAIL = 10;
-export const MAX_TOTAL = 5000;
+export const MAX_POR_PRODUTO = 300;
+export const MAX_TOTAL = 3000;
+export const MAX_POR_ENVIO = 50;
 export const DURACAO_DIAS = 183;
 const DIA_MS = 24 * 3600 * 1000;
 /* Um envio que começou e não acabou (o painel fechou a meio) não prende os pedidos para sempre. */
@@ -69,8 +76,10 @@ async function resumo(texto, n = 32) {
   const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, n);
 }
-export const resumoDoEmail = (email) => resumo(`franjakids-aviso:${String(email).trim().toLowerCase()}`);
-export const idDoPedido = async (email, variante) => resumo(`${String(email).trim().toLowerCase()}|${variante ? `${variante.grupo}=${variante.valor}` : '*'}`, 24);
+/* O email como pessoa (cupoes.js, emailCanonico): o contador e o id do pedido não se enganam com «+1» nem com pontos
+   no Gmail. Guarda-se o email como foi escrito, para o aviso. */
+export const resumoDoEmail = (email) => resumo(`franjakids-aviso:${emailCanonico(email)}`);
+export const idDoPedido = async (email, variante) => resumo(`${emailCanonico(email)}|${variante ? `${variante.grupo}=${variante.valor}` : '*'}`, 24);
 
 /* ---------------------------------------------------------------- o objecto durável */
 
@@ -109,7 +118,8 @@ export class Avisos {
         const ke = `e:${await resumoDoEmail(c.email)}`;
         const doEmail = (await s.get(ke)) || 0;
         const total = (await s.get('total')) || 0;
-        if (doEmail >= MAX_POR_EMAIL || total >= MAX_TOTAL) { resposta = { erro: 'cheio' }; return; }
+        if (doEmail >= MAX_POR_EMAIL) { resposta = { erro: 'cheio', de: 'email' }; return; }
+        if (total >= MAX_TOTAL || (await s.list({ prefix: `p:${c.produto}:`, limit: MAX_POR_PRODUTO })).size >= MAX_POR_PRODUTO) { resposta = { erro: 'cheio', de: 'loja' }; return; }
         await s.put(k, { produto: c.produto, variante: c.variante || null, email: c.email, em: new Date(agora).toISOString() });
         await s.put(ke, doEmail + 1);
         await s.put('total', total + 1);
@@ -117,8 +127,8 @@ export class Avisos {
         return;
       }
       if (c.op === 'contar') {
-        // quantos esperam, por produto e por escolha (sem os emails)
-        const avisos = {};
+        // quantos esperam, por produto e por escolha (sem os emails); sem protótipo: um produto «constructor» é um produto
+        const avisos = Object.create(null);
         for (const [, v] of await s.list({ prefix: 'p:' })) {
           if (!eObjecto(v)) continue;
           const lista = (avisos[v.produto] ||= []);
@@ -132,19 +142,22 @@ export class Avisos {
       }
       if (c.op === 'reservar') {
         // os pedidos do produto que se podem avisar agora (`disponiveis`: as escolhas que já não estão esgotadas,
-        // como [grupo, valor], e null para o produto inteiro), marcados para este envio; os de um envio a decorrer
-        // ficam de fora
+        // como [grupo, valor], e null para o produto inteiro), no máximo `max`, marcados para este envio; os de um
+        // envio a decorrer ficam de fora. `faltam`: os que se podiam avisar e ficaram para o clique seguinte.
         if (typeof c.produto !== 'string' || !RE_SLUG.test(c.produto) || !Array.isArray(c.disponiveis)) { resposta = { erro: 'pedido' }; return; }
+        const max = Number.isInteger(c.max) && c.max > 0 ? c.max : MAX_POR_ENVIO;
         const pode = (v) => c.disponiveis.some((d) => (d === null ? v === null : Array.isArray(d) && v && d[0] === v.grupo && d[1] === v.valor));
         const reservados = [];
         let esperam = 0;
+        let faltam = 0;
         for (const [k, v] of await s.list({ prefix: `p:${c.produto}:` })) {
           if (!eObjecto(v)) continue;
           if (!pode(v.variante || null) || (v.a_enviar && v.a_enviar > agora - RESERVA_MS)) { esperam += 1; continue; }
+          if (reservados.length >= max) { faltam += 1; continue; }
           await s.put(k, { ...v, a_enviar: agora });
           reservados.push({ id: k.slice(`p:${c.produto}:`.length), email: v.email, variante: v.variante || null });
         }
-        resposta = { reservados, esperam };
+        resposta = { reservados, esperam, faltam };
         return;
       }
       if (c.op === 'fechar') {

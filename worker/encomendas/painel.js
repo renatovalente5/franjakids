@@ -11,7 +11,8 @@
  *   PUT    /painel/cupoes/<CÓDIGO>        cria ou muda um cupão (a regra: cupoes.js, validarRegra) → a regra gravada
  *   DELETE /painel/cupoes/<CÓDIGO>        apaga um cupão (as encomendas que o usaram ficam como estão)
  *   GET    /painel/avisos                 os avisos de stock à espera, por produto e escolha (sem os emails: avisos.js)
- *   POST   /painel/avisos/<produto>/enviar  avisa quem pediu o que já não está esgotado no site → { enviados, falharam, esperam }
+ *   POST   /painel/avisos/<produto>/enviar  avisa quem pediu o que já não está esgotado no site, no máximo MAX_POR_ENVIO
+ *                                          por clique → { enviados, falharam, esperam, faltam }
  */
 
 import { json, lerCorpoJson } from './http.js';
@@ -21,7 +22,7 @@ import { avisar } from './email.js';
 import { limpar } from './contas.js';
 import { stripeFetch } from './stripe.js';
 import { pedirCupoes, normalizarCodigo, validarRegra, descricaoDe, acertarCupao, fazerAcerto } from './cupoes.js';
-import { pedirAvisos, disponivel } from './avisos.js';
+import { pedirAvisos, disponivel, MAX_POR_ENVIO } from './avisos.js';
 import { enviar, emailDeStock } from './email.js';
 
 const POR_PAGINA = 200;
@@ -259,7 +260,9 @@ async function listarAvisos(env) {
 }
 
 /* O botão «Avisar quem pediu»: com o catálogo publicado de agora (o que o site vende), avisa quem pediu o que já
-   não está esgotado; os pedidos de uma escolha ainda esgotada ficam. Um email que falha fica para a próxima vez. */
+   não está esgotado, no máximo MAX_POR_ENVIO de cada vez (`faltam`: os que ficam para o clique seguinte); os pedidos
+   de uma escolha ainda esgotada ficam. Cada pedido sai do objecto logo a seguir ao seu email (um envio que pára a
+   meio não repete os que já foram); um email que falha fica para a próxima vez. */
 async function enviarAvisos(env, produto) {
   let cat;
   try { cat = await lerCatalogo(env); } catch (e) { console.error('catálogo por ler (avisos):', e.message); return json({ erro: 'O site não respondeu: tente daqui a um minuto.' }, 503); }
@@ -274,18 +277,17 @@ async function enviarAvisos(env, produto) {
     for (const g of Array.isArray(p.opcoes) ? p.opcoes : []) for (const v of (g && Array.isArray(g.valores) ? g.valores : [])) if (v && disponivel(p, { grupo: g.nome, valor: v.nome })) disponiveis.push([g.nome, v.nome]);
   }
   let r;
-  try { r = await pedirAvisos(env, { op: 'reservar', produto, disponiveis }); } catch (e) { console.error('avisos por reservar', e.message); return json({ erro: 'Os avisos não se conseguem ler agora.' }, 503); }
-  const enviados = [];
-  const falharam = [];
+  try { r = await pedirAvisos(env, { op: 'reservar', produto, disponiveis, max: MAX_POR_ENVIO }); } catch (e) { console.error('avisos por reservar', e.message); return json({ erro: 'Os avisos não se conseguem ler agora.' }, 503); }
+  let enviados = 0;
+  let falharam = 0;
+  let fim = { esperam: (r.esperam || 0) + (r.faltam || 0) };
   const url = p && typeof p.url === 'string' && /^https?:/.test(p.url) ? p.url : `${String(env.SITE_URL || '').replace(/\/$/, '')}${p && typeof p.url === 'string' ? p.url : `/produtos/${produto}/`}`;
   for (const x of r.reservados || []) {
     const m = emailDeStock(env, { nome: p.nome, url, variante: x.variante });
     const estado = await enviar(env, { para: x.email, ...m, responderA: env.STORE_EMAIL || undefined });
-    (estado === 'enviado' ? enviados : falharam).push(x.id);
+    const foi = estado === 'enviado';
+    if (foi) enviados += 1; else falharam += 1;
+    try { fim = await pedirAvisos(env, { op: 'fechar', produto, ...(foi ? { enviados: [x.id] } : { falharam: [x.id] }) }); } catch (e) { console.error('aviso por fechar', produto, x.id, e.message); }
   }
-  let fim = { esperam: r.esperam || 0 };
-  if (enviados.length || falharam.length) {
-    try { fim = await pedirAvisos(env, { op: 'fechar', produto, enviados, falharam }); } catch (e) { console.error('avisos por fechar', produto, e.message); }
-  }
-  return json({ enviados: enviados.length, falharam: falharam.length, esperam: fim.esperam ?? 0 });
+  return json({ enviados, falharam, esperam: fim.esperam ?? 0, faltam: r.faltam || 0 });
 }

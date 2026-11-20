@@ -446,6 +446,30 @@ export const temSuplementos = (a, tamanhos = null) => opcoesDe(a).some((g) => g.
   || (personalizacaoDe(a)?.suplemento || 0) > 0
   || Object.keys(suplementosTamanhoDe(a, Array.isArray(tamanhos) ? tamanhos : eObjecto(a) && Array.isArray(a.tamanhos) ? a.tamanhos : [])).length > 0;
 
+/* O PREÇO MAIS BAIXO QUE SE PODE PAGAR (o «desde» do cartão, o preço da ficha e o do Google; a revisão de 20 nov
+   2026): o preço, mais o acréscimo mais pequeno dos tamanhos que não estão esgotados, e o mais pequeno de cada
+   escolha entre os valores que não estão esgotados. Com os tamanhos sem acréscimo esgotados, o preço do produto já
+   não se paga, e anunciá-lo era anunciar um preço que não existe (memória preco-anunciado-tem-de-ser-obtenivel). A
+   personalização opcional não conta (é uma caixa que não se marca). null sem preço. `tamanhos`: a lista dos
+   tamanhos do produto (sem ela, a da entrada do catálogo publicado). */
+export function precoMinimo(a, tamanhos = null) {
+  const preco = precoDe(a).atual;
+  if (preco === null) return null;
+  const ts = Array.isArray(tamanhos) ? tamanhos : eObjecto(a) && Array.isArray(a.tamanhos) ? a.tamanhos : [];
+  let cents = centimos(preco);
+  const esgotados = tamanhosEsgotadosDe(a, ts);
+  const livres = ts.filter((t) => !esgotados.includes(t));
+  if (livres.length) {
+    const sup = suplementosTamanhoDe(a, ts);
+    cents += Math.min(...livres.map((t) => centimos(sup[t] || 0)));
+  }
+  for (const g of opcoesDe(a)) {
+    const valores = g.valores.filter((v) => !v.esgotado);
+    if (valores.length) cents += Math.min(...valores.map((v) => centimos(v.suplemento)));
+  }
+  return cents / 100;
+}
+
 /* No site, como o gerador decide: tudo menos `publicado: false`. */
 export const noSite = (a) => eObjecto(a) && a.publicado !== false;
 /* Compra-se no site (vai para o carrinho)? Publicado e com preço. */

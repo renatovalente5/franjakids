@@ -8,6 +8,7 @@
 // Os títulos vão sem « · Franja Kids», que o layout junta. O testar.mjs confere que nenhum título passa de
 // 65 caracteres e que as descrições ficam entre 50 e 160.
 import { absoluto, fotoJpg } from './util.mjs';
+import { precoMinimo } from './lib/regras.mjs';
 
 export const TITULO_INICIO = 'Roupa e presentes personalizados para bebé';
 
@@ -65,7 +66,7 @@ export function resumir(texto, max = 155) {
 export function descricaoDoProduto(p) {
   const r = String(p.resumo ?? '').trim();
   // sem género (o produto pode ser «o body» ou «a toalha»)
-  const fim = p._pers ? 'A Franja Kids faz por encomenda, com o nome ou a frase que escolheres.' : 'A Franja Kids faz por encomenda e envia para todo o país.';
+  const fim = p._pers ? 'A Franja Kids faz por encomenda, com o nome ou a frase que escolheres.' : p._porEncomenda === false ? 'Da Franja Kids, com envio para todo o país.' : 'A Franja Kids faz por encomenda e envia para todo o país.';
   return resumir(r.length < 110 ? `${r}${r && !/[.!?…]$/.test(r) ? '.' : ''} ${fim}`.trim() : r);
 }
 
@@ -73,13 +74,14 @@ export function descricaoDoProduto(p) {
 const id = (marca) => absoluto('/') + '#' + marca;
 
 /* As devoluções (Trocas e devoluções; a legal-comum: DL 24/2014). A livre resolução é de 14 dias, por correio, e
-   os portes da devolução ficam com o cliente (a loja só devolve os do envio normal). Os artigos de personalização
-   OBRIGATÓRIA não têm livre resolução (art. 17.º, n.º 1, c)): têm a política própria no Offer. */
+   quem paga os portes da devolução não vai aqui: as páginas não o dizem, e sem o dizer a lei põe-nos na loja
+   (art. 13.º; a revisão de 20 nov 2026). Os artigos de personalização OBRIGATÓRIA não têm livre resolução (art. 17.º,
+   n.º 1, c)): têm a política própria no Offer. */
 const LINK_DEVOLUCOES = () => absoluto('/trocas-e-devolucoes/');
 const devolucoes = () => ({
   '@type': 'MerchantReturnPolicy', applicableCountry: 'PT', returnPolicyCountry: 'PT',
   returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow', merchantReturnDays: 14,
-  returnMethod: 'https://schema.org/ReturnByMail', returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
+  returnMethod: 'https://schema.org/ReturnByMail',
   merchantReturnLink: LINK_DEVOLUCOES(),
 });
 const semDevolucao = () => ({
@@ -119,7 +121,7 @@ export const ldMigalhas = (itens) => ({
 
 /* Um produto com preço (sem preço não há Offer, e em produção ele nem está no site). Para as fichas de comerciante do
    Google: InStock e não MadeToOrder (que não é aceite; tudo aqui é feito por encomenda e está sempre à venda),
-   NewCondition, o sku, até 6 fotografias, e o preço que a ficha mostra ao abrir (o de base, sem acréscimos). */
+   NewCondition, o sku, até 6 fotografias, e o preço que a ficha mostra (o mais baixo que se pode pagar). */
 export function ldProduto({ loja }, p) {
   const pagina = absoluto(`/produtos/${p.slug}/`);
   return {
@@ -127,7 +129,7 @@ export function ldProduto({ loja }, p) {
     description: descricaoDoProduto(p), sku: p.slug, ...(p._nomeCategoria ? { category: p._nomeCategoria } : {}),
     image: p.fotos.slice(0, 6).map(fotoJpg).filter(Boolean), brand: { '@type': 'Brand', name: loja.nome },
     offers: {
-      '@type': 'Offer', url: pagina, price: p.preco.toFixed(2), priceCurrency: 'EUR',
+      '@type': 'Offer', url: pagina, price: precoMinimo(p, p._tamanhos).toFixed(2), priceCurrency: 'EUR',
       availability: p._esgotado ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', itemCondition: 'https://schema.org/NewCondition',
       seller: { '@id': id('loja') },
       ...(p._pers?.obrigatoria ? { hasMerchantReturnPolicy: semDevolucao() } : {}),

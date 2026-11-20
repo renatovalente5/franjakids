@@ -87,7 +87,7 @@ test('o webhook: a sessão paga marca «paga», avisa o cliente e a loja UMA vez
   assert.equal(emails.length, 2);
   const cliente = emails.find((e) => e.to[0] === 'maria@exemplo.pt');
   assert.equal(cliente.subject, `Pagamento recebido — encomenda ${encomenda}`);
-  assert.match(cliente.text, /Recebemos o teu pagamento\. Antes de produzirmos, mandamos-te a pré-visualização para aprovares\. Quando estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./);
+  assert.match(cliente.text, /Recebemos o teu pagamento\. Antes de produzirmos, mandamos-te a pré-visualização para aprovares\. Quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./);
   assert.match(cliente.text, /ENTREGA\n {2}Levantamento em mão: quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./, 'pela Stripe é a confirmação: leva a entrega');
   assert.match(cliente.text, /Os artigos personalizados não têm troca nem devolução por desistência/);
   const loja = emails.find((e) => e.to[0] === 'loja@exemplo.pt');
