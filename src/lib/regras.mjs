@@ -69,25 +69,35 @@ export const ficheiroDoArtigo = (nome) => `${PASTAS.artigos}/${nome}.json`;
 export const ficheiroDaFoto = (nome) => `${PASTAS.fotos}/${nome}.jpg`;
 
 /* As fotografias que as páginas usam pelo nome (a capa da página inicial, o «Do nosso Instagram»,
-   o Sobre nós): estão em src/paginas.mjs e nunca saem da biblioteca. As das linhas e das ocasiões
-   vêm do content/catalogo.json. */
-export const FOTOS_FIXAS = Object.freeze(['vais-ser-avo', 'mercadinho', 'donas', 'ig-forro-fado', 'ig-sonho', 'ig-mapa', 'ig-maior-sonho', 'ig-coracao']);
+   o Sobre nós): estão em src/paginas.mjs e nunca saem da biblioteca. As das secções e das categorias
+   vêm do content/catalogo.json; a de «A nossa história», do content/loja.json (fotoHistoria). */
+export const FOTOS_FIXAS = Object.freeze(['vais-ser-avo', 'donas', 'ig-forro-fado', 'ig-sonho', 'ig-mapa', 'ig-maior-sonho', 'ig-coracao']);
+/* A fotografia de «A nossa história» quando a loja não escolheu outra. */
+export const FOTO_HISTORIA = 'mercadinho';
 
-/* AS ZONAS DE ENTREGA (content/loja.json, entrega.zonas): sempre estas quatro, por esta ordem. Os
-   portes são da encomenda, não de cada produto. Uma zona com os portes por escrever (null) fica
-   «por confirmar»: em modo «encomenda» a encomenda segue e a loja diz os portes antes do
-   pagamento; em modo «online» a zona não aparece no finalizar (não se cobra o que não se sabe). A
-   entrega em mão não leva morada. Os portes grátis valem só para Portugal continental. */
-export const ZONAS = Object.freeze(['continente', 'ilhas', 'estrangeiro', 'mao']);
-export const NOMES_ZONAS = Object.freeze({ continente: 'Portugal continental', ilhas: 'Açores e Madeira', estrangeiro: 'Fora de Portugal', mao: 'Entrega em mão' });
+/* AS ZONAS DE ENTREGA (content/loja.json, entrega.zonas): sempre estas cinco, por esta ordem (o pedido
+   da loja de 20 nov 2026: a União Europeia a parte, e os restantes países sob consulta). Os portes são
+   da encomenda, não de cada produto. Os restantes países são sempre «sob consulta», e qualquer zona SEM
+   portes (null) também: aparece no finalizar, mas não se encomenda no site (o finalizar leva ao Instagram
+   e o Worker recusa), nos dois modos. O
+   levantamento em mão não leva morada; a União Europeia leva o país de PAISES_UE. Os portes grátis
+   valem só para Portugal continental. */
+export const ZONAS = Object.freeze(['continente', 'ilhas', 'ue', 'estrangeiro', 'mao']);
+export const NOMES_ZONAS = Object.freeze({ continente: 'Portugal continental', ilhas: 'Açores e Madeira', ue: 'União Europeia', estrangeiro: 'Restantes países', mao: 'Levantamento em mão' });
 export const ZONA_GRATIS = 'continente';
 export const zonaComMorada = (id) => id !== 'mao';
+/* Sob consulta (os portes e o prazo combinam-se pelo Instagram, e a encomenda não se faz no site): os restantes
+   países, sempre (o pedido da loja), e uma zona sem os portes escritos. */
+export const ZONA_SEMPRE_SOB_CONSULTA = 'estrangeiro';
+export const zonaSobConsulta = (z) => !(z !== null && typeof z === 'object' && z.id !== ZONA_SEMPRE_SOB_CONSULTA && typeof z.portes === 'number' && Number.isFinite(z.portes));
+/* Os países da União Europeia, menos Portugal (que tem as suas zonas), pela ordem alfabética portuguesa. */
+export const PAISES_UE = Object.freeze(['Alemanha', 'Áustria', 'Bélgica', 'Bulgária', 'Chéquia', 'Chipre', 'Croácia', 'Dinamarca', 'Eslováquia', 'Eslovénia', 'Espanha', 'Estónia', 'Finlândia', 'França', 'Grécia', 'Hungria', 'Irlanda', 'Itália', 'Letónia', 'Lituânia', 'Luxemburgo', 'Malta', 'Países Baixos', 'Polónia', 'Roménia', 'Suécia']);
 
 /* Os campos de um produto, PELA ORDEM DO FORMULÁRIO. Uma chave nova entra por esta ordem
    (ordenarComo()); as que já estão no ficheiro ficam onde estão. */
 export const CAMPOS_ARTIGO = Object.freeze([
-  'nome', 'categoria', 'ocasioes', 'preco', 'resumo', 'fotos',
-  'tamanhos', 'tamanhosEsgotados', 'cores', 'opcoes', 'personalizacao', 'detalhes',
+  'nome', 'categorias', 'preco', 'resumo', 'fotos',
+  'tamanhos', 'suplementosTamanho', 'tamanhosEsgotados', 'cores', 'opcoes', 'personalizacao', 'detalhes',
   'destaque', 'publicado', 'esgotado', 'ordem',
 ]);
 /* Sempre escritos pelo painel, com o valor explícito. Ausentes valem o valor por omissão (é o que
@@ -96,8 +106,8 @@ export const BOOLEANOS_ARTIGO = Object.freeze(['destaque', 'publicado']);
 export const POR_OMISSAO = Object.freeze({ publicado: true, destaque: false, ordem: 500 });
 
 export const NOMES_CAMPOS = Object.freeze({
-  nome: 'Nome do produto', categoria: 'Categoria', ocasioes: 'Ocasiões', preco: 'Preço', resumo: 'Frase curta', fotos: 'Fotografias',
-  tamanhos: 'Tamanhos', cores: 'Cores', opcoes: 'Escolhas', personalizacao: 'Personalização', detalhes: 'Detalhes',
+  nome: 'Nome do produto', categorias: 'Categorias', preco: 'Preço', resumo: 'Frase curta', fotos: 'Fotografias',
+  tamanhos: 'Tamanhos', suplementosTamanho: 'Acréscimos por tamanho', cores: 'Cores', opcoes: 'Escolhas', personalizacao: 'Personalização', detalhes: 'Detalhes',
   destaque: 'Em «Mais pedidos» na página inicial', publicado: 'Publicado no site', ordem: 'Posição na lista',
   esgotado: 'Esgotado', tamanhosEsgotados: 'Tamanhos esgotados',
 });
@@ -112,11 +122,11 @@ export const LIMITES = Object.freeze({ preco: [0.01, 10000], suplemento: [0, 100
 export const TAMANHOS = Object.freeze({
   nome: 100, resumo: 300, detalhes: 12, detalhe: 120,
   opcoes: 4, valores: 16, opcaoNome: 40, valorNome: 60,
-  cores: 16, corNome: 30, ocasioes: 12, fotos: 12, nomeFoto: 120, alt: 300,
+  cores: 16, corNome: 30, categorias: 12, fotos: 12, nomeFoto: 120, alt: 300,
   rotulo: 60, pista: 100, opcional: 60,
-  slogan: 120, descricao: 300, instagram: 30, producao: 60, prazo: 60, concelho: 60,
+  slogan: 120, descricao: 300, instagram: 30, producao: 60, preparacao: 60, prazo: 60, concelho: 60,
   empresaNome: 160, nif: 20, morada: 200, email: 160, telefone: 20, zonaNome: 60,
-  linhaNome: 40, frase: 200, catNome: 40, ocasiaoNome: 40,
+  seccoes: 10, itens: 24, seccaoNome: 40, itemNome: 50, frase: 200,
   conjuntos: 20, conjuntoNome: 60, tamanhoValores: 20, tamanhoValor: 30, paleta: 60,
 });
 /* O que o Worker do painel aceita gravar (recusa acima); aqui só se lembra, a partir de 80 %. */
@@ -265,30 +275,66 @@ export function fotosQueExistem(dados) {
 }
 
 /* ------------------------------------------------------------------ */
-/* O catálogo: linhas, categorias, ocasiões, tamanhos e cores          */
+/* O catálogo: as secções do menu, as categorias, tamanhos e cores     */
 /* ------------------------------------------------------------------ */
 
+/* O MENU (o pedido da loja de 20 nov 2026; docs/MENU-E-CATEGORIAS.md): `seccoes` = as entradas do menu
+   principal (Bebé, Personalizados…), cada uma uma página /<secção>/, com os seus `itens` (as categorias,
+   cada uma uma página /<secção>/<item>/). A dona junta, muda o nome, ordena e tira, no painel; o id
+   nasce do nome e não muda (é o endereço). Um produto aparece em várias (`categorias`: as chaves
+   «<secção>/<item>»). */
+/* Os endereços das páginas fixas: uma secção não os pode ter. */
+export const ENDERECOS_RESERVADOS = Object.freeze(['produtos', 'carrinho', 'finalizar', 'obrigado', 'procurar', 'sobre', 'como-funciona', 'como-personalizar', 'envios', 'trocas-e-devolucoes', 'contactos', 'termos', 'privacidade', 'informacoes-legais', 'perguntas-frequentes', 'assets', 'ocasioes', 'media', 'admin']);
+const RE_CHAVE_CATEGORIA = /^[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const chaveDaCategoria = (seccao, item) => `${seccao}/${item}`;
+export const seccaoDaChave = (k) => String(k).split('/')[0];
+export const chaveValida = (k) => typeof k === 'string' && k.length <= 120 && RE_CHAVE_CATEGORIA.test(k);
+
+/* As secções do menu, limpas: só as que têm um id válido (a primeira de cada id, e nunca um endereço
+   reservado), cada uma com os itens de id válido (o primeiro de cada id). O nome em falta é o id.
+   `c` = o catálogo (texto ou objecto). */
+export function seccoesDe(c) {
+  const o = lerJson(c).obj;
+  const lista = eObjecto(o) && Array.isArray(o.seccoes) ? o.seccoes : [];
+  const vistas = new Set();
+  const out = [];
+  for (const s of lista) {
+    if (!eObjecto(s) || !slugValido(s.id) || vistas.has(s.id) || ENDERECOS_RESERVADOS.includes(s.id)) continue;
+    vistas.add(s.id);
+    const vistos = new Set();
+    const itens = (Array.isArray(s.itens) ? s.itens : [])
+      .filter((i) => { if (!eObjecto(i) || !slugValido(i.id) || vistos.has(i.id)) return false; vistos.add(i.id); return true; })
+      .map((i) => ({ id: i.id, nome: temTexto(i.nome) ? i.nome.trim() : i.id, frase: temTexto(i.frase) ? i.frase.trim() : '', foto: temTexto(i.foto) ? i.foto.trim() : null }));
+    out.push({ id: s.id, nome: temTexto(s.nome) ? s.nome.trim() : s.id, frase: temTexto(s.frase) ? s.frase.trim() : '', foto: temTexto(s.foto) ? s.foto.trim() : null, itens });
+  }
+  return out;
+}
+
 /* O que o resto das regras precisa do catálogo, já limpo (ou null, se não se lê):
-   { categorias: [id], ocasioes: [id], tamanhos: { id: [valores] }, cores: { nome: '#hex' } } */
+   { seccoes: seccoesDe(), categorias: ['<secção>/<item>'] (as chaves que um produto pode usar),
+     nomes: { '<secção>': nome, '<secção>/<item>': nome }, tamanhos: { id: [valores] }, cores: { nome: '#hex' } } */
 export function catalogoDe(valor) {
   const l = lerJson(valor);
   const c = l.obj;
   if (!eObjecto(c)) return null;
-  const linhas = Array.isArray(c.linhas) ? c.linhas.filter((x) => eObjecto(x) && Array.isArray(x.categorias)) : [];
-  const categorias = linhas.flatMap((x) => x.categorias.filter((id) => typeof id === 'string' && eObjecto(c.categorias) && temTexto(c.categorias[id])));
-  const ocasioes = Array.isArray(c.ocasioes) ? c.ocasioes.filter((o) => eObjecto(o) && temTexto(o.id)).map((o) => o.id) : [];
+  const seccoes = seccoesDe(c);
+  const categorias = seccoes.flatMap((x) => x.itens.map((i) => chaveDaCategoria(x.id, i.id)));
+  const nomes = {};
+  for (const x of seccoes) { nomes[x.id] = x.nome; for (const i of x.itens) nomes[chaveDaCategoria(x.id, i.id)] = i.nome; }
   const tamanhos = {};
   if (eObjecto(c.tamanhos)) for (const [id, t] of Object.entries(c.tamanhos)) if (eObjecto(t) && Array.isArray(t.valores)) tamanhos[id] = t.valores.filter(temTexto).map((v) => v.trim());
   const cores = eObjecto(c.cores) ? Object.fromEntries(Object.entries(c.cores).filter(([, h]) => RE_HEX.test(String(h)))) : {};
-  return { categorias, ocasioes, tamanhos, cores };
+  return { seccoes, categorias, nomes, tamanhos, cores };
 }
 
-/* A linha (Personalizados, Bebé, Presentes) de uma categoria. */
-export function linhaDaCategoria(catalogo, categoria) {
-  const c = lerJson(catalogo).obj;
-  if (!eObjecto(c) || !Array.isArray(c.linhas)) return null;
-  const l = c.linhas.find((x) => eObjecto(x) && Array.isArray(x.categorias) && x.categorias.includes(categoria));
-  return l ? l.id : null;
+/* As categorias de um produto: as chaves com a forma certa (e, com o catálogo, as que existem), pela
+   ordem do produto e sem repetidas. A primeira é a principal (as migalhas, a etiqueta da ficha). */
+export function categoriasDe(a, cat = null) {
+  if (!eObjecto(a) || !Array.isArray(a.categorias)) return [];
+  const existem = cat && Array.isArray(cat.categorias) ? new Set(cat.categorias) : null;
+  const out = [];
+  for (const k of a.categorias) if (chaveValida(k) && (!existem || existem.has(k)) && !out.includes(k)) out.push(k);
+  return out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -325,6 +371,20 @@ export function opcoesDe(a) {
 export function tamanhosDe(a, cat) {
   if (!eObjecto(a) || !temTexto(a.tamanhos) || !cat || !eObjecto(cat.tamanhos)) return [];
   return cat.tamanhos[a.tamanhos] || [];
+}
+
+/* OS ACRÉSCIMOS POR TAMANHO (20 nov 2026: «como colocamos preços diferentes para peças de tamanhos
+   diferentes na mesma imagem?»): `suplementosTamanho` = { '<tamanho>': € } no produto. Só contam os
+   tamanhos que o produto tem e os acréscimos maiores do que 0. `tamanhos` é a lista dos tamanhos do
+   produto (tamanhosDe(), ou a da entrada do catálogo publicado). */
+export function suplementosTamanhoDe(a, tamanhos) {
+  const s = eObjecto(a) && eObjecto(a.suplementosTamanho) ? a.suplementosTamanho : {};
+  const out = {};
+  for (const t of Array.isArray(tamanhos) ? tamanhos : []) {
+    const v = Object.hasOwn(s, t) ? s[t] : undefined;
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) out[t] = v;
+  }
+  return out;
 }
 
 /* As cores de um produto: [{ nome, foto? }] (a fotografia que a ficha mostra quando se escolhe a
@@ -380,8 +440,11 @@ export function personalizacaoDe(a) {
   return { rotulo: ps.rotulo.trim(), pista: temTexto(ps.pista) ? ps.pista.trim() : '', max, obrigatoria: !opcional && ps.obrigatoria === true, opcional, suplemento };
 }
 
-/* «Desde»: só quando alguma escolha pode fazer o preço subir. */
-export const temSuplementos = (a) => opcoesDe(a).some((g) => g.valores.some((v) => v.suplemento > 0)) || (personalizacaoDe(a)?.suplemento || 0) > 0;
+/* «Desde»: só quando alguma escolha pode fazer o preço subir (uma escolha, a personalização ou um
+   tamanho). `tamanhos`: a lista dos tamanhos do produto (sem ela, a da entrada do catálogo publicado). */
+export const temSuplementos = (a, tamanhos = null) => opcoesDe(a).some((g) => g.valores.some((v) => v.suplemento > 0))
+  || (personalizacaoDe(a)?.suplemento || 0) > 0
+  || Object.keys(suplementosTamanhoDe(a, Array.isArray(tamanhos) ? tamanhos : eObjecto(a) && Array.isArray(a.tamanhos) ? a.tamanhos : [])).length > 0;
 
 /* No site, como o gerador decide: tudo menos `publicado: false`. */
 export const noSite = (a) => eObjecto(a) && a.publicado !== false;
@@ -418,6 +481,7 @@ export function conferirEscolha(a, escolha = {}, cat = null) {
     if (!tamanhos.includes(e.tamanho)) return { ok: false, campo: 'tamanho', mensagem: `Escolhe o tamanho de «${nome}».` };
     if (tamanhosEsgotadosDe(a, tamanhos).includes(e.tamanho)) return { ok: false, campo: 'tamanho', mensagem: `O tamanho ${e.tamanho} de «${nome}» está esgotado.` };
     escolhas.push(`Tamanho: ${e.tamanho}`);
+    cents += centimos(suplementosTamanhoDe(a, tamanhos)[e.tamanho] || 0);
   }
   const deCor = coresDe(a);
   const cores = deCor.map((c) => c.nome);
@@ -505,9 +569,20 @@ export function problemasDoArtigo(a, ctx = {}) {
     if (vazio(x)) neutraliza(campo, 'esconder', campo, `Falta ${falta}: o produto fica escondido do site até estar preenchid${genero}.`);
     else if (typeof x !== 'string') neutraliza(campo, 'esconder', campo, `«${NOMES_CAMPOS[campo]}» tem de ser texto: o produto fica escondido do site até ser corrigido.`);
   }
-  const categoria = a.categoria;
-  if (vazio(categoria)) neutraliza('categoria', 'esconder', 'categoria', 'Falta a categoria: o produto fica escondido do site até escolher uma.');
-  else if (typeof categoria !== 'string' || (cat && !cat.categorias.includes(categoria))) neutraliza('categoria', 'esconder', 'categoria', 'A categoria não é nenhuma das do site: o produto fica escondido até escolher uma da lista.');
+  /* AS CATEGORIAS (onde o produto aparece no menu): sem nenhuma que exista, o produto não tem onde
+     aparecer e fica escondido; uma que já não existe só não aparece (um lembrete). */
+  const cs0 = a.categorias;
+  if (vazio(cs0)) neutraliza('categorias', 'esconder', 'categorias', 'Falta escolher as categorias: o produto fica escondido do site até estar em pelo menos uma.');
+  else if (!Array.isArray(cs0)) neutraliza('categorias:forma', 'esconder', 'categorias', 'As categorias não estão gravadas como uma lista: o produto fica escondido do site até as escolher outra vez.');
+  else {
+    if (!categoriasDe(a, cat).length) neutraliza('categorias:nenhuma', 'esconder', 'categorias', 'Nenhuma das categorias do produto existe no site: fica escondido até escolher uma da lista.');
+    if (cs0.length > TAMANHOS.categorias) avisa('categorias:quantas', 'categorias', `O produto está em ${cs0.length} categorias; o máximo é ${TAMANHOS.categorias}.`);
+    if (new Set(cs0).size !== cs0.length) avisa('categorias:repetida', 'categorias', 'Há uma categoria repetida. Tire uma delas.');
+    for (const k of cs0) {
+      if (!chaveValida(k)) avisa(`categorias:${String(k).slice(0, 60)}`, 'categorias', `«${String(k).slice(0, 60)}» não é uma categoria. Escolha-as outra vez.`);
+      else if (cat && !cat.categorias.includes(k)) lembra(`categorias:${k}:sem-categoria`, 'categorias', `A categoria «${k}» já não existe: o produto não aparece lá. Tire-a do produto.`);
+    }
+  }
 
   /* O preço: sem ele, o cartão e o carrinho não têm o que mostrar. Na pré-visualização aparece
      «preço por confirmar» e a ficha pede por mensagem; no site a sério fica escondido até haver um
@@ -565,19 +640,22 @@ export function problemasDoArtigo(a, ctx = {}) {
   if (!ausente(o) && o !== '' && (typeof o !== 'number' || !Number.isInteger(o) || o < LIMITES.ordem[0] || o > LIMITES.ordem[1])) {
     avisa('ordem', 'ordem', `A posição é um número inteiro de 0 a ${LIMITES.ordem[1]} (mais baixo aparece primeiro).`);
   }
-  const oc = a.ocasioes;
-  if (!ausente(oc)) {
-    if (!Array.isArray(oc)) avisa('ocasioes', 'ocasioes', 'As ocasiões não estão gravadas como uma lista. Escolha-as outra vez.');
-    else {
-      if (oc.length > TAMANHOS.ocasioes) avisa('ocasioes:quantas', 'ocasioes', `O produto tem ${oc.length} ocasiões; o máximo é ${TAMANHOS.ocasioes}.`);
-      if (new Set(oc).size !== oc.length) avisa('ocasioes:repetida', 'ocasioes', 'Há uma ocasião repetida. Tire uma delas.');
-      for (const id of oc) {
-        if (typeof id !== 'string' || (cat && !cat.ocasioes.includes(id))) { avisa(`ocasioes:${String(id).slice(0, 40)}`, 'ocasioes', `«${String(id).slice(0, 40)}» não é uma das ocasiões do site. Tire-a e escolha da lista.`); }
-      }
-    }
-  }
   const t = a.tamanhos;
   if (!ausente(t) && t !== '' && (typeof t !== 'string' || (cat && !tem(cat.tamanhos, t)))) avisa('tamanhos', 'tamanhos', 'Os tamanhos escolhidos já não existem: escolha outros da lista (ou nenhuns).');
+  /* Os acréscimos por tamanho: só dos tamanhos do produto, números como os das escolhas, e pelo menos
+     um tamanho sem acréscimo (o preço anunciado é o desse tamanho: memória preco-anunciado-tem-de-ser-obtenivel). */
+  const st = a.suplementosTamanho;
+  if (!ausente(st)) {
+    if (!eObjecto(st)) avisa('suplementosTamanho', 'suplementosTamanho', 'Os acréscimos por tamanho não estão gravados como deve ser. Escreva-os outra vez.');
+    else {
+      const doConjunto = cat && typeof t === 'string' && tem(cat.tamanhos, t) ? cat.tamanhos[t] : null;
+      for (const [tam, v] of Object.entries(st)) {
+        if (!ausente(v) && v !== '' && !numeroEm(v, LIMITES.suplemento)) avisa(`suplementosTamanho.${tam.slice(0, 30)}`, 'suplementosTamanho', `O acréscimo do tamanho «${tam.slice(0, 30)}» é só o número, sem € (ex.: 5), ou fica vazio.`);
+        else if (doConjunto && !doConjunto.includes(tam)) lembra(`suplementosTamanho.${tam.slice(0, 30)}:sem-tamanho`, 'suplementosTamanho', `O tamanho «${tam.slice(0, 30)}» já não está nos tamanhos do produto: o acréscimo dele não conta.`);
+      }
+      if (doConjunto && doConjunto.length && doConjunto.every((x) => typeof st[x] === 'number' && st[x] > 0)) avisa('suplementosTamanho:sem-base', 'suplementosTamanho', 'Pelo menos um tamanho tem de ficar sem acréscimo (o preço do produto é o desse tamanho).');
+    }
+  }
   if (!ausente(a.esgotado) && typeof a.esgotado !== 'boolean') avisa('esgotado', 'esgotado', '«Esgotado» tem de ser sim ou não.');
   const te = a.tamanhosEsgotados;
   if (!ausente(te) && (!Array.isArray(te) || te.some((x) => typeof x !== 'string'))) avisa('tamanhosEsgotados', 'tamanhosEsgotados', 'Os tamanhos esgotados não estão gravados como uma lista. Marque-os outra vez.');
@@ -703,7 +781,7 @@ export const SECCOES_LOJA = Object.freeze({ marca: 'A marca', entrega: 'Entregas
    de arbitragem dos Termos depende dele) e as zonas de entrega (os ids e a ordem: o finalizar e o
    Worker conhecem-nas pelo id). Os portes e os nomes das zonas mudam-se. */
 export const BLOQUEADOS_LOJA = Object.freeze(['nome', 'entrega.concelho']);
-const CAMPOS_LOJA = Object.freeze(['nome', 'slogan', 'descricao', 'instagram', 'producao', 'entrega', 'pagamentos', 'empresa']);
+const CAMPOS_LOJA = Object.freeze(['nome', 'slogan', 'descricao', 'instagram', 'producao', 'preparacao', 'fotoHistoria', 'entrega', 'pagamentos', 'empresa']);
 
 export function problemasDaLoja(d, { producao = false } = {}) {
   const ficheiro = FICHEIROS.loja;
@@ -723,6 +801,8 @@ export function problemasDaLoja(d, { producao = false } = {}) {
   linha('slogan', 'marca', TAMANHOS.slogan, 'Frase da marca');
   linha('descricao', 'marca', TAMANHOS.descricao, 'Descrição para o Google', { obrigatorio: true });
   linha('producao', 'entrega', TAMANHOS.producao, 'Tempo de produção', { obrigatorio: true });
+  linha('preparacao', 'entrega', TAMANHOS.preparacao, 'Preparação dos artigos sem personalização', { obrigatorio: true });
+  if (!vazio(d.fotoHistoria) && !nomeDeFotoValido(d.fotoHistoria)) avisa('fotoHistoria', 'marca', 'fotoHistoria', 'A fotografia de «A nossa história» não é uma da biblioteca: escolha outra.');
   /* Todas as páginas levam o Instagram (o rodapé, os contactos, o «Pedir por mensagem» dos produtos sem
      preço): sem ele as ligações partiam-se. */
   if (vazio(d.instagram)) bloqueia('instagram:vazio', 'marca', 'instagram', 'Falta o Instagram da loja: todas as páginas levam a ligação para lá e para as mensagens.');
@@ -740,7 +820,7 @@ export function problemasDaLoja(d, { producao = false } = {}) {
         const onde = `entrega.zonas.${i}`;
         if (!temTexto(z.nome) || z.nome.length > TAMANHOS.zonaNome || RE_CONTROLO_LINHA.test(z.nome)) avisa(`${onde}.nome`, 'entrega', `${onde}.nome`, `O nome da entrega ${i + 1} tem de ser um texto numa linha, até ${TAMANHOS.zonaNome} caracteres.`);
         if (!ausente(z.portes) && z.portes !== '' && !numeroEm(z.portes, LIMITES.portes)) avisa(`${onde}.portes`, 'entrega', `${onde}.portes`, 'Os portes são só o número, sem € (ex.: 3,50), 0 para grátis, ou ficam vazios (por confirmar).');
-        if (z.id === 'mao' && typeof z.portes === 'number' && z.portes > 0) avisa(`${onde}.portes:mao`, 'entrega', `${onde}.portes`, 'A entrega em mão é sem custo: deixe 0.');
+        if (z.id === 'mao' && typeof z.portes === 'number' && z.portes > 0) avisa(`${onde}.portes:mao`, 'entrega', `${onde}.portes`, 'O levantamento em mão é sem custo: deixe 0.');
       });
       const continente = zonas[0];
       /* Chave própria (:vazio): a do campo, sem mais nada, é a do aviso «os portes são só o número». Com a
@@ -787,12 +867,7 @@ export function problemasDaLoja(d, { producao = false } = {}) {
 /* content/catalogo.json                                               */
 /* ------------------------------------------------------------------ */
 
-export const SECCOES_CATALOGO = Object.freeze({ linhas: 'Linhas', categorias: 'Categorias', ocasioes: 'Ocasiões', tamanhos: 'Tamanhos', cores: 'Cores' });
-/* As linhas da loja são três, fixas (cada uma é uma página: /personalizados/, /bebe/,
-   /presentes/), e as categorias de cada linha também (os filtros têm endereço: ?categoria=). Os
-   nomes, as frases e as fotografias mudam-se; as ocasiões, os conjuntos de tamanhos e as cores
-   da paleta são da dona (entram e saem). */
-export const LINHAS = Object.freeze(['personalizados', 'bebe', 'presentes']);
+export const SECCOES_CATALOGO = Object.freeze({ seccoes: 'Menu', tamanhos: 'Tamanhos', cores: 'Cores' });
 
 export function problemasDoCatalogo(c, { fotos = null } = {}) {
   const ficheiro = FICHEIROS.catalogo;
@@ -802,64 +877,53 @@ export function problemasDoCatalogo(c, { fotos = null } = {}) {
   const avisa = (chave, s, campo, mensagem, extra = {}) => out.push({ classe: 'avisa', chave: `catalogo:${chave}`, ficheiro, ecra: ecraDe(s), campo, mensagem, ...extra });
   const fotoBoa = (f) => nomeDeFotoValido(f) && (!(fotos instanceof Set) || fotos.has(f));
   const textoNumaLinha = (x, max) => typeof x === 'string' && x.trim() !== '' && x.length <= max && !RE_CONTROLO_LINHA.test(x);
-  if (!eObjecto(c)) { bloqueia('forma', 'linhas', undefined, 'O catálogo não tem a forma certa. Só o Renato o pode corrigir.'); return out; }
+  if (!eObjecto(c)) { bloqueia('forma', 'seccoes', undefined, 'O catálogo não tem a forma certa. Só o Renato o pode corrigir.'); return out; }
 
-  // --- linhas e categorias: a estrutura das páginas -----------------------------------
-  const cats = eObjecto(c.categorias) ? c.categorias : null;
-  if (!cats) bloqueia('categorias:forma', 'categorias', 'categorias', 'As categorias não estão gravadas como o site precisa. Só o Renato as pode repor.');
-  const linhas = c.linhas;
-  if (!Array.isArray(linhas) || linhas.length !== LINHAS.length || linhas.some((l, i) => !eObjecto(l) || l.id !== LINHAS[i] || !Array.isArray(l.categorias))) {
-    bloqueia('linhas:forma', 'linhas', 'linhas', 'As linhas da loja não estão como o site precisa. Só o Renato as pode repor.');
-  } else {
-    const vistas = new Set();
-    linhas.forEach((l, i) => {
-      if (!textoNumaLinha(l.nome, TAMANHOS.linhaNome)) avisa(`linhas.${i}.nome`, 'linhas', `linhas.${i}.nome`, `O nome da linha ${i + 1} tem de ser um texto numa linha, até ${TAMANHOS.linhaNome} caracteres.`);
-      if (!textoNumaLinha(l.frase, TAMANHOS.frase)) avisa(`linhas.${i}.frase`, 'linhas', `linhas.${i}.frase`, `A frase da linha «${temTexto(l.nome) ? l.nome.trim() : l.id}» tem de ser um texto numa linha, até ${TAMANHOS.frase} caracteres.`);
-      if (!fotoBoa(l.foto)) avisa(`linhas.${i}.foto`, 'linhas', `linhas.${i}.foto`, `A fotografia da linha «${temTexto(l.nome) ? l.nome.trim() : l.id}» não está na biblioteca: escolha outra.`);
-      if (!l.categorias.length) bloqueia(`linhas.${i}:vazia`, 'linhas', `linhas.${i}.categorias`, `A linha «${l.id}» não tem categorias. Só o Renato a pode corrigir.`);
-      for (const id of l.categorias) {
-        if (vistas.has(id)) bloqueia(`categoria:${String(id).slice(0, 40)}:repetida`, 'categorias', 'categorias', `A categoria «${String(id).slice(0, 40)}» está em duas linhas. Só o Renato a pode corrigir.`);
-        vistas.add(id);
-        if (cats && !textoNumaLinha(cats[id], TAMANHOS.catNome)) {
-          if (typeof id === 'string' && tem(cats, id)) avisa(`categorias.${id}`, 'categorias', `categorias.${id}`, `O nome da categoria «${id}» tem de ser um texto numa linha, até ${TAMANHOS.catNome} caracteres.`);
-          else bloqueia(`categoria:${String(id).slice(0, 40)}:sem-nome`, 'categorias', 'categorias', `A categoria «${String(id).slice(0, 40)}» não está na lista dos nomes. Só o Renato a pode corrigir.`);
-        }
-      }
-    });
-    if (cats) for (const id of Object.keys(cats)) if (!vistas.has(id)) avisa(`categoria:${id.slice(0, 40)}:sem-linha`, 'categorias', 'categorias', `A categoria «${id.slice(0, 40)}» não está em nenhuma linha: não aparece no site.`, { lembrete: true });
-    /* Duas categorias com o mesmo nome eram dois filtros iguais no site, para páginas diferentes (como as cores). */
-    if (cats) {
-      const nomes = new Map();
-      for (const [id, nome] of Object.entries(cats)) {
-        if (typeof nome !== 'string' || !nome.trim()) continue;
-        const k = nome.trim().toLowerCase();
-        if (nomes.has(k)) avisa(`categorias.${id}:nome-repetido`, 'categorias', `categorias.${id}`, `Há duas categorias com o nome «${nome.trim()}». Mude o nome de uma delas.`);
-        else nomes.set(k, id);
-      }
-    }
-  }
-
-  // --- ocasiões ---------------------------------------------------------------------
-  const ocs = c.ocasioes;
-  if (!Array.isArray(ocs)) bloqueia('ocasioes:forma', 'ocasioes', 'ocasioes', 'As ocasiões não estão gravadas como uma lista. Só o Renato as pode repor.');
+  // --- as secções do menu e as suas categorias: a estrutura das páginas ----------------------
+  const ss = c.seccoes;
+  if (!Array.isArray(ss) || !ss.length) bloqueia('seccoes:forma', 'seccoes', 'seccoes', 'O menu não está gravado como o site precisa. Só o Renato o pode repor.');
   else {
+    if (ss.length > TAMANHOS.seccoes) avisa('seccoes:quantas', 'seccoes', 'seccoes', `O menu tem ${ss.length} secções; o máximo é ${TAMANHOS.seccoes}.`);
     const ids = new Set();
     const nomes = new Set();
-    ocs.forEach((o, i) => {
-      if (!eObjecto(o) || !slugValido(o.id)) { bloqueia(`ocasioes.${i}:id`, 'ocasioes', `ocasioes.${i}`, `A ocasião ${i + 1} não tem um endereço válido. Só o Renato a pode corrigir.`); return; }
-      if (ids.has(o.id)) bloqueia(`ocasioes.${o.id}:repetida`, 'ocasioes', `ocasioes.${i}`, `Há duas ocasiões com o endereço «${o.id}». Só o Renato a pode corrigir.`);
-      ids.add(o.id);
-      if (!textoNumaLinha(o.nome, TAMANHOS.ocasiaoNome)) avisa(`ocasioes.${i}.nome`, 'ocasioes', `ocasioes.${i}.nome`, `O nome da ocasião ${i + 1} tem de ser um texto numa linha, até ${TAMANHOS.ocasiaoNome} caracteres.`);
-      // duas ocasiões com o mesmo nome eram dois filtros iguais no site («Avós» e «Avós»), para páginas diferentes
+    ss.forEach((x, i) => {
+      const k = `seccoes.${i}`;
+      if (!eObjecto(x) || !slugValido(x.id)) { bloqueia(`${k}:id`, 'seccoes', k, `A secção ${i + 1} do menu não tem um endereço válido. Só o Renato a pode corrigir.`); return; }
+      const rot = temTexto(x.nome) ? x.nome.trim() : x.id;
+      if (ENDERECOS_RESERVADOS.includes(x.id)) bloqueia(`seccoes.${x.id}:reservado`, 'seccoes', k, `A secção «${rot}» tem o endereço de uma página do site (/${x.id}/). Só o Renato a pode corrigir.`);
+      if (ids.has(x.id)) bloqueia(`seccoes.${x.id}:repetida`, 'seccoes', k, `Há duas secções com o endereço «${x.id}». Só o Renato as pode corrigir.`);
+      ids.add(x.id);
+      if (!textoNumaLinha(x.nome, TAMANHOS.seccaoNome)) avisa(`${k}.nome`, 'seccoes', `${k}.nome`, `O nome da secção ${i + 1} tem de ser um texto numa linha, até ${TAMANHOS.seccaoNome} caracteres.`);
       else {
-        const k = o.nome.trim().toLowerCase();
-        if (nomes.has(k)) avisa(`ocasioes.${i}.nome:repetido`, 'ocasioes', `ocasioes.${i}.nome`, `Há duas ocasiões com o nome «${o.nome.trim()}». Mude o nome de uma delas.`);
-        nomes.add(k);
+        const n = x.nome.trim().toLowerCase();
+        if (nomes.has(n)) avisa(`${k}.nome:repetido`, 'seccoes', `${k}.nome`, `Há duas secções com o nome «${x.nome.trim()}». Mude o nome de uma delas.`);
+        nomes.add(n);
       }
-      /* Sem fotografia, a ocasião não aparece na página inicial (só no filtro dos Personalizados). */
-      if (!ausente(o.foto) && o.foto !== '' && !fotoBoa(o.foto)) avisa(`ocasioes.${i}.foto`, 'ocasioes', `ocasioes.${i}.foto`, `A fotografia da ocasião «${temTexto(o.nome) ? o.nome.trim() : o.id}» não está na biblioteca: escolha outra, ou nenhuma.`);
+      if (!ausente(x.frase) && x.frase !== '' && !textoNumaLinha(x.frase, TAMANHOS.frase)) avisa(`${k}.frase`, 'seccoes', `${k}.frase`, `A frase da secção «${rot}» tem de ser um texto numa linha, até ${TAMANHOS.frase} caracteres.`);
+      if (!ausente(x.foto) && x.foto !== '' && !fotoBoa(x.foto)) avisa(`${k}.foto`, 'seccoes', `${k}.foto`, `A fotografia da secção «${rot}» não está na biblioteca: escolha outra, ou nenhuma.`);
+      const its = x.itens;
+      if (!Array.isArray(its)) { bloqueia(`${k}.itens:forma`, 'seccoes', `${k}.itens`, `As categorias da secção «${rot}» não estão gravadas como uma lista. Só o Renato as pode repor.`); return; }
+      if (its.length > TAMANHOS.itens) avisa(`${k}.itens:quantos`, 'seccoes', `${k}.itens`, `A secção «${rot}» tem ${its.length} categorias; o máximo é ${TAMANHOS.itens}.`);
+      if (!its.length) avisa(`${k}.itens:vazia`, 'seccoes', `${k}.itens`, `A secção «${rot}» não tem categorias: não aparece no site.`, { lembrete: true });
+      const idsI = new Set();
+      const nomesI = new Set();
+      its.forEach((it, j) => {
+        const kj = `${k}.itens.${j}`;
+        if (!eObjecto(it) || !slugValido(it.id)) { bloqueia(`${kj}:id`, 'seccoes', kj, `A categoria ${j + 1} de «${rot}» não tem um endereço válido. Só o Renato a pode corrigir.`); return; }
+        if (idsI.has(it.id)) bloqueia(`seccoes.${x.id}.${it.id}:repetida`, 'seccoes', kj, `Há duas categorias com o endereço «${it.id}» em «${rot}». Só o Renato as pode corrigir.`);
+        idsI.add(it.id);
+        if (!textoNumaLinha(it.nome, TAMANHOS.itemNome)) avisa(`${kj}.nome`, 'seccoes', `${kj}.nome`, `O nome da categoria ${j + 1} de «${rot}» tem de ser um texto numa linha, até ${TAMANHOS.itemNome} caracteres.`);
+        else {
+          const n = it.nome.trim().toLowerCase();
+          if (nomesI.has(n)) avisa(`${kj}.nome:repetido`, 'seccoes', `${kj}.nome`, `Há duas categorias com o nome «${it.nome.trim()}» em «${rot}». Mude o nome de uma delas.`);
+          nomesI.add(n);
+        }
+        if (!ausente(it.frase) && it.frase !== '' && !textoNumaLinha(it.frase, TAMANHOS.frase)) avisa(`${kj}.frase`, 'seccoes', `${kj}.frase`, `A frase da categoria «${temTexto(it.nome) ? it.nome.trim() : it.id}» tem de ser um texto numa linha, até ${TAMANHOS.frase} caracteres.`);
+        if (!ausente(it.foto) && it.foto !== '' && !fotoBoa(it.foto)) avisa(`${kj}.foto`, 'seccoes', `${kj}.foto`, `A fotografia da categoria «${temTexto(it.nome) ? it.nome.trim() : it.id}» não está na biblioteca: escolha outra, ou nenhuma.`);
+      });
     });
   }
+  for (const k of Object.keys(c)) if (!Object.keys(SECCOES_CATALOGO).includes(k)) avisa(`chave:${k.slice(0, 40)}`, 'seccoes', undefined, `O catálogo tem um campo que o site não conhece («${k.slice(0, 40)}»). Só o Renato o pode tirar.`);
 
   // --- tamanhos ---------------------------------------------------------------------
   const ts = c.tamanhos;
@@ -1028,8 +1092,8 @@ const valorEmCaminho = (o, caminho) => caminho.split('.').reduce((x, k) => (eObj
  *   'artigo':   as chaves que não são CAMPOS_ARTIGO não mudam;
  *   'loja':     BLOQUEADOS_LOJA não mudam, as zonas são as mesmas pela mesma ordem (o id), e não
  *               aparecem campos novos;
- *   'catalogo': as linhas são as mesmas, pela mesma ordem, com as mesmas categorias; as
- *               categorias são as mesmas (o id). As ocasiões, os tamanhos e as cores são livres. */
+ *   'catalogo': só não entram campos novos (as secções, as categorias, os tamanhos e as cores são
+ *               da dona). */
 export function mudancasBloqueadas(antes, depois, qual = 'loja') {
   const out = [];
   const a = eObjecto(antes) ? antes : {}; const d = eObjecto(depois) ? depois : {};
@@ -1041,14 +1105,9 @@ export function mudancasBloqueadas(antes, depois, qual = 'loja') {
     return out;
   }
   if (qual === 'catalogo') {
-    const la = Array.isArray(a.linhas) ? a.linhas : []; const ld = Array.isArray(d.linhas) ? d.linhas : [];
-    if (la.length !== ld.length) out.push({ caminho: 'linhas', motivo: 'quantas' });
-    else la.forEach((l, i) => {
-      if (!mesmoValor(eObjecto(l) ? l.id : null, eObjecto(ld[i]) ? ld[i].id : null)) out.push({ caminho: `linhas.${i}.id`, motivo: 'mudou' });
-      if (!mesmoValor(eObjecto(l) ? l.categorias : null, eObjecto(ld[i]) ? ld[i].categorias : null)) out.push({ caminho: `linhas.${i}.categorias`, motivo: 'mudou' });
-    });
-    const ka = Object.keys(eObjecto(a.categorias) ? a.categorias : {}).sort(); const kd = Object.keys(eObjecto(d.categorias) ? d.categorias : {}).sort();
-    if (!mesmoValor(ka, kd)) out.push({ caminho: 'categorias', motivo: 'mudou' });
+    /* As secções e as categorias são da dona (juntar, mudar o nome, ordenar, tirar): o que não muda é o
+       endereço das que ficam. Como são listas, um endereço «mudado» é uma que saiu e outra que entrou —
+       e isso pode. Só os campos que o site não conhece não entram. */
     for (const k of Object.keys(d)) if (!tem(a, k) && !Object.keys(SECCOES_CATALOGO).includes(k)) out.push({ caminho: k, motivo: 'chave_nova' });
     return out;
   }
@@ -1079,9 +1138,9 @@ export function ordenarComo(antes, depois, ordem = CAMPOS_ARTIGO) {
   return out;
 }
 
-/* AS FOTOGRAFIAS EM USO, em todo o conteúdo: as dos produtos, das linhas e das ocasiões do
-   catálogo, e as das páginas (FOTOS_FIXAS). Uma fotografia só sai da biblioteca se não estiver
-   aqui. → Set */
+/* AS FOTOGRAFIAS EM USO, em todo o conteúdo: as dos produtos, das secções e das categorias do
+   catálogo, a de «A nossa história» (a loja) e as das páginas (FOTOS_FIXAS). Uma fotografia só sai
+   da biblioteca se não estiver aqui. → Set */
 export function fotosEmUso(dados = {}, extra = []) {
   const d = eObjecto(dados) ? dados : {};
   const usadas = new Set();
@@ -1098,9 +1157,15 @@ export function fotosEmUso(dados = {}, extra = []) {
     }
   }
   const c = lerJson(d.catalogo).obj;
-  if (eObjecto(c)) {
-    if (Array.isArray(c.linhas)) c.linhas.forEach((l) => eObjecto(l) && juntar(l.foto));
-    if (Array.isArray(c.ocasioes)) c.ocasioes.forEach((o) => eObjecto(o) && juntar(o.foto));
+  if (eObjecto(c) && Array.isArray(c.seccoes)) {
+    for (const x of c.seccoes) {
+      if (!eObjecto(x)) continue;
+      juntar(x.foto);
+      if (Array.isArray(x.itens)) x.itens.forEach((i) => eObjecto(i) && juntar(i.foto));
+    }
   }
+  // a fotografia de «A nossa história» (a da loja, ou a de origem)
+  const lj = lerJson(d.loja).obj;
+  juntar(eObjecto(lj) && temTexto(lj.fotoHistoria) ? lj.fotoHistoria : FOTO_HISTORIA);
   return usadas;
 }

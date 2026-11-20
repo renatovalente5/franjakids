@@ -4,6 +4,8 @@
   "descricao": "Roupa e presentes personalizados para bebés, crianças e família: bodies, t-shirts, camisolas, babygrows e a Box Franja, com o nome ou a frase que escolheres.",
   "instagram": "franjakids",
   "producao": "1 a 2 semanas",
+  "preparacao": "2 a 3 dias úteis",
+  "fotoHistoria": "mercadinho",
   "entrega": {
     "gratisAPartirDe": 50,
     "prazoContinente": "2 dias úteis",
@@ -20,13 +22,18 @@
         "portes": null
       },
       {
+        "id": "ue",
+        "nome": "União Europeia",
+        "portes": 8
+      },
+      {
         "id": "estrangeiro",
-        "nome": "Fora de Portugal",
+        "nome": "Restantes países",
         "portes": null
       },
       {
         "id": "mao",
-        "nome": "Entrega em mão em Valongo",
+        "nome": "Levantamento em mão — Valongo",
         "portes": 0
       }
     ]

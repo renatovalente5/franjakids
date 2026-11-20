@@ -13,6 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Encomenda, Contador } from '../objecto.js';
 import { Cupoes } from '../cupoes.js';
+import { Avisos } from '../avisos.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 export const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -29,32 +30,32 @@ export function catalogoBase() {
    paraCarrinho). */
 export const PRODUTOS_DE_ENSAIO = Object.freeze({
   'babygrow-com-nome': {
-    nome: 'Babygrow', categoria: 'babygrows', preco: 16.9, tamanhos: ['0 meses', '1 mês', '3 meses'],
+    nome: 'Babygrow', categorias: ['bebe/bodies-e-babygrows', 'personalizados/babygrows'], preco: 16.9, tamanhos: ['0 meses', '1 mês', '3 meses'],
     cores: [{ nome: 'Rosa', foto: 'babygrow-com-nome-1' }, { nome: 'Azul', foto: 'babygrow-com-nome-2' }, { nome: 'Cinzento', foto: 'babygrow-com-nome-3' }],
     opcoes: [],
     personalizacao: { rotulo: 'Nome a bordar', pista: 'Até 15 letras', max: 15, obrigatoria: false, opcional: 'Bordar um nome', suplemento: 3 },
   },
   't-shirt-adulto': {
-    nome: 'T-shirt de adulto personalizada', categoria: 't-shirts', preco: 15, tamanhos: ['S', 'M', 'L', 'XL'],
+    nome: 'T-shirt de adulto personalizada', categorias: ['crianca-e-familia/t-shirts-de-adulto'], preco: 15, tamanhos: ['S', 'M', 'L', 'XL'],
     cores: [{ nome: 'Branco' }, { nome: 'Preto' }, { nome: 'Azul-escuro' }], opcoes: [],
     personalizacao: { rotulo: 'Frase ou nome', pista: 'Diz-nos a ideia; mandamos a pré-visualização', max: 80, obrigatoria: true, opcional: null, suplemento: 0 },
   },
   't-shirt-promovido-a-irmao': {
-    nome: 'T-shirt «Fui promovido a irmão mais velho»', categoria: 't-shirts', preco: 12, tamanhos: ['2 anos', '4 anos', '6 anos', '8 anos', '10 anos', '12 anos', '14 anos'],
+    nome: 'T-shirt «Fui promovido a irmão mais velho»', categorias: ['crianca-e-familia/t-shirts-de-crianca', 'presentes/irmaos'], preco: 12, tamanhos: ['2 anos', '4 anos', '6 anos', '8 anos', '10 anos', '12 anos', '14 anos'],
     cores: [], opcoes: [{ nome: 'Texto', valores: [{ nome: 'Irmão mais velho', suplemento: 0 }, { nome: 'Irmã mais velha', suplemento: 0 }] }],
     personalizacao: { rotulo: 'Data ou nome', pista: 'Opcional', max: 30, obrigatoria: false, opcional: null, suplemento: 0 },
   },
   'manta-remalhada': {
-    nome: 'Manta remalhada', categoria: 'mantas-e-toalhas', preco: 21.9, tamanhos: [], cores: [{ nome: 'Rosa maquilhagem' }, { nome: 'Areia' }, { nome: 'Azul cobalto' }], opcoes: [], personalizacao: null,
+    nome: 'Manta remalhada', categorias: ['bebe/mantas-e-cobertores'], preco: 21.9, tamanhos: [], cores: [{ nome: 'Rosa maquilhagem' }, { nome: 'Areia' }, { nome: 'Azul cobalto' }], opcoes: [], personalizacao: null,
   },
   'caixa-surpresa': {
-    nome: 'Caixa surpresa personalizada', categoria: 'caixas', preco: 3.5, tamanhos: [], cores: [], opcoes: [],
+    nome: 'Caixa surpresa personalizada', categorias: ['presentes/caixas-presente'], preco: 3.5, tamanhos: [], cores: [], opcoes: [],
     personalizacao: { rotulo: 'Frase da tampa', pista: 'Por exemplo: Vais ser avó', max: 120, obrigatoria: true, opcional: null, suplemento: 0 },
   },
   // Inventado: nenhum produto verdadeiro tem (ainda) uma opção com acréscimo. O «Embrulho» começa
   // por um valor COM acréscimo: o que vale quando falta é o primeiro SEM acréscimo («Saco»).
   'conjunto-de-ensaio': {
-    nome: 'Conjunto de ensaio', categoria: 'conjuntos', preco: 24.5, tamanhos: ['1 mês', '3 meses'], cores: [{ nome: 'Branco' }],
+    nome: 'Conjunto de ensaio', categorias: ['bebe/outros'], preco: 24.5, tamanhos: ['1 mês', '3 meses'], cores: [{ nome: 'Branco' }],
     opcoes: [
       { nome: 'Peças', valores: [{ nome: 'Body e calças', suplemento: 0 }, { nome: 'Body, calças e babete', suplemento: 6.5 }] },
       { nome: 'Embrulho', valores: [{ nome: 'Caixa', suplemento: 2 }, { nome: 'Saco', suplemento: 0 }] },
@@ -63,11 +64,13 @@ export const PRODUTOS_DE_ENSAIO = Object.freeze({
   },
 });
 
+/* As cinco zonas (o pedido da loja de 20 nov 2026): as ilhas sem portes (sob consulta, como os restantes países). */
 export const ZONAS_DE_ENSAIO = Object.freeze([
   { id: 'continente', nome: 'Portugal continental', portes: 3.9, morada: true },
   { id: 'ilhas', nome: 'Açores e Madeira', portes: null, morada: true },
-  { id: 'estrangeiro', nome: 'Fora de Portugal', portes: null, morada: true },
-  { id: 'mao', nome: 'Entrega em mão em Valongo', portes: 0, morada: false },
+  { id: 'ue', nome: 'União Europeia', portes: 8, morada: true },
+  { id: 'estrangeiro', nome: 'Restantes países', portes: null, morada: true },
+  { id: 'mao', nome: 'Levantamento em mão — Valongo', portes: 0, morada: false },
 ]);
 
 /* O catálogo de um cenário: o lido, com os produtos de ensaio por cima, as zonas de ensaio (os
@@ -78,7 +81,13 @@ export function catalogoDeEnsaio({ modo = 'encomenda', portes = {}, gratisAParti
   cat.gratisAPartirDe = gratisAPartirDe;
   cat.zonas = ZONAS_DE_ENSAIO.map((z) => ({ ...z, portes: Object.hasOwn(portes, z.id) ? portes[z.id] : z.portes }));
   cat.produtos = { ...cat.produtos, ...clone(PRODUTOS_DE_ENSAIO) };
-  cat.categorias = { babygrows: 'Babygrows', 't-shirts': 'T-shirts', 'mantas-e-toalhas': 'Mantas e toalhas', caixas: 'Caixas', conjuntos: 'Conjuntos', bodies: 'Bodies', ...(cat.categorias || {}) };
+  cat.categorias = {
+    ...(cat.categorias || {}),
+    bebe: 'Bebé', personalizados: 'Personalizados', 'crianca-e-familia': 'Criança e Família', presentes: 'Presentes',
+    'bebe/bodies-e-babygrows': 'Bodies e babygrows', 'personalizados/babygrows': 'Babygrows', 'personalizados/bodies': 'Bodies',
+    'crianca-e-familia/t-shirts-de-adulto': 'T-shirts de adulto', 'crianca-e-familia/t-shirts-de-crianca': 'T-shirts de criança',
+    'presentes/irmaos': 'Presentes para irmãos', 'bebe/mantas-e-cobertores': 'Mantas e cobertores', 'presentes/caixas-presente': 'Caixas presente', 'bebe/outros': 'Outros',
+  };
   return cat;
 }
 
@@ -164,6 +173,7 @@ export function envFalso(extra = {}) {
   if (!('ENCOMENDA' in extra)) env.ENCOMENDA = objectosFalsos(Encomenda, env);
   if (!('CONTADOR' in extra)) env.CONTADOR = objectosFalsos(Contador, env);
   if (!('CUPOES' in extra)) env.CUPOES = objectosFalsos(Cupoes, env);
+  if (!('AVISOS' in extra)) env.AVISOS = objectosFalsos(Avisos, env);
   return env;
 }
 

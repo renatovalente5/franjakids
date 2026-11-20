@@ -1,9 +1,8 @@
 {
   "nome": "Body «Família, preparem o colinho»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "bebe-a-caminho",
-    "familia"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/anunciar-gravidez"
   ],
   "preco": 12,
   "resumo": "Para contar à família toda de uma vez. As cores, a letra e o desenho mudam ao teu gosto.",

@@ -79,6 +79,7 @@ const TRACOS = {
   relogio: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   troca: '<path d="M4 9h13l-3.5-3.5M20 15H7l3.5 3.5"/>',
   local: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  abaixo: '<path d="m6 9.5 6 6 6-6"/>',
 };
 export function icone(nome, classe = 'icone') {
   return `<svg class="${classe}" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TRACOS[nome]}</svg>`;

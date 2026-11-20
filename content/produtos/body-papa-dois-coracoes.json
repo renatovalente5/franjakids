@@ -1,9 +1,10 @@
 {
   "nome": "Body «Papá, dentro da mamã agora batem dois corações»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "papa",
-    "bebe-a-caminho"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/papas",
+    "colecoes/dia-do-pai",
+    "presentes/anunciar-gravidez"
   ],
   "preco": 12,
   "resumo": "Para contar ao futuro papá. Uma surpresa para guardar.",

@@ -1,8 +1,8 @@
 {
   "nome": "Conjunto de Natal aos quadrados",
-  "categoria": "conjuntos",
-  "ocasioes": [
-    "natal"
+  "categorias": [
+    "bebe/outros",
+    "colecoes/natal"
   ],
   "preco": null,
   "resumo": "Para as fotografias de Natal: calção de alças para eles, vestido para elas.",

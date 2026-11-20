@@ -40,6 +40,11 @@ class_name = "Contador"
 name = "CUPOES"
 class_name = "Cupoes"
 
+# os avisos de stock (avisos.js, 20 nov 2026): um objecto só, com os pedidos e os contadores
+[[durable_objects.bindings]]
+name = "AVISOS"
+class_name = "Avisos"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Encomenda", "Contador"]
@@ -48,6 +53,10 @@ new_sqlite_classes = ["Encomenda", "Contador"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["Cupoes"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["Avisos"]
 
 [[ratelimits]]
 name = "TRAVAO_CHECKOUT"
@@ -124,6 +133,10 @@ class_name = "Contador"
 name = "CUPOES"
 class_name = "Cupoes"
 
+[[env.ensaio.durable_objects.bindings]]
+name = "AVISOS"
+class_name = "Avisos"
+
 [[env.ensaio.migrations]]
 tag = "v1"
 new_sqlite_classes = ["Encomenda", "Contador"]
@@ -131,6 +144,10 @@ new_sqlite_classes = ["Encomenda", "Contador"]
 [[env.ensaio.migrations]]
 tag = "v2"
 new_sqlite_classes = ["Cupoes"]
+
+[[env.ensaio.migrations]]
+tag = "v3"
+new_sqlite_classes = ["Avisos"]
 
 [[env.ensaio.ratelimits]]
 name = "TRAVAO_CHECKOUT"

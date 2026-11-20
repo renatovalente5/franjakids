@@ -1,7 +1,8 @@
 {
   "nome": "T-shirt «Sonha grande, brilha ainda mais»",
-  "categoria": "t-shirts",
-  "ocasioes": [],
+  "categorias": [
+    "crianca-e-familia/t-shirts-de-crianca"
+  ],
   "preco": 12,
   "resumo": "Um arco-íris para os sonhos grandes.",
   "fotos": [

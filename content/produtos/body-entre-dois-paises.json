@@ -1,8 +1,8 @@
 {
   "nome": "Body «Entre o samba e o fado eu nasci»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "entre-paises"
+  "categorias": [
+    "personalizados/bodies",
+    "colecoes/entre-paises"
   ],
   "preco": 12,
   "resumo": "Para os bebés de duas terras. Trocamos os países, as bandeiras e a frase.",

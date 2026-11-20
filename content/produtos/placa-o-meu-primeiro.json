@@ -1,10 +1,11 @@
 {
   "nome": "Placa de madeira «O meu primeiro…»",
-  "categoria": "placas",
-  "ocasioes": [
-    "papa",
-    "mama",
-    "natal"
+  "categorias": [
+    "bebe/outros",
+    "presentes/papas",
+    "colecoes/dia-do-pai",
+    "colecoes/dia-da-mae",
+    "colecoes/natal"
   ],
   "preco": null,
   "resumo": "Para as fotografias das primeiras datas: Dia do Pai, Dia da Mãe, aniversário ou Natal.",

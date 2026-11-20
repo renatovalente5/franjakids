@@ -8,7 +8,8 @@
 // Os testes do Worker das encomendas são dele (worker/encomendas/test/); os do painel são do painel.
 //
 // O CONTEÚDO DE ENSAIO: os testes usam scripts/testes/conteudo (uma cópia congelada do conteúdo a 9 nov
-// 2026, com cinco produtos) e fotografias de cor lisa feitas aqui, NUNCA o content/ do commit. O
+// 2026, com cinco produtos, passada ao modelo do menu a 20 nov pelo scripts/migrar-menu.mjs) e fotografias de
+// cor lisa feitas aqui, NUNCA o content/ do commit. O
 // content/ é da dona, que o muda no painel: preencher o NIF, ligar a Stripe ou esconder um produto não
 // pode parar a publicação neste passo (memória testes-do-site-com-conteudo-de-ensaio). Um problema no
 // conteúdo verdadeiro pára no passo seguinte, o do gerador, que escreve as razões para o painel (::error).
@@ -81,6 +82,17 @@ teste('conferirEscolha: sem preço ou escondido não se compra; a entrada do cat
   const entrada = { nome: 'X', preco: 10, tamanhos: ['S', 'M'], cores: [{ nome: 'Rosa' }], opcoes: [], personalizacao: null };
   assert.equal(R.conferirEscolha(entrada, { tamanho: 'M' }).unidade_cents, 1000);  // uma só cor escolhe-se sozinha
 });
+teste('zonaSobConsulta: os restantes países sempre, e qualquer zona sem portes (o pedido de 20 nov 2026)', () => {
+  assert.equal(R.zonaSobConsulta({ id: 'estrangeiro', portes: 12 }), true);
+  assert.equal(R.zonaSobConsulta({ id: 'estrangeiro', portes: null }), true);
+  assert.equal(R.zonaSobConsulta({ id: 'ilhas', portes: null }), true);
+  assert.equal(R.zonaSobConsulta({ id: 'ilhas', portes: '5,50' }), true);
+  assert.equal(R.zonaSobConsulta({ id: 'ue', portes: 8 }), false);
+  assert.equal(R.zonaSobConsulta({ id: 'mao', portes: 0 }), false);
+  assert.equal(R.zonaSobConsulta(null), true);
+  assert.equal(R.PAISES_UE.length, 26);
+  assert.ok(!R.PAISES_UE.includes('Portugal'));
+});
 teste('portesDe: grátis só no continente a partir do valor; zona sem portes fica por confirmar', () => {
   assert.equal(R.portesDe({ id: 'continente', portes: 3.5 }, 4999, 50), 350);
   assert.equal(R.portesDe({ id: 'continente', portes: 3.5 }, 5000, 50), 0);
@@ -106,19 +118,58 @@ teste('gerarSlug: até 80 caracteres com o «-2» de um repetido, cortado no fim
   assert.equal(R.gerarSlug('🎂🎂', [], 'ocasiao'), 'ocasiao', 'uma ocasião só de emoji não fica com o id «produto»');
   assert.equal(R.gerarSlug('x'.repeat(120)).length, 80, 'uma palavra só, sem onde cortar, corta-se aos 80');
 });
-teste('catálogo: duas ocasiões ou duas categorias com o mesmo nome não passam (eram dois filtros iguais no site)', () => {
+teste('catálogo: duas secções, ou duas categorias da mesma secção, com o mesmo nome não passam (eram duas entradas iguais no menu)', () => {
   const c = structuredClone(catalogo);
   assert.deepEqual(R.problemasDoCatalogo(c).filter((p) => /repetid/.test(p.chave)), []);
-  c.ocasioes.push({ ...c.ocasioes[0], id: `${c.ocasioes[0].id}-2`, nome: ` ${c.ocasioes[0].nome.toUpperCase()} ` });
-  const oc = R.problemasDoCatalogo(c).find((p) => p.chave.endsWith('.nome:repetido'));
-  assert.ok(oc && oc.classe === 'avisa' && oc.mensagem.includes('Há duas ocasiões com o nome'), JSON.stringify(oc));
+  c.seccoes.push({ id: 'outra', nome: ` ${c.seccoes[0].nome.toUpperCase()} `, itens: [{ id: 'x', nome: 'X' }] });
+  const s1 = R.problemasDoCatalogo(c).find((p) => p.chave.endsWith('.nome:repetido'));
+  assert.ok(s1 && s1.classe === 'avisa' && s1.mensagem.includes('Há duas secções com o nome'), JSON.stringify(s1));
   const c2 = structuredClone(catalogo);
-  const [a1, a2] = Object.keys(c2.categorias);
-  c2.categorias[a2] = c2.categorias[a1];
-  const ca = R.problemasDoCatalogo(c2).find((p) => p.chave.endsWith(':nome-repetido'));
+  c2.seccoes[0].itens[1].nome = c2.seccoes[0].itens[0].nome;
+  const ca = R.problemasDoCatalogo(c2).find((p) => p.chave.endsWith('.nome:repetido'));
   assert.ok(ca && ca.classe === 'avisa' && ca.mensagem.includes('Há duas categorias com o nome'), JSON.stringify(ca));
+  // o mesmo nome em secções diferentes pode («Bodies» nos Personalizados e no Bebé)
+  const c3 = structuredClone(catalogo);
+  c3.seccoes[1].itens[0].nome = c3.seccoes[0].itens[0].nome;
+  assert.deepEqual(R.problemasDoCatalogo(c3).filter((p) => /repetid/.test(p.chave)), []);
+  // um endereço de uma página fixa, ou repetido, pára (seria a página errada)
+  const c4 = structuredClone(catalogo);
+  c4.seccoes[0].id = 'sobre';
+  assert.ok(R.problemasDoCatalogo(c4).some((p) => p.classe === 'bloqueia' && p.chave === 'catalogo:seccoes.sobre:reservado'));
+  const c5 = structuredClone(catalogo);
+  c5.seccoes[1].id = c5.seccoes[0].id;
+  assert.ok(R.problemasDoCatalogo(c5).some((p) => p.classe === 'bloqueia' && p.chave.endsWith(':repetida')));
 });
-teste('temSuplementos: «desde» com acréscimos nas escolhas ou na personalização opcional', () => {
+teste('catalogoDe e categoriasDe: as chaves «secção/categoria», os nomes, e só as que existem pela ordem do produto', () => {
+  assert.ok(cat.categorias.includes('personalizados/bodies') && cat.categorias.includes('presentes/papas'));
+  assert.equal(cat.nomes.presentes, 'Presentes');
+  assert.equal(cat.nomes['presentes/papas'], 'Presentes para papás');
+  const a = { categorias: ['presentes/papas', 'nao/existe', 'presentes/papas', 'Mau Nome', 'personalizados/bodies'] };
+  assert.deepEqual(R.categoriasDe(a, cat), ['presentes/papas', 'personalizados/bodies']);
+  assert.deepEqual(R.categoriasDe(a), ['presentes/papas', 'nao/existe', 'personalizados/bodies']);
+  assert.deepEqual(R.categoriasDe({ categoria: 'bodies' }, cat), []);
+  const chaves = (x) => R.problemasDoArtigo(x, { nome: 'x', catalogo: cat }).map((p) => `${p.classe}:${p.chave}`);
+  assert.ok(chaves({ ...produto('manta-remalhada'), categorias: [] }).includes('neutraliza:artigo:x:categorias'));
+  assert.ok(chaves({ ...produto('manta-remalhada'), categorias: ['nao/existe'] }).includes('neutraliza:artigo:x:categorias:nenhuma'));
+  assert.ok(chaves({ ...produto('manta-remalhada'), categorias: ['bebe/mantas-e-cobertores', 'nao/existe'] }).includes('avisa:artigo:x:categorias:nao/existe:sem-categoria'));
+});
+teste('suplementosTamanho: o acréscimo do tamanho entra no preço, no «desde» e nas regras (19 nov: o preço por tamanho)', () => {
+  const bg = { ...produto('babygrow-com-nome'), suplementosTamanho: { '3 meses': 2, '1 mês': 0, 'nao-ha': 9 } };
+  const tamanhos = R.tamanhosDe(bg, cat);
+  assert.deepEqual(R.suplementosTamanhoDe(bg, tamanhos), { '3 meses': 2 });
+  assert.equal(R.conferirEscolha(bg, { tamanho: '3 meses', cor: 'Rosa' }, cat).unidade_cents, 1890);
+  assert.equal(R.conferirEscolha(bg, { tamanho: '1 mês', cor: 'Rosa' }, cat).unidade_cents, 1690);
+  assert.equal(R.conferirEscolha(bg, { tamanho: '3 meses', cor: 'Rosa', personalizar: true, texto: 'Ana' }, cat).unidade_cents, 2190);
+  // a entrada do catálogo publicado (os tamanhos já em lista) faz a mesma conta
+  const entrada = { nome: 'T', preco: 12, tamanhos: ['4 anos', 'M'], suplementosTamanho: { M: 3 }, cores: [], opcoes: [], personalizacao: null };
+  assert.equal(R.conferirEscolha(entrada, { tamanho: 'M' }).unidade_cents, 1500);
+  assert.ok(R.temSuplementos(entrada));
+  assert.ok(!R.temSuplementos({ ...entrada, suplementosTamanho: {} }));
+  const chaves = (x) => R.problemasDoArtigo(x, { nome: 'x', catalogo: cat }).map((p) => p.chave);
+  assert.ok(chaves({ ...bg, suplementosTamanho: Object.fromEntries(tamanhos.map((t) => [t, 2])) }).includes('artigo:x:suplementosTamanho:sem-base'), 'sem um tamanho sem acréscimo, o preço anunciado não se paga');
+  assert.ok(chaves({ ...bg, suplementosTamanho: { '3 meses': 'dois' } }).some((k) => k.startsWith('artigo:x:suplementosTamanho')));
+});
+teste('temSuplementos: «desde» com acréscimos nas escolhas, na personalização opcional ou num tamanho', () => {
   assert.ok(R.temSuplementos(produto('babygrow-com-nome')));
   assert.ok(R.temSuplementos(produto('body-dad-mini')));
   assert.ok(!R.temSuplementos(produto('manta-remalhada')));
@@ -140,15 +191,18 @@ teste('mudancasBloqueadas: a marca, o concelho, as zonas e a estrutura do catál
   assert.ok(R.mudancasBloqueadas(loja, z, 'loja').some((x) => x.caminho === 'entrega.zonas'));
   const p = structuredClone(loja); p.entrega.zonas[0].portes = 3.5; p.empresa.nif = '123456789';
   assert.deepEqual(R.mudancasBloqueadas(loja, p, 'loja'), []);
-  const c = structuredClone(catalogo); c.categorias.bodies = 'Bodies de bebé'; c.ocasioes.push({ id: 'batizado', nome: 'Batizado', foto: null });
+  // as secções e as categorias são da dona: mudar o nome, juntar, ordenar e tirar pode; um campo novo não
+  const c = structuredClone(catalogo); c.seccoes[0].nome = 'Universo Bebé'; c.seccoes[0].itens.push({ id: 'batizado', nome: 'Batizado' }); c.seccoes.reverse(); c.seccoes.pop();
   assert.deepEqual(R.mudancasBloqueadas(catalogo, c, 'catalogo'), []);
-  const d = structuredClone(catalogo); d.linhas[0].categorias.pop();
-  assert.ok(R.mudancasBloqueadas(catalogo, d, 'catalogo').length);
+  assert.deepEqual(R.mudancasBloqueadas(catalogo, { ...catalogo, segredo: 1 }, 'catalogo').map((x) => x.caminho), ['segredo']);
   assert.deepEqual(R.mudancasBloqueadas({ nome: 'a' }, { nome: 'b', segredo: 1 }, 'artigo').map((x) => x.caminho), ['segredo']);
 });
-teste('fotosEmUso: as dos produtos, das cores, das linhas, das ocasiões e as das páginas', () => {
+teste('fotosEmUso: as dos produtos, das cores, das secções, das categorias, a da história e as das páginas', () => {
   const usadas = R.fotosEmUso({ catalogo, artigos: { bg: produto('babygrow-com-nome') } });
-  for (const f of [...R.FOTOS_FIXAS, 'cat-bodies', 'ocasiao-avos', 'babygrow-com-nome-1']) assert.ok(usadas.has(f), f);
+  for (const f of [...R.FOTOS_FIXAS, 'cat-bodies', 'ocasiao-avos', 'babygrow-com-nome-1', R.FOTO_HISTORIA]) assert.ok(usadas.has(f), f);
+  // a da história é a que a loja escolheu (a de origem pode sair da biblioteca)
+  const outra = R.fotosEmUso({ catalogo, loja: { ...lerEnsaio('loja.json'), fotoHistoria: 'donas-2' } });
+  assert.ok(outra.has('donas-2') && !outra.has(R.FOTO_HISTORIA));
 });
 teste('problemas: o conteúdo de ensaio não pára a pré-visualização; em produção param os dados legais', () => {
   const dados = { loja: lerEnsaio('loja.json'), catalogo, fotos: lerEnsaio('fotos.json'), artigos: Object.fromEntries(['babygrow-com-nome', 'body-preparem-o-colinho'].map((s) => [s, produto(s)])) };
@@ -258,25 +312,79 @@ teste('pré-visualização: a ficha com escolhas, a sem preço pede por mensagem
   assert.ok(fs.existsSync(path.join(SAIDA, 'obrigado/index.html')));
   assert.match(pagina('termos/index.html'), /\[por confirmar: NIF\]/);
 });
-teste('pré-visualização: categorias e ocasiões com produtos são páginas, ligadas pelas pastilhas; as vazias não existem', () => {
+teste('pré-visualização: secções e categorias com produtos são páginas, ligadas pelas pastilhas; as vazias não existem', () => {
   const B = '/franjakids';
-  for (const c of ['personalizados/bodies', 'bebe/babygrows', 'bebe/mantas-e-toalhas', 'presentes/box-franja', 'ocasioes/papa', 'ocasioes/familia', 'ocasioes/bebe-a-caminho']) assert.ok(fs.existsSync(path.join(SAIDA, c, 'index.html')), c);
-  for (const c of ['personalizados/t-shirts', 'presentes/caixas', 'ocasioes/avos', 'ocasioes/natal']) assert.ok(!fs.existsSync(path.join(SAIDA, c)), c);
+  for (const c of ['personalizados', 'personalizados/bodies', 'personalizados/babygrows', 'bebe', 'bebe/bodies-e-babygrows', 'bebe/mantas-e-cobertores', 'presentes', 'presentes/papas', 'presentes/anunciar-gravidez', 'presentes/caixas-presente', 'colecoes', 'colecoes/dia-do-pai']) assert.ok(fs.existsSync(path.join(SAIDA, c, 'index.html')), c);
+  // sem produtos: nem página nem entrada no menu (e as antigas, das linhas e das ocasiões, já não existem)
+  for (const c of ['crianca-e-familia', 'promocoes', 'personalizados/gorros', 'presentes/irmaos', 'bebe/babygrows', 'presentes/box-franja', 'ocasioes']) assert.ok(!fs.existsSync(path.join(SAIDA, c)), c);
   const l = pagina('personalizados/index.html');
   assert.match(l, new RegExp(`<a class="pastilha" href="${B}/personalizados/" aria-current="page">Tudo</a>`));
-  assert.match(l, new RegExp(`<a class="pastilha" href="${B}/personalizados/bodies/" data-categoria="bodies">Bodies</a>`));
-  assert.match(l, new RegExp(`<a class="pastilha" href="${B}/ocasioes/papa/" data-ocasiao="papa">`));
-  assert.doesNotMatch(l, /t-shirts\//);
+  assert.match(l, new RegExp(`<a class="pastilha" href="${B}/personalizados/bodies/">Bodies</a>`));
+  assert.doesNotMatch(l, /gorros\//);
   const b = pagina('personalizados/bodies/index.html');
-  assert.match(b, /data-categoria="bodies" aria-current="page">Bodies</);
+  assert.match(b, /href="\/franjakids\/personalizados\/bodies\/" aria-current="page">Bodies</);
   assert.match(b, /<h1 id="t-linha">Bodies<\/h1>/);
   assert.match(b, new RegExp(`<ol class="migalhas"><li><a href="${B}/">Início</a></li><li><a href="${B}/personalizados/">Personalizados</a></li><li aria-current="page">Bodies</li></ol>`));
   assert.equal((b.match(/<a class="cartao"/g) || []).length, 2);
-  // a ocasião junta os produtos de todas as linhas (um body e a Box Franja)
-  assert.equal((pagina('ocasioes/bebe-a-caminho/index.html').match(/<a class="cartao"/g) || []).length, 2);
-  // a ficha aponta para a página da categoria, e nenhuma página tem um filtro com «?»
-  assert.match(pagina('produtos/body-dad-mini/index.html'), new RegExp(`<a href="${B}/personalizados/bodies/">Bodies</a>`));
+  // um produto aparece em todas as suas categorias: a secção junta-os sem repetir (o body e a Box Franja)
+  assert.equal((pagina('presentes/anunciar-gravidez/index.html').match(/<a class="cartao"/g) || []).length, 2);
+  assert.equal((pagina('presentes/index.html').match(/<a class="cartao"/g) || []).length, 3);
+  // a ficha aponta para a 1.ª categoria do produto, e nenhuma página tem um filtro com «?»
+  assert.match(pagina('produtos/body-dad-mini/index.html'), new RegExp(`<ol class="migalhas"><li><a href="${B}/">Início</a></li><li><a href="${B}/personalizados/">Personalizados</a></li><li><a href="${B}/personalizados/bodies/">Bodies</a></li></ol>`));
+  assert.match(pagina('produtos/body-dad-mini/index.html'), /<p class="ficha__etiqueta">Bodies · Personalizável<\/p>/);
   for (const [f, h] of paginas()) assert.doesNotMatch(h, /\?(categoria|ocasiao)=/, f);
+});
+teste('pré-visualização: o menu (as secções com produtos e o «Sobre Nós»), as listas que abrem, e o rodapé', () => {
+  const h = pagina('presentes/papas/index.html');
+  const menu = h.match(/<ul class="contentor menu" data-menu-principal>([\s\S]*?)<\/ul><\/nav>/)[1];
+  assert.deepEqual([...menu.matchAll(/class="menu__ligacao" href="[^"]+"[^>]*>([^<]+)</g)].map((m) => m[1]), ['Bebé', 'Personalizados', 'Presentes', 'Coleções', 'Sobre Nós']);
+  // a secção da página está marcada, e a categoria dentro da lista dela também
+  assert.match(menu, /class="menu__ligacao" href="\/franjakids\/presentes\/" aria-current="page">Presentes</);
+  assert.match(menu, /<a href="\/franjakids\/presentes\/papas\/" aria-current="page">Presentes para papás<\/a>/);
+  assert.match(menu, /<li class="menu__tudo"><a href="\/franjakids\/presentes\/">Tudo em Presentes<\/a><\/li>/);
+  assert.match(menu, /<button class="menu__abrir" type="button" aria-expanded="false" aria-controls="sub-2">/);
+  for (const [t, c] of [['A nossa história', 'sobre'], ['Como funciona', 'como-funciona'], ['Como personalizar', 'como-personalizar'], ['Envios e entregas', 'envios'], ['Perguntas frequentes', 'perguntas-frequentes'], ['Contactos', 'contactos']]) {
+    assert.ok(menu.includes(`<a href="/franjakids/${c}/">${t}</a>`), t);
+    assert.ok(fs.existsSync(path.join(SAIDA, c, 'index.html')), c);
+  }
+  // no telemóvel, as secções abrem as suas categorias (a da página onde se está, já aberta)
+  assert.match(h, /<li><details open><summary>Presentes/);
+  assert.match(h, /<li><details><summary>Bebé/);
+  // o rodapé: as secções na «Loja», e as «Informações legais» na «Ajuda»
+  const rod = h.match(/<footer class="rodape">([\s\S]*?)<\/footer>/)[1];
+  assert.deepEqual([...rod.match(/aria-labelledby="rodape-loja">[\s\S]*?<\/ul>/)[0].matchAll(/>([^<>]+)<\/a>/g)].map((m) => m[1]), ['Bebé', 'Personalizados', 'Presentes', 'Coleções', 'Procurar']);
+  assert.deepEqual([...rod.match(/aria-labelledby="rodape-ajuda">[\s\S]*?<\/ul>/)[0].matchAll(/>([^<>]+)<\/a>/g)].map((m) => m[1]), ['Como encomendar', 'Envios e prazos', 'Trocas e devoluções', 'Contactos', 'Informações legais']);
+});
+teste('pré-visualização: a página inicial — «Para quem é?», a montra das secções, o «Como funciona» e «A nossa história»', () => {
+  const h = pagina('index.html');
+  // «Para quem é?»: as categorias dos Presentes com fotografia e produtos, com o nome curto
+  assert.deepEqual([...h.matchAll(/<span class="ocasioes__nome">([^<]+)<\/span>/g)].map((m) => m[1]), ['Anunciar uma gravidez', 'Papás']);
+  assert.match(h, /<a href="\/franjakids\/presentes\/papas\/"><span class="ocasioes__nome">Papás/);
+  assert.deepEqual([...h.matchAll(/<span class="montra__nome">([^<]+)</g)].map((m) => m[1]), ['Bebé', 'Personalizados', 'Presentes', 'Coleções']);
+  assert.match(h, /<ul class="fila montra" style="--n:4">/);
+  // o «Como funciona» da loja: o 3.º passo com o cartão
+  assert.deepEqual([...h.match(/<ol class="contentor passos">[\s\S]*?<\/ol>/)[0].matchAll(/<h3>([^<]+)<\/h3>/g)].map((m) => m[1]), ['Escolhe o teu favorito', 'Personaliza ao teu gosto', 'Finaliza a encomenda', 'Recebe com carinho']);
+  assert.match(h, /<rect x="3" y="6" width="18" height="12" rx="2\.5"\/>[^]*?<h3>Finaliza a encomenda<\/h3>/);
+  assert.match(h, /<h2 id="t-historia">A nossa história<\/h2>\s*<p class="sobre__abertura">Uma marca que nasceu do amor de uma família e cresceu com a força da amizade\.<\/p>/);
+  assert.match(h, /da junção de Fran \+ Ja, que nasceu a Franja Kids, no dia 10 de setembro de 2025/);
+  assert.match(h, /<p class="sobre__fecho">Bem-vindos à nossa família\. Bem-vindos à Franja Kids!<\/p>/);
+  assert.doesNotMatch(h, /Duas amigas, uma ideia/);
+  assert.match(pagina('sobre/index.html'), /<h1 id="t-sobre" class="pagina__titulo">Um sonho, muitas mãos e muito amor\.<\/h1>/);
+});
+teste('pré-visualização: o finalizar tem as cinco entregas; os restantes países sob consulta; o país da UE de uma lista', () => {
+  const f = pagina('finalizar/index.html');
+  assert.deepEqual([...f.matchAll(/name="envio" value="([a-z]+)"/g)].map((m) => m[1]), R.ZONAS);
+  assert.match(f, /value="estrangeiro" data-preco="" data-sob-consulta>/);
+  assert.match(f, /value="ue" data-preco="8">/);
+  assert.match(f, /value="mao" data-preco="0">[^]*?<b data-preco-zona="mao">Grátis<\/b>/);
+  assert.match(f, /data-sob-consulta-aviso hidden>/);
+  assert.match(f, /data-pista-mao hidden>Para combinarmos o levantamento pelo WhatsApp\.</);
+  const paises = [...f.match(/<select id="pais"[^]*?<\/select>/)[0].matchAll(/<option>([^<]+)<\/option>/g)].map((m) => m[1]);
+  assert.deepEqual(paises, R.PAISES_UE);
+  // o catálogo publicado diz quais são sob consulta (o carrinho e o Worker não cobram o que não se sabe)
+  const c = JSON.parse(pagina('assets/catalogo.json'));
+  assert.deepEqual(c.zonas.filter((z) => z.sobConsulta).map((z) => z.id), ['continente', 'ilhas', 'estrangeiro']);
+  assert.ok(c.zonas.filter((z) => z.sobConsulta).every((z) => z.portes === null));
 });
 teste('com o Worker das encomendas (--api): o finalizar envia, sem o aviso, e o catálogo leva a morada', () => {
   repor();
@@ -310,7 +418,8 @@ teste('produção com os dados legais: aberta ao Google, sem marcadores, o produ
 teste('produção: fora do Google só as páginas de serviço, as legais e as listagens de um produto; o sitemap é o resto', () => {
   // (a construção do teste anterior: produção com os dados legais)
   assert.match(fs.readFileSync(path.join(SAIDA, 'robots.txt'), 'utf8'), /^User-agent: \*\nAllow: \/\nSitemap: https:\/\/franjakids\.com\/sitemap\.xml\n$/);
-  const FORA = ['carrinho/', 'finalizar/', 'obrigado/', 'procurar/', 'termos/', 'privacidade/', '404.html', 'presentes/box-franja/', 'ocasioes/papa/'];
+  // as legais e as de políticas (termos, privacidade, envios, trocas, informações legais) e as listas de um produto
+  const FORA = ['carrinho/', 'finalizar/', 'obrigado/', 'procurar/', 'termos/', 'privacidade/', 'envios/', 'trocas-e-devolucoes/', 'informacoes-legais/', '404.html', 'presentes/papas/', 'presentes/caixas-presente/', 'colecoes/'];
   const mapa = fs.readFileSync(path.join(SAIDA, 'sitemap.xml'), 'utf8');
   const noMapa = new Set([...mapa.matchAll(/<loc>https:\/\/franjakids\.com\/([^<]*)<\/loc>/g)].map(([, c]) => c));
   const titulos = new Set();
@@ -328,7 +437,7 @@ teste('produção: fora do Google só as páginas de serviço, as legais e as li
     titulos.add(t);
     assert.ok(d.length >= 50 && d.length <= 160, `${f}: a descrição tem ${d.length}: ${d}`);
   }
-  assert.ok(noMapa.has('') && noMapa.has('produtos/box-franja/') && noMapa.has('como-funciona/'));
+  assert.ok(noMapa.has('') && noMapa.has('produtos/box-franja/') && noMapa.has('como-funciona/') && noMapa.has('perguntas-frequentes/') && noMapa.has('presentes/'));
 });
 teste('produção: os dados estruturados da loja, do site e dos produtos (para as fichas de comerciante do Google)', () => {
   const lds = (h) => [...h.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map(([, j]) => JSON.parse(j));
@@ -345,36 +454,44 @@ teste('produção: os dados estruturados da loja, do site e dos produtos (para a
   assert.equal(prod.offers.availability, 'https://schema.org/InStock');
   assert.equal(prod.offers.itemCondition, 'https://schema.org/NewCondition');
   assert.ok(prod.image.length >= 1 && prod.image.every((u) => /^https:\/\/franjakids\.com\/assets\/img\/.+\.jpg$/.test(u)));
-  assert.deepEqual(box.find((j) => j['@type'] === 'BreadcrumbList').itemListElement.map((i) => i.name), ['Início', 'Presentes', 'Box Franja', 'Box Franja']);
+  assert.deepEqual(box.find((j) => j['@type'] === 'BreadcrumbList').itemListElement.map((i) => i.name), ['Início', 'Presentes', 'Caixas presente', 'Box Franja']);
+  assert.equal(prod.category, 'Caixas presente');
   // todos os JSON-LD se lêem, e nenhum diz MadeToOrder (que o Google não aceita)
   for (const [f, h] of paginas()) { assert.doesNotMatch(h, /MadeToOrder/, f); lds(h); }
-  // a privacidade diz quem guarda o quê: a Cloudflare (alojamento, DNS, encomendas, emails) e não o GitHub nem a Resend
+  // a privacidade diz quem guarda o quê: a Cloudflare (alojamento, DNS, encomendas, avisos de stock, emails) e não o
+  // GitHub nem a Resend; o WhatsApp do levantamento em mão; e os avisos de stock (o email, uma vez, 6 meses)
   const priv = pagina('privacidade/index.html');
-  assert.match(priv, /Cloudflare, Inc\.<\/strong> \(EUA\) — alojamento e entrega do site[^<]*DNS do domínio; guardar as encomendas feitas no site e passá-las para nós; envio dos emails das encomendas/);
+  assert.match(priv, /Cloudflare, Inc\.<\/strong> \(EUA\) — alojamento e entrega do site[^<]*DNS do domínio; guardar as encomendas feitas no site e os avisos de stock, e passá-los para nós; envio dos emails das encomendas e dos avisos/);
+  assert.match(priv, /conversas pelo WhatsApp/);
+  assert.match(priv, /<strong>Avisos de stock:<\/strong>[^<]*avisarmos uma vez[^<]*6 meses/);
   assert.doesNotMatch(priv, /GitHub|Resend|por indicar/);
 });
-teste('SEO: os títulos e as frases escritas à mão cabem, e cobrem as linhas, as categorias e as ocasiões', () => {
-  for (const [grupo, mapa, campo] of [['linhas', SEO.LINHAS, 'descricao'], ['categorias', SEO.CATEGORIAS, 'frase'], ['ocasioes', SEO.OCASIOES, 'frase']]) {
-    for (const [id, v] of Object.entries(mapa)) {
-      assert.ok(`${v.titulo} · Franja Kids`.length <= 65, `${grupo}/${id}: o título passa de 65`);
-      assert.ok(v[campo].length >= 50 && v[campo].length <= 160, `${grupo}/${id}: ${campo} com ${v[campo].length}`);
-    }
+teste('SEO: os títulos e as descrições escritos à mão cabem, e são de secções e categorias que existem', () => {
+  for (const [id, v] of Object.entries(SEO.SECCOES)) {
+    assert.ok(cat.seccoes.some((x) => x.id === id), `a secção ${id} não existe`);
+    assert.ok(`${v.titulo} · Franja Kids`.length <= 65, `${id}: o título passa de 65`);
+    if (v.descricao) assert.ok(v.descricao.length >= 50 && v.descricao.length <= 160, `${id}: a descrição tem ${v.descricao.length}`);
   }
-  assert.deepEqual(Object.keys(SEO.LINHAS).sort(), catalogo.linhas.map((l) => l.id).sort());
-  assert.deepEqual(Object.keys(SEO.CATEGORIAS).sort(), Object.keys(catalogo.categorias).sort());
-  assert.deepEqual(Object.keys(SEO.OCASIOES).sort(), catalogo.ocasioes.map((o) => o.id).sort());
+  for (const [k, t] of Object.entries(SEO.TITULOS)) {
+    assert.ok(cat.categorias.includes(k), `a categoria ${k} não existe`);
+    assert.ok(`${t} · Franja Kids`.length <= 65, `${k}: o título passa de 65`);
+  }
   assert.ok(`Franja Kids · ${SEO.TITULO_INICIO}`.length <= 65);
   assert.equal(SEO.resumir('a '.repeat(100), 20), 'a a a a a a a a a…');
 });
-teste('modo online: o botão é «Encomendar e pagar» e as entregas sem portes não aparecem', () => {
+teste('modo online: o botão é «Encomendar e pagar»; as entregas sem portes aparecem sob consulta', () => {
   repor();
   mexer('loja.json', (o) => { legal(o); o.pagamentos.modo = 'online'; });
   const r = construir(['--producao']);
   assert.equal(r.status, 0, r.stderr + r.stdout);
   const fin = pagina('finalizar/index.html');
   assert.match(fin, />Encomendar e pagar</);
-  assert.doesNotMatch(fin, /value="ilhas"/);
-  assert.match(fin, /value="mao"/);
+  assert.match(fin, /value="ilhas" data-preco="" data-sob-consulta>/);
+  assert.match(fin, /value="continente" data-preco="3\.5" checked>/);
+  assert.match(fin, /value="mao" data-preco="0">/);
+  // o «Como funciona» e a página inicial dizem que se paga no site (em modo «encomenda», que se combina depois)
+  assert.match(pagina('como-funciona/index.html'), /Podes realizar o pagamento diretamente no nosso site, através dos métodos disponíveis no momento da compra\./);
+  assert.match(pagina('index.html'), /Confirma os teus dados e paga de forma simples e segura\./);
   assert.equal(JSON.parse(pagina('assets/catalogo.json')).modo, 'online');
   assert.match(pagina('privacidade/index.html'), /Stripe/);
   // os meios de pagamento (11 nov 2026): só os cinco ligados na Stripe, iguais no carrinho, no finalizar e nos termos
@@ -387,12 +504,12 @@ teste('modo online: o botão é «Encomendar e pagar» e as entregas sem portes 
 });
 teste('neutraliza: categoria que não existe esconde o produto; fotografia em falta só sai da ficha', () => {
   repor();
-  mexer('produtos/manta-remalhada.json', (o) => { o.categoria = 'nao-existe'; });
+  mexer('produtos/manta-remalhada.json', (o) => { o.categorias = ['nao/existe']; });
   mexer('produtos/box-franja.json', (o) => { o.fotos.push('nao-ha-esta'); });
   const r = construir();
   assert.equal(r.status, 0, r.stderr + r.stdout);
   assert.ok(!fs.existsSync(path.join(SAIDA, 'produtos/manta-remalhada')));
-  assert.match(r.stdout, /::warning title=Produtos › Manta remalhada::A categoria não é nenhuma/);
+  assert.match(r.stdout, /::warning title=Produtos › Manta remalhada::Nenhuma das categorias do produto existe no site/);
   assert.doesNotMatch(pagina('produtos/box-franja/index.html'), /nao-ha-esta/);
 });
 teste('bloqueia: um produto que não se lê e as zonas mexidas param a publicação', () => {
@@ -572,9 +689,90 @@ await teste('stock: as regras do painel — «esgotado» é sim ou não; os tama
   assert.ok(chaves({ ...bg, tamanhosEsgotados: '1 mês' }).some((k) => k.endsWith(':tamanhosEsgotados')));
 });
 
+await teste('aviso de stock: com o Worker, o produto esgotado pede o email; numa escolha esgotada, a abrir, com a lista do que acabou', () => {
+  repor();
+  mexer('produtos/manta-remalhada.json', (o) => { o.esgotado = true; });
+  mexer('produtos/babygrow-com-nome.json', (o) => { o.tamanhosEsgotados = ['1 mês']; o.cores[0].esgotado = true; });
+  let r = construir();
+  assert.equal(r.status, 0, r.stderr);
+  // sem o Worker (a pré-visualização) não há para onde mandar o pedido: fica a mensagem
+  assert.doesNotMatch(pagina('produtos/manta-remalhada/index.html'), /data-aviso-stock/);
+  assert.match(pagina('produtos/manta-remalhada/index.html'), /Perguntar por mensagem/);
+  r = construir(['--api=https://franjakids-encomendas.exemplo.workers.dev']);
+  assert.equal(r.status, 0, r.stderr);
+  const manta = pagina('produtos/manta-remalhada/index.html');
+  assert.match(manta, /<section class="aviso-stock" aria-labelledby="t-aviso"><h2 id="t-aviso">Avisa-me quando voltar<\/h2>/);
+  assert.match(manta, /data-aviso-stock data-aviso-produto="manta-remalhada"/);
+  assert.doesNotMatch(manta, /id="aviso-variante"|Perguntar por mensagem/);
+  assert.match(manta, /<input id="aviso-email" name="email" type="email" autocomplete="email" required/);
+  assert.match(manta, /depois apagamo-lo \(e ao fim de 6 meses, se não voltar\)/);
+  const bg = pagina('produtos/babygrow-com-nome/index.html');
+  assert.match(bg, /<details class="aviso-stock"><summary>Esgotado o que procuras\? <span>Avisamos-te quando voltar\.<\/span><\/summary>/);
+  const opcoes = [...bg.match(/<select id="aviso-variante"[^]*?<\/select>/)[0].matchAll(/<option value="([^"]+)">([^<]+)<\/option>/g)].map((m) => [JSON.parse(m[1].replace(/&quot;/g, '"')), m[2]]);
+  assert.deepEqual(opcoes, [[{ grupo: 'Tamanho', valor: '1 mês' }, 'Tamanho 1 mês'], [{ grupo: 'Cor', valor: 'Rosa' }, 'Cor Rosa']]);
+  // o aviso fica fora do formulário da compra (um formulário não pode estar dentro de outro)
+  assert.ok(bg.indexOf('data-aviso-stock') > bg.indexOf('</form>'));
+  assert.doesNotMatch(pagina('produtos/box-franja/index.html'), /aviso-stock/);
+  repor();
+});
+await teste('preço por tamanho: a ficha mostra o acréscimo, o catálogo publicado leva-o, e o carrinho faz a conta das regras', () => {
+  repor();
+  const tb = cat.tamanhos[produto('body-dad-mini').tamanhos];
+  const ultimo = tb[tb.length - 1];
+  mexer('produtos/body-dad-mini.json', (o) => { o.suplementosTamanho = { [ultimo]: 2.5 }; });
+  const r = construir();
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(pagina('produtos/body-dad-mini/index.html'), new RegExp(`value="${ultimo}" data-suplemento="2\\.5"><span>${ultimo} <small>\\+2,50 €</small>`));
+  const c = JSON.parse(pagina('assets/catalogo.json'));
+  assert.deepEqual(c.produtos['body-dad-mini'].suplementosTamanho, { [ultimo]: 2.5 });
+  assert.equal(c.produtos['manta-remalhada'].suplementosTamanho, undefined);
+  // o carrinho do site (site.js, unidade) e o Worker (R.conferirEscolha) cobram o mesmo em todos os tamanhos
+  const unidade = new Function('cents', `return ${pedaco(/const unidade = (\(i, cat\) => \{[\s\S]*?\n {2}\});/, SITE_JS2())}`)((v) => Math.round(v * 100));
+  const pub = { produtos: { 'body-dad-mini': c.produtos['body-dad-mini'] } };
+  for (const t of tb) assert.equal(unidade({ slug: 'body-dad-mini', tamanho: t, opcoes: {} }, pub), R.conferirEscolha(c.produtos['body-dad-mini'], { tamanho: t }).unidade_cents, t);
+  assert.equal(unidade({ slug: 'body-dad-mini', tamanho: ultimo, opcoes: {} }, pub), 1490 + 250);
+  repor();
+});
+await teste('textos da loja: o «Como funciona», os «Envios e prazos», as «Informações legais» e as páginas novas do «Sobre Nós»', () => {
+  repor();
+  assert.equal(construir().status, 0);
+  const cf = pagina('como-funciona/index.html');
+  for (const t of ['1. Escolhe o teu favorito', '2. Personaliza ao teu gosto', '3. Finaliza a tua encomenda', '4. Recebe com carinho']) assert.ok(cf.includes(`<h2>${t}</h2>`), t);
+  assert.match(cf, /<h2>Precisas da tua encomenda para uma data especial\? <span class="coracao" aria-hidden="true">♡<\/span><\/h2>/);
+  assert.match(cf, /o prazo habitual de produção e entrega é de 1 a 2 semanas\./);
+  assert.match(cf, /<a class="botao botao--cheio" href="https:\/\/ig\.me\/m\/franjakids">Fala connosco no Instagram <span class="coracao" aria-hidden="true">♡<\/span><\/a>/);
+  assert.match(cf, /A encomenda fica feita quando carregas em «Enviar encomenda»/, 'em modo «encomenda», o pagamento combina-se depois');
+  const env = pagina('envios/index.html');
+  assert.match(env, /Na Franja Kids, cada encomenda é preparada com todo o cuidado e carinho, para que chegue até ti da melhor forma possível\. <span class="coracao" aria-hidden="true">♡<\/span>/);
+  assert.match(env, /Os artigos não personalizados são preparados para envio em 2 a 3 dias úteis\./);
+  assert.match(env, /<h2>Levantamento em mão em Valongo<\/h2>/);
+  assert.match(env, /<li>União Europeia: 8,00 €\.<\/li>/);
+  assert.match(env, /<li>Restantes países: sob consulta\.<\/li>/);
+  assert.match(env, /<li>Levantamento em mão — Valongo: gratuito\.<\/li>/);
+  assert.match(env, /Os prazos de transporte acrescem aos prazos de produção ou preparação\./);
+  assert.match(env, /Envios para o resto do mundo/);
+  assert.match(env, /taxas alfandegárias/);
+  const il = pagina('informacoes-legais/index.html');
+  assert.match(il, /<dt>Nome comercial<\/dt><dd>Franja Kids<\/dd>/);
+  assert.match(il, /<dt>Titular da atividade<\/dt><dd>\[por confirmar: nome do titular\]<\/dd>/);
+  for (const t of ['NIF', 'Morada', 'Email']) assert.ok(il.includes(`<dt>${t}</dt>`), t);
+  assert.match(pagina('como-personalizar/index.html'), /<h1 id="t-pagina">Como personalizar<\/h1>/);
+  const pf = pagina('perguntas-frequentes/index.html');
+  assert.match(pf, /<h2>Posso levantar a encomenda em mão\?<\/h2>/);
+  assert.match(pf, /Para a União Europeia, sim, com portes de 8,00 €\./);
+  // os termos dizem os prazos e o que é sob consulta
+  const t = pagina('termos/index.html');
+  assert.match(t, /os artigos sem personalização são preparados para envio em 2 a 3 dias úteis\. Os prazos de transporte acrescem a estes\./);
+  assert.match(t, /Para os Açores e a Madeira e os restantes países, os portes e o prazo são sob consulta, e a encomenda não se faz no site\./);
+  // a ficha diz o prazo da peça: a personalizada, o de produção; a sem personalização, o de preparação
+  assert.match(pagina('produtos/manta-remalhada/index.html'), /Preparado para envio em 2 a 3 dias úteis\. Depois, até /);
+  assert.match(pagina('produtos/body-dad-mini/index.html'), /Feito por encomenda em 1 a 2 semanas\. Depois, até [^.]+ por CTT no continente, ou levantamento em mão em Valongo, sem portes\./);
+  assert.match(pagina('produtos/box-franja/index.html'), /Sem personalização, sai em 2 a 3 dias úteis; personalizado, em 1 a 2 semanas\./);
+});
+
 // ---------------------------------------------------------------- os cupões (11 nov 2026)
 console.log('cupões');
-await teste('cupões: o campo «Tenho um cupão» só com o Worker das encomendas; o catálogo leva a categoria de cada produto e os nomes', () => {
+await teste('cupões: o campo «Tenho um cupão» só com o Worker das encomendas; o catálogo leva as categorias de cada produto e os nomes', () => {
   repor();
   let r = construir();
   assert.equal(r.status, 0, r.stderr);
@@ -585,8 +783,10 @@ await teste('cupões: o campo «Tenho um cupão» só com o Worker das encomenda
   assert.match(f, /<details data-cupao-abrir><summary>Tenho um cupão<\/summary>/);
   assert.match(f, /<dt data-desconto-rotulo hidden>Cupão<\/dt><dd data-desconto hidden><\/dd>/);
   const c = JSON.parse(pagina('assets/catalogo.json'));
-  assert.equal(c.produtos['babygrow-com-nome'].categoria, produto('babygrow-com-nome').categoria);
-  assert.equal(c.categorias[produto('babygrow-com-nome').categoria], catalogo.categorias[produto('babygrow-com-nome').categoria]);
+  assert.deepEqual(c.produtos['babygrow-com-nome'].categorias, produto('babygrow-com-nome').categorias);
+  // os nomes das secções e das categorias (a frase de um cupão «só em Bodies», «só nos Presentes»)
+  assert.equal(c.categorias['personalizados/babygrows'], 'Babygrows');
+  assert.equal(c.categorias.presentes, 'Presentes');
   // a conta do desconto do finalizar é a do Worker (cupoes.js, descontoDoCupao)
   const doWorker = fs.readFileSync(path.join(RAIZ, 'worker/encomendas/cupoes.js'), 'utf8');
   const corpo = (de, re) => pedaco(re, de).replace(/\s+/g, ' ').replace(/regra/g, 'r');

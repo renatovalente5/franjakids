@@ -4,6 +4,8 @@
   "descricao": "A Franja Kids é uma marca dedicada aos bebés, crianças e famílias. Descobre roupinhas, acessórios, presentes e artigos personalizados, criados com amor e atenção a cada detalhe. Transformamos momentos especiais em memórias inesquecíveis.",
   "instagram": "franjakids",
   "producao": "1 a 2 semanas",
+  "preparacao": "2 a 3 dias úteis",
+  "fotoHistoria": "mercadinho",
   "entrega": {
     "gratisAPartirDe": 60,
     "prazoContinente": "2 dias úteis",
@@ -20,13 +22,18 @@
         "portes": 5.5
       },
       {
-        "id": "estrangeiro",
-        "nome": "Europa",
+        "id": "ue",
+        "nome": "União Europeia",
         "portes": 8
       },
       {
+        "id": "estrangeiro",
+        "nome": "Restantes países",
+        "portes": null
+      },
+      {
         "id": "mao",
-        "nome": "Entrega em mão em Valongo",
+        "nome": "Levantamento em mão — Valongo",
         "portes": 0
       }
     ]

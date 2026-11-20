@@ -1,9 +1,8 @@
 {
   "nome": "Body «Tios, preparem o colinho»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "familia",
-    "bebe-a-caminho"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/anunciar-gravidez"
   ],
   "preco": null,
   "resumo": "Para os tios e os primos que vão estragar o bebé com mimos.",

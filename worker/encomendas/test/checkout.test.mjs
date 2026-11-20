@@ -114,21 +114,16 @@ test('por CTT: a morada fica, os portes somam-se, e os emails saem ao cliente e 
   assert.equal(env.ORDERS.escritas, 1);
 });
 
-test('portes por confirmar (zona sem portes) em modo «encomenda»: segue, o total é só os artigos e o email di-lo', async () => {
+test('sob consulta (zona sem portes, ou os restantes países): o /checkout recusa, sem gravar nem mandar emails', async () => {
   rede = redeFalsa({ catalogo: catalogoDeEnsaio({ portes: { continente: null } }) });
   const env = envFalso({ RESEND_API_KEY: 're_teste', STORE_EMAIL: 'loja@exemplo.pt' });
   const r = await pedir(worker, env, 'POST', '/checkout', { corpo: pedidoPorCorreio({ total_cents: 1990 }) });
-  assert.equal(r.status, 200, r.texto);
-  const enc = await lerKV(env, r.json.encomenda);
-  assert.equal(enc.portes_por_confirmar, true);
-  assert.equal(enc.portes_cents, 0);
-  assert.equal(enc.total_cents, 1990);
-  const [cliente, loja] = ['maria@exemplo.pt', 'loja@exemplo.pt'].map((a) => rede.resend().find((e) => e.to[0] === a));
-  assert.match(cliente.text, /Portes: a confirmar/);
-  assert.match(cliente.text, /Total: 19,90 € \+ portes/);
-  assert.match(cliente.text, /Confirmamos os portes contigo antes do pagamento\./);
-  assert.equal(loja.subject, `Nova encomenda ${r.json.encomenda} — 19,90 € + portes`);
-  assert.match(loja.text, /PORTES POR CONFIRMAR/);
+  assert.equal(r.status, 400, r.texto);
+  assert.deepEqual(r.json, { erro: 'Para esta entrega, os portes e o prazo são sob consulta: fala connosco no Instagram.', campo: 'entrega' });
+  const fora = pedidoPorCorreio({ entrega: 'estrangeiro', total_cents: 1990 });
+  assert.equal((await pedir(worker, env, 'POST', '/checkout', { corpo: fora })).json.campo, 'entrega');
+  assert.equal(env.ORDERS.escritas, 0);
+  assert.equal(rede.resend().length, 0);
 });
 
 test('uma falha do Resend não apaga a encomenda; sem STORE_EMAIL só vai o email ao cliente', async () => {
@@ -284,7 +279,7 @@ test('modo «online»: sem portes não há linha de portes; a Stripe a recusar d
   assert.equal(env.ORDERS.escritas, 0);
   const semPortes = await pedir(worker, env, 'POST', '/checkout', { corpo: pedidoPorCorreio({ total_cents: 1990 }) });
   assert.equal(semPortes.status, 400);
-  assert.deepEqual(semPortes.json, { erro: 'Para esta entrega confirmamos os portes antes do pagamento: manda-nos mensagem no Instagram.', campo: 'entrega' });
+  assert.deepEqual(semPortes.json, { erro: 'Para esta entrega, os portes e o prazo são sob consulta: fala connosco no Instagram.', campo: 'entrega' });
   assert.equal(rede.stripe().length, 1, 'recusado antes de chamar a Stripe');
 });
 

@@ -9,7 +9,7 @@ import { catalogoBase, catalogoDeEnsaio, pedidoValido, pedidoPorCorreio, cliente
 
 const cat = catalogoDeEnsaio();
 const zona = (id, c = cat) => c.zonas.find((z) => z.id === id);
-const MAO = zona('mao'), CONT = zona('continente'), ILHAS = zona('ilhas'), FORA = zona('estrangeiro');
+const MAO = zona('mao'), CONT = zona('continente'), ILHAS = zona('ilhas'), UE = zona('ue');
 const recusa = (fn, mensagem, campo) => {
   let e = null;
   try { fn(); } catch (x) { e = x; }
@@ -129,14 +129,19 @@ test('os portes: os da zona; grátis no continente a partir de 50 € em artigos
   assert.equal(porConfirmar.total_cents, 2190, 'por confirmar, o total é só os artigos, como no site');
 });
 
-test('portes por confirmar (null): em modo «encomenda» segue; em modo «online» recusa com a frase do contrato', () => {
+test('sob consulta (20 nov 2026): uma zona sem portes e os restantes países (sempre) não se encomendam, nos dois modos', () => {
   const semPortes = catalogoDeEnsaio({ portes: { continente: null } });
   const pedido = pedidoPorCorreio({ total_cents: 1990 });
-  const ok = validarPedido(pedido, semPortes, 'encomenda');
-  assert.equal(ok.contas.portes_por_confirmar, true);
-  assert.equal(ok.contas.total_cents, 1990);
-  recusa(() => validarPedido(pedido, semPortes, 'online'), /^Para esta entrega confirmamos os portes antes do pagamento: manda-nos mensagem no Instagram\.$/, 'entrega');
-  assert.equal(validarPedido(pedidoValido(), semPortes, 'online').contas.portes_cents, 0, 'em mão segue em modo «online»');
+  const FRASE = /^Para esta entrega, os portes e o prazo são sob consulta: fala connosco no Instagram\.$/;
+  for (const modo of ['encomenda', 'online']) recusa(() => validarPedido(pedido, semPortes, modo), FRASE, 'entrega');
+  assert.equal(validarPedido(pedidoValido(), semPortes, 'online').contas.portes_cents, 0, 'em mão segue');
+  // os restantes países, mesmo com portes escritos à mão
+  const comPortes = catalogoDeEnsaio({ portes: { estrangeiro: 15 } });
+  const fora = { ...pedido, entrega: 'estrangeiro', cliente: clienteValido({ morada: '1 Main St', codigoPostal: '10001', localidade: 'Nova Iorque', pais: 'Estados Unidos' }) };
+  for (const modo of ['encomenda', 'online']) recusa(() => validarPedido(fora, comPortes, modo), FRASE, 'entrega');
+  // a União Europeia encomenda-se, com os seus portes
+  const ue = validarPedido({ ...pedido, entrega: 'ue', cliente: clienteValido({ morada: 'Calle Mayor, 1', codigoPostal: '28013', localidade: 'Madrid', pais: 'Espanha' }), total_cents: 2790 }, cat, 'online');
+  assert.deepEqual([ue.contas.portes_cents, ue.contas.total_cents, ue.cliente.pais], [800, 2790, 'Espanha']);
 });
 
 test('recusa as linhas: produto que não existe ou não se compra, tamanho ou cor que falta, quantidade fora de 1–20, carrinho vazio ou enorme', () => {
@@ -191,12 +196,15 @@ test('o cliente: cada frase, com o campo que o site marca', () => {
   recusa(() => validarCliente({ ...base, ...moradaValida(), localidade: ' ' }, CONT), /^Escreve a localidade\.$/, 'localidade');
   const cont = validarCliente({ ...base, ...moradaValida(), pais: 'Espanha' }, CONT);
   assert.deepEqual(cont, { ...base, ...moradaValida() }, 'no continente o país é Portugal: o que vier não se grava');
-  // Fora de Portugal: o código postal é texto livre (até 20) e o país é obrigatório.
-  const fora = { ...base, morada: '12 Rue de la Paix', codigoPostal: 'SW1A 1AA', localidade: 'Paris', pais: 'França' };
-  assert.deepEqual(validarCliente(fora, FORA), fora);
-  recusa(() => validarCliente({ ...fora, codigoPostal: '' }, FORA), /^Escreve o código postal\.$/, 'codigoPostal');
-  recusa(() => validarCliente({ ...fora, codigoPostal: 'X'.repeat(21) }, FORA), /^O código postal tem no máximo 20 caracteres\.$/, 'codigoPostal');
-  recusa(() => validarCliente({ ...fora, pais: '' }, FORA), /^Escreve o país\.$/, 'pais');
+  // Na União Europeia: o código postal é texto livre (até 20) e o país é um da lista (escrito como ela o tem).
+  const fora = { ...base, morada: '12 Rue de la Paix', codigoPostal: '75002', localidade: 'Paris', pais: 'França' };
+  assert.deepEqual(validarCliente(fora, UE), fora);
+  assert.equal(validarCliente({ ...fora, pais: ' franca ' }, UE).pais, 'França');
+  assert.equal(validarCliente({ ...fora, pais: 'PAÍSES BAIXOS' }, UE).pais, 'Países Baixos');
+  recusa(() => validarCliente({ ...fora, codigoPostal: '' }, UE), /^Escreve o código postal\.$/, 'codigoPostal');
+  recusa(() => validarCliente({ ...fora, codigoPostal: 'X'.repeat(21) }, UE), /^O código postal tem no máximo 20 caracteres\.$/, 'codigoPostal');
+  recusa(() => validarCliente({ ...fora, pais: '' }, UE), /^Escolhe o país\.$/, 'pais');
+  for (const p of ['Portugal', 'Suíça', 'Reino Unido', 'Brasil']) recusa(() => validarCliente({ ...fora, pais: p }, UE), /^Escolhe o país da lista: esta entrega é só para a União Europeia\.$/, 'pais');
   assert.equal(telefoneValido('912 345 678'), true);
 });
 

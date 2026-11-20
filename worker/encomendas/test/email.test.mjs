@@ -96,12 +96,12 @@ test('cada linha mostra as escolhas e o texto da personalização; os portes e o
   assert.match(porConfirmar.cliente.texto, /Envio para Rua das Flores, 10, 4440-503 Valongo\. Confirmamos os portes contigo antes do pagamento\./);
   assert.equal(porConfirmar.loja.assunto, 'Nova encomenda FK-20261109-7K2Q9M — 19,90 € + portes');
   const mao = mensagens(env, 'registada', { ...enc, entrega: 'mao', cliente: { nome: 'Maria', email: 'maria@exemplo.pt', telefone: '912345678' } });
-  assert.match(mao.cliente.texto, /Entrega em mão: Grátis/);
-  assert.match(mao.cliente.texto, /ENTREGA\n {2}Entrega em mão: combinamos contigo o dia por mensagem\./);
-  assert.match(mao.loja.texto, /ENTREGA\n {2}Entrega em mão\n/);
-  const fora = mensagens(env, 'registada', { ...enc, entrega: 'estrangeiro', portes_por_confirmar: true, cliente: { ...enc.cliente, morada: '12 Rue de la Paix', codigoPostal: '75002', localidade: 'Paris', pais: 'França' } });
-  assert.match(fora.cliente.texto, /Envio para 12 Rue de la Paix, 75002 Paris, França\./);
-  assert.match(fora.loja.texto, /Fora de Portugal — PORTES POR CONFIRMAR com o cliente\n {2}Maria Fernanda Silva, 12 Rue de la Paix, 75002 Paris, França/);
+  assert.match(mao.cliente.texto, /Levantamento em mão: Grátis/);
+  assert.match(mao.cliente.texto, /ENTREGA\n {2}Levantamento em mão: quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./);
+  assert.match(mao.loja.texto, /ENTREGA\n {2}Levantamento em mão\n {2}Combinar o levantamento pelo WhatsApp: 912345678\n/);
+  const ue = mensagens(env, 'registada', { ...enc, entrega: 'ue', cliente: { ...enc.cliente, morada: '12 Rue de la Paix', codigoPostal: '75002', localidade: 'Paris', pais: 'França' } });
+  assert.match(ue.cliente.texto, /Envio para 12 Rue de la Paix, 75002 Paris, França\./);
+  assert.match(ue.loja.texto, /União Europeia\n {2}Maria Fernanda Silva, 12 Rue de la Paix, 75002 Paris, França/);
 });
 
 test('a oferta: «não pomos preços» e a mensagem do cartão, ao cliente na confirmação e sempre à loja; o texto do cliente vai escapado no HTML', () => {

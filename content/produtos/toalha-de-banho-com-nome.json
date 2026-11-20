@@ -1,7 +1,9 @@
 {
   "nome": "Toalha de banho com capuz e nome",
-  "categoria": "mantas-e-toalhas",
-  "ocasioes": [],
+  "categorias": [
+    "personalizados/toalhas-de-banho",
+    "bebe/toalhas-de-banho-e-fraldinhas"
+  ],
   "preco": null,
   "resumo": "Toalha de 80 × 80 cm com capuz e a fralda a condizer, com o nome bordado.",
   "fotos": [

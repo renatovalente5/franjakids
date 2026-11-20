@@ -55,7 +55,7 @@ const emMao = (enc) => enc.entrega === ENTREGA_EM_MAO;
 /* Os portes e o total, como o site os mostra: «Grátis», «a confirmar», ou o valor. */
 function totais(enc) {
   const valor = enc.portes_por_confirmar ? 'a confirmar' : (enc.portes_cents ? eur(enc.portes_cents) : enc.cupao_portes ? 'Grátis (cupão)' : 'Grátis');
-  const portes = { rotulo: emMao(enc) ? 'Entrega em mão' : 'Portes', valor };
+  const portes = { rotulo: emMao(enc) ? 'Levantamento em mão' : 'Portes', valor };
   const total = enc.portes_por_confirmar ? `${eur(enc.total_cents)} + portes` : eur(enc.total_cents);
   // o desconto do cupão, quando o há (o de portes grátis diz-se nos portes)
   const desconto = enc.cupao && enc.desconto_cents > 0 ? { rotulo: `Cupão ${enc.cupao}`, valor: `−${eur(enc.desconto_cents)}` } : null;
@@ -76,10 +76,12 @@ function artigosTexto(enc) {
 export const moradaDe = (c) => [c.morada, [c.codigoPostal, c.localidade].filter(Boolean).join(' '), c.pais].filter(Boolean).join(', ');
 const nomeDaZona = (enc) => NOMES_ZONAS[enc.entrega] || enc.entrega;
 
-/* A entrega, numa frase: em mão (o dia combina-se por mensagem) ou o envio para a morada que a
-   pessoa escreveu, com os portes por confirmar quando o forem. */
+/* A entrega, numa frase: o levantamento em mão (combina-se pelo WhatsApp quando a encomenda estiver pronta: o
+   pedido da loja de 20 nov 2026) ou o envio para a morada que a pessoa escreveu, com os portes por confirmar
+   quando o forem (as encomendas antigas). */
+const PELO_WHATSAPP = 'quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.';
 function entregaFrase(enc) {
-  if (emMao(enc)) return `${nomeDaZona(enc)}: combinamos contigo o dia por mensagem.`;
+  if (emMao(enc)) return `${nomeDaZona(enc)}: ${PELO_WHATSAPP}`;
   return juntar(`Envio para ${moradaDe(enc.cliente || {})}.`, enc.portes_por_confirmar ? 'Confirmamos os portes contigo antes do pagamento.' : '');
 }
 
@@ -95,7 +97,7 @@ function oferta(enc) {
 /* O que vem a seguir. A pré-visualização só quando há o que pré-visualizar (um produto com nome ou
    frase); numa encomenda sem personalização ficava uma promessa que ninguém cumpre. */
 const previa = (enc) => (temPersonalizados(enc) ? 'Antes de produzirmos, mandamos-te a pré-visualização para aprovares.' : '');
-const seguinte = (enc) => (emMao(enc) ? 'Quando estiver pronta, combinamos contigo a entrega.' : 'Avisamos-te quando a encomenda seguir.');
+const seguinte = (enc) => (emMao(enc) ? 'Quando estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.' : 'Avisamos-te quando a encomenda seguir.');
 
 const ligacaoDaEncomenda = (env, enc) => (enc.chave ? `${siteUrl(env)}/obrigado/?e=${encodeURIComponent(enc.encomenda)}&c=${encodeURIComponent(enc.chave)}` : null);
 
@@ -183,7 +185,7 @@ function emailLoja(env, enc, { assunto, titulo, cabecalho, rodape = [] }) {
   const c = enc.cliente || {};
   const of = oferta(enc);
   const entregaLinhas = emMao(enc)
-    ? [nomeDaZona(enc)]
+    ? [nomeDaZona(enc), `Combinar o levantamento pelo WhatsApp: ${c.telefone || '—'}`]
     : [`${nomeDaZona(enc)}${enc.portes_por_confirmar ? ' — PORTES POR CONFIRMAR com o cliente' : ''}`, `${c.nome || '—'}, ${moradaDe(c)}`];
   const clientePares = [
     ['Nome', c.nome || '—'],
@@ -280,7 +282,7 @@ const AVISOS = {
     cliente: emailCliente(env, enc, {
       assunto: `A tua encomenda ${enc.encomenda} está pronta`,
       titulo: 'A tua encomenda está pronta',
-      frase: 'A tua encomenda está pronta. Vamos combinar contigo o dia da entrega em mão.',
+      frase: 'A tua encomenda está pronta. Vamos contactar-te pelo WhatsApp para combinar o levantamento.',
     }),
     loja: null,
   }),
@@ -346,6 +348,28 @@ function naoConcluido(env, enc, razao) {
 export function mensagens(env, aviso, enc, extras = {}) {
   const f = AVISOS[aviso];
   return f ? f(env, enc, extras) : { cliente: null, loja: null };
+}
+
+/* ---------------------------------------------------------------- o aviso de stock (20 nov 2026; avisos.js)
+   «Voltou»: a quem pediu, na página de um artigo esgotado, para ser avisada. Uma vez, quando a loja carrega em
+   «Avisar quem pediu» no painel. Não é uma encomenda: sem artigos, sem livre resolução. `variante`: null (o
+   artigo inteiro) ou { grupo, valor }; `url`: a página do artigo. */
+export function emailDeStock(env, { nome, url, variante = null }) {
+  const escolha = !variante ? '' : variante.grupo === 'Tamanho' || variante.grupo === 'Cor' ? ` (${variante.grupo.toLowerCase()} ${variante.valor})` : ` (${variante.grupo}: ${variante.valor})`;
+  const assunto = `Voltou: ${nome}`;
+  const frase = `Pediste-nos um aviso: «${nome}»${escolha} já está outra vez à venda.`;
+  const fim = 'Este aviso só se manda uma vez: o teu pedido já foi apagado.';
+  const k = contactos(env);
+  const texto = ['Olá,', '', frase, '', `Ver no site: ${url}`, '', fim, '', k.texto].join('\n');
+  const corpo = [
+    bloco(p('Olá,') + p(esc(frase), true)),
+    botao(url, 'Ver no site'),
+    separador(),
+    bloco(pequeno(esc(fim)) + pequeno(k.html, true), '14px 40px 0 40px'),
+  ].join('');
+  const rodape = `Recebeste este email porque pediste, em ${dominioDe(env)}, um aviso quando este artigo voltasse.`;
+  const html = documento({ assunto, preheader: frase, titulo: 'Voltou!', subtitulo: nome, corpo, logo: logoDe(env), marca: marcaDe(env), rodape });
+  return { assunto, texto, html };
 }
 
 /* ---------------------------------------------------------------- o envio */

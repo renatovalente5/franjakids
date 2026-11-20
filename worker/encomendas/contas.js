@@ -18,7 +18,7 @@
  */
 
 import { descontoDoCupao } from './cupoes.js';
-import { conferirEscolha, portesDe, nifValido, emailValido, zonaComMorada } from '../../src/lib/regras.mjs';
+import { conferirEscolha, portesDe, nifValido, emailValido, zonaComMorada, zonaSobConsulta, PAISES_UE } from '../../src/lib/regras.mjs';
 
 export const MAX_QTD = 20;          // a mesma do carrinho (site.js, MAX_QTD)
 export const MAX_LINHAS = 50;       // mais do que isto não é um carrinho, é um script
@@ -167,7 +167,8 @@ export function contas(cat, linhas, zona, { cupao = null } = {}) {
   /* O CUPÃO (cupoes.js, descontoDoCupao): o desconto nos artigos (os das categorias dele), ou os portes
      grátis — só quando os portes se sabem (uns por confirmar nem o cupão os apaga). Um cupão que nesta
      encomenda não dá nada (cupao_sem_efeito) o /checkout recusa, para não se gastar um uso. */
-  const desc = cupao ? descontoDoCupao(cupao, saida.map((l) => ({ total_cents: l.total_cents, categoria: (cat.produtos[l.produto] || {}).categoria || '' }))) : { cents: 0, portes: false };
+  const categoriasDe = (slug) => { const p = temProprio(cat.produtos, slug) ? cat.produtos[slug] : null; return p && Array.isArray(p.categorias) ? p.categorias : []; };
+  const desc = cupao ? descontoDoCupao(cupao, saida.map((l) => ({ total_cents: l.total_cents, categorias: categoriasDe(l.produto) }))) : { cents: 0, portes: false };
   const tiraPortes = desc.portes && !portes_por_confirmar && portesSemCupao > 0;
   const portes_cents = portes_por_confirmar || tiraPortes ? 0 : portesSemCupao;
   return {
@@ -186,9 +187,13 @@ const RE_CP_ILHAS = /^9\d{3}-\d{3}$/;                // Madeira 9000–9399, Aç
 const CP_E_DAS_ILHAS = 'Em Portugal continental o código postal começa por 1 a 8. Para os Açores e a Madeira, escolhe essa entrega.';
 const CP_E_DO_CONTINENTE = 'Nos Açores e na Madeira o código postal começa por 9. Para Portugal continental, escolhe essa entrega.';
 
+/* O país escrito como a lista o tem (sem olhar a maiúsculas nem a acentos): «espanha» → «Espanha». */
+const semAcentos = (s) => String(s).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
+const paisDaUE = (p) => PAISES_UE.find((x) => semAcentos(x) === semAcentos(p)) || null;
+
 /* Os dados do cliente, limpos e conferidos. Os opcionais ficam AUSENTES quando vêm vazios. A morada
-   só com entrega que a leve (R.zonaComMorada: todas menos a entrega em mão, onde se ignora); o país
-   só para fora de Portugal (no continente e nas ilhas é Portugal). */
+   só com entrega que a leve (R.zonaComMorada: todas menos o levantamento em mão, onde se ignora); o país
+   só na União Europeia, e um da lista (R.PAISES_UE: no continente e nas ilhas é Portugal). */
 export function validarCliente(bruto, zona) {
   const b = eObjecto(bruto) ? bruto : {};
   const c = {
@@ -211,7 +216,7 @@ export function validarCliente(bruto, zona) {
   let cp = limpar(b.codigoPostal, 40);
   const localidade = limpar(b.localidade, 100);
   if (!morada) throw new ErroDoPedido('Escreve a morada.', { campo: 'morada' });
-  if (zona.id === 'estrangeiro') {
+  if (zona.id === 'ue') {
     if (!cp) throw new ErroDoPedido('Escreve o código postal.', { campo: 'codigoPostal' });
     if (cp.length > MAX_CP_ESTRANGEIRO) throw new ErroDoPedido(`O código postal tem no máximo ${MAX_CP_ESTRANGEIRO} caracteres.`, { campo: 'codigoPostal' });
   } else {
@@ -227,10 +232,12 @@ export function validarCliente(bruto, zona) {
   c.morada = morada;
   c.codigoPostal = cp;
   c.localidade = localidade;
-  if (zona.id === 'estrangeiro') {
+  if (zona.id === 'ue') {
     const pais = limpar(b.pais, 60);
-    if (!pais) throw new ErroDoPedido('Escreve o país.', { campo: 'pais' });
-    c.pais = pais;
+    if (!pais) throw new ErroDoPedido('Escolhe o país.', { campo: 'pais' });
+    const certo = paisDaUE(pais);
+    if (!certo) throw new ErroDoPedido('Escolhe o país da lista: esta entrega é só para a União Europeia.', { campo: 'pais' });
+    c.pais = certo;
   }
   return c;
 }
@@ -260,12 +267,14 @@ export function validarPedido(corpo, cat, modo, { cupao = null } = {}) {
   if (!eObjecto(corpo)) throw new ErroDoPedido('Pedido inválido.');
   const zona = (Array.isArray(cat.zonas) ? cat.zonas : []).find((z) => eObjecto(z) && z.id === corpo.entrega);
   if (!zona) throw new ErroDoPedido('Escolhe como queres receber a encomenda.', { campo: 'entrega' });
+  /* SOB CONSULTA (o pedido da loja de 20 nov 2026): os restantes países, e uma zona sem os portes escritos. Os
+     portes e o prazo combinam-se pelo Instagram, e a encomenda não se faz no site, nos dois modos (antes, em modo
+     «encomenda», seguia com os portes por confirmar). O site nem mostra o botão. */
+  if (zonaSobConsulta(zona)) throw new ErroDoPedido('Para esta entrega, os portes e o prazo são sob consulta: fala connosco no Instagram.', { campo: 'entrega' });
   const c = contas(cat, corpo.linhas, zona, { cupao });
-  // Portes por confirmar: em modo «online» não há como os cobrar, por isso não se segue (o site
-  // nem mostra essas zonas); em modo «encomenda» a encomenda segue e o email di-lo.
-  if (c.portes_por_confirmar && modo === 'online') {
-    throw new ErroDoPedido('Para esta entrega confirmamos os portes antes do pagamento: manda-nos mensagem no Instagram.', { campo: 'entrega' });
-  }
+  // (os portes por confirmar já não acontecem numa encomenda nova: a zona sem portes ficou acima; o campo fica,
+  // para as que já estavam gravadas)
+  if (c.portes_por_confirmar) throw new ErroDoPedido('Para esta entrega, os portes e o prazo são sob consulta: fala connosco no Instagram.', { campo: 'entrega' });
   const cliente = validarCliente(corpo.cliente, zona);
   const { oferta, notas } = validarExtras(corpo);
   if (corpo.termos !== true) throw new ErroDoPedido('Para encomendar, aceita os termos e condições.', { campo: 'termos' });

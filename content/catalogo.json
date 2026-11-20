@@ -1,109 +1,217 @@
 {
-  "linhas": [
+  "seccoes": [
+    {
+      "id": "bebe",
+      "nome": "Bebé",
+      "frase": "Da primeira roupinha aos pequenos detalhes, tudo pensado para acolher o teu bebé com amor.",
+      "foto": "bebe-a6c0b9b1",
+      "itens": [
+        {
+          "id": "bodies-e-babygrows",
+          "nome": "Bodies e babygrows"
+        },
+        {
+          "id": "primeira-roupinha",
+          "nome": "Primeira roupinha",
+          "frase": "Para levar a primeira roupinha do bebé para a maternidade, e guardar depois."
+        },
+        {
+          "id": "conjuntos-de-malha",
+          "nome": "Conjuntos de malha",
+          "frase": "Conjuntos de malha e de algodão para bebé, para os dias frios e para o verão."
+        },
+        {
+          "id": "mantas-e-cobertores",
+          "nome": "Mantas e cobertores"
+        },
+        {
+          "id": "lencois-de-cama",
+          "nome": "Lençóis de cama"
+        },
+        {
+          "id": "toalhas-de-banho-e-fraldinhas",
+          "nome": "Toalhas de banho e fraldinhas"
+        },
+        {
+          "id": "outros",
+          "nome": "Outros"
+        }
+      ]
+    },
     {
       "id": "personalizados",
       "nome": "Personalizados",
       "frase": "A tua ideia, o nosso carinho, um personalizado único.",
       "foto": "personalizados-a9a1ac19",
-      "categorias": [
-        "bodies",
-        "t-shirts",
-        "camisolas",
-        "babetes"
+      "itens": [
+        {
+          "id": "bodies",
+          "nome": "Bodies",
+          "frase": "Bodies com o nome, a data ou a frase que escolheres: para anunciar a gravidez, pedir aos padrinhos ou dar a notícia aos avós."
+        },
+        {
+          "id": "babygrows",
+          "nome": "Babygrows",
+          "frase": "Babygrows com o nome do bebé, para os primeiros meses."
+        },
+        {
+          "id": "fraldinhas",
+          "nome": "Fraldinhas"
+        },
+        {
+          "id": "babetes",
+          "nome": "Babetes",
+          "frase": "Babetes com frases para os avós, os tios e os padrinhos, e o nome que escolheres."
+        },
+        {
+          "id": "gorros",
+          "nome": "Gorros"
+        },
+        {
+          "id": "toalhas-de-banho",
+          "nome": "Toalhas de banho"
+        },
+        {
+          "id": "tapa-ovos",
+          "nome": "Tapa-ovos"
+        }
       ]
     },
     {
-      "id": "bebe",
-      "nome": "Universo Bebé",
-      "frase": "Da primeira roupinha aos pequenos detalhes, tudo pensado para acolher o teu bebé com amor.",
-      "foto": "bebe-a6c0b9b1",
-      "categorias": [
-        "babygrows",
-        "conjuntos",
-        "mantas-e-toalhas",
-        "primeira-roupinha"
+      "id": "crianca-e-familia",
+      "nome": "Criança e Família Personalizados",
+      "frase": "T-shirts, sweatshirts e conjuntos a combinar, com o nome ou a frase que escolheres, para crianças e adultos.",
+      "itens": [
+        {
+          "id": "t-shirts-de-crianca",
+          "nome": "T-shirts de criança personalizadas",
+          "frase": "T-shirts com o nome ou a frase que escolheres, para crianças e adultos, e para a família andar a condizer."
+        },
+        {
+          "id": "t-shirts-de-adulto",
+          "nome": "T-shirts de adulto personalizadas",
+          "frase": "T-shirts com o nome ou a frase que escolheres, para crianças e adultos, e para a família andar a condizer."
+        },
+        {
+          "id": "sweatshirts-de-crianca",
+          "nome": "Sweatshirts de criança personalizadas",
+          "frase": "Sweatshirts com o nome ou a frase que escolheres, para crianças e adultos."
+        },
+        {
+          "id": "sweatshirts-de-adulto",
+          "nome": "Sweatshirts de adulto personalizadas",
+          "frase": "Sweatshirts com o nome ou a frase que escolheres, para crianças e adultos."
+        },
+        {
+          "id": "conjuntos-a-combinar",
+          "nome": "Conjuntos a combinar personalizados"
+        }
       ]
     },
     {
       "id": "presentes",
-      "nome": "Presentes Especiais",
-      "frase": "Peças delicadas para os primeiros momentos do bebé.",
+      "nome": "Presentes",
+      "frase": "Presentes personalizados para anunciar a gravidez, convidar os padrinhos e surpreender a família.",
       "foto": "presentes-71a21467",
-      "categorias": [
-        "box-franja",
-        "caixas",
-        "placas"
+      "itens": [
+        {
+          "id": "anunciar-gravidez",
+          "nome": "Anunciar uma gravidez",
+          "frase": "Bodies, t-shirts e caixas surpresa para contar a novidade à família.",
+          "foto": "ocasiao-gravidez"
+        },
+        {
+          "id": "padrinhos",
+          "nome": "Convites para padrinhos",
+          "frase": "Para pedir aos padrinhos de uma forma que não esquecem: bodies, babetes e caixas surpresa.",
+          "foto": "padrinhos-19ea8a8e"
+        },
+        {
+          "id": "avos-e-bisavos",
+          "nome": "Presentes para avós e bisavós",
+          "frase": "Para contar aos avós que vem aí um neto: bodies, babetes e caixas surpresa com a frase que escolheres.",
+          "foto": "ocasiao-avos"
+        },
+        {
+          "id": "papas",
+          "nome": "Presentes para papás",
+          "frase": "Para o Dia do Pai ou para qualquer dia: bodies, t-shirts, sweatshirts e placas para o pai e o bebé.",
+          "foto": "papa-6497dedf"
+        },
+        {
+          "id": "irmaos",
+          "nome": "Presentes para irmãos",
+          "frase": "Para o irmão mais velho receber a notícia, ou para os irmãos andarem a condizer.",
+          "foto": "irmaos-f8385ef2"
+        },
+        {
+          "id": "caixas-presente",
+          "nome": "Caixas presente",
+          "frase": "Caixas com a tua frase na tampa, para dar a notícia aos avós, aos padrinhos ou à família."
+        },
+        {
+          "id": "nascimento",
+          "nome": "Presentes de nascimento",
+          "foto": "nascimento-74e0fb11"
+        }
       ]
-    }
-  ],
-  "categorias": {
-    "bodies": "Bodies",
-    "t-shirts": "T-shirts",
-    "camisolas": "Sweatshirts",
-    "babetes": "Acessórios",
-    "babygrows": "Babygrows",
-    "conjuntos": "Conjuntos de Bebé",
-    "mantas-e-toalhas": "Mantas e Acessórios",
-    "primeira-roupinha": "Primeira Roupinha",
-    "box-franja": "Box Franja",
-    "caixas": "Caixas surpresa",
-    "placas": "Placas"
-  },
-  "ocasioes": [
-    {
-      "id": "bebe-a-caminho",
-      "nome": "Bebé a Caminho",
-      "foto": "ocasiao-gravidez"
     },
     {
-      "id": "avos",
-      "nome": "Avós e Bisavós",
-      "foto": "ocasiao-avos"
+      "id": "colecoes",
+      "nome": "Coleções",
+      "frase": "As nossas coleções: do Natal ao Dia da Mãe e ao Dia do Pai, e as edições especiais.",
+      "foto": "ocasiao-natal",
+      "itens": [
+        {
+          "id": "baby-2027",
+          "nome": "Baby 2027"
+        },
+        {
+          "id": "entre-paises",
+          "nome": "Entre Países",
+          "frase": "Para os bebés de duas terras: as duas bandeiras, os dois mapas ou a frase que escolheres.",
+          "foto": "ocasiao-entre-paises"
+        },
+        {
+          "id": "desporto-e-clubes",
+          "nome": "Desporto e Clubes"
+        },
+        {
+          "id": "natal",
+          "nome": "Natal",
+          "frase": "Para o primeiro Natal do bebé e para as fotografias de Natal da família.",
+          "foto": "ocasiao-natal"
+        },
+        {
+          "id": "dia-da-mae",
+          "nome": "Dia da Mãe",
+          "frase": "Para o Dia da Mãe ou para qualquer dia: bodies, t-shirts e placas com o nome que escolheres.",
+          "foto": "ocasiao-mama"
+        },
+        {
+          "id": "dia-do-pai",
+          "nome": "Dia do Pai"
+        },
+        {
+          "id": "edicoes-especiais",
+          "nome": "Edições especiais"
+        }
+      ]
     },
     {
-      "id": "padrinhos",
-      "nome": "Padrinhos",
-      "foto": "padrinhos-19ea8a8e"
-    },
-    {
-      "id": "papa",
-      "nome": "Papás",
-      "foto": "papa-6497dedf"
-    },
-    {
-      "id": "mama",
-      "nome": "Mamãs",
-      "foto": "ocasiao-mama"
-    },
-    {
-      "id": "irmaos",
-      "nome": "Irmãos",
-      "foto": "irmaos-f8385ef2"
-    },
-    {
-      "id": "entre-paises",
-      "nome": "Entre países",
-      "foto": "ocasiao-entre-paises"
-    },
-    {
-      "id": "natal",
-      "nome": "Natal",
-      "foto": "ocasiao-natal"
-    },
-    {
-      "id": "familia",
-      "nome": "Tios e primos",
-      "foto": "familia-cc6cff63"
-    },
-    {
-      "id": "nascimento",
-      "nome": "Nascimento",
-      "foto": "nascimento-74e0fb11"
-    },
-    {
-      "id": "aniversarios",
-      "nome": "Aniversários",
-      "foto": "aniversarios-a1173b1e"
+      "id": "promocoes",
+      "nome": "Promoções",
+      "frase": "Últimas unidades e campanhas especiais da Franja Kids.",
+      "itens": [
+        {
+          "id": "ultimas-unidades",
+          "nome": "Últimas unidades"
+        },
+        {
+          "id": "campanhas-especiais",
+          "nome": "Campanhas especiais"
+        }
+      ]
     }
   ],
   "tamanhos": {

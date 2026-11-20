@@ -1,10 +1,10 @@
 {
   "nome": "T-shirt de adulto personalizada",
-  "categoria": "t-shirts",
-  "ocasioes": [
-    "familia",
-    "papa",
-    "mama"
+  "categorias": [
+    "crianca-e-familia/t-shirts-de-adulto",
+    "presentes/papas",
+    "colecoes/dia-do-pai",
+    "colecoes/dia-da-mae"
   ],
   "preco": 15,
   "resumo": "Para combinar com os mais pequenos: a frase, o nome ou o desenho que quiseres.",

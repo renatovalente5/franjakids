@@ -1,10 +1,10 @@
 {
   "nome": "Caixa surpresa personalizada",
-  "categoria": "caixas",
-  "ocasioes": [
-    "bebe-a-caminho",
-    "avos",
-    "padrinhos"
+  "categorias": [
+    "presentes/caixas-presente",
+    "presentes/anunciar-gravidez",
+    "presentes/avos-e-bisavos",
+    "presentes/padrinhos"
   ],
   "preco": 3.5,
   "resumo": "Uma caixa de cartão com a tua frase na tampa, para entregar a notícia.",

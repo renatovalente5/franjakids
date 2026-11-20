@@ -50,11 +50,13 @@ como travão). Em modo «online» sem `STRIPE_SECRET_KEY` o Worker responde 503 
   `{ ok: false, campo, mensagem }`, e o Worker responde 400 com essa frase. Uma escolha que falta
   num grupo de `opcoes` vale a primeira sem acréscimo (a mesma regra do site).
 - `qtd`: 1 a 20. Até 50 linhas.
-- `entrega`: um dos ids de `catalogo.zonas` (`continente`, `ilhas`, `estrangeiro`, `mao`). Com
+- `entrega`: um dos ids de `catalogo.zonas` (`continente`, `ilhas`, `ue`, `estrangeiro`, `mao`: o menu de 20
+  nov 2026, docs/MENU-E-CATEGORIAS.md §5). Uma zona **sob consulta** (`R.zonaSobConsulta`: os restantes
+  países, sempre, e qualquer zona sem portes) recusa-se com 400 `campo: "entrega"`, nos dois modos. Com
   entrega que não seja `mao`, a morada, o código postal e a localidade são obrigatórios; o código
   postal é `0000-000` e começa por 1 a 8 no `continente`, por 9 nas `ilhas` (400 com
-  `campo: "codigoPostal"` e a frase a dizê-lo); no `estrangeiro` é texto livre, e o `pais` é
-  obrigatório. Na entrega em mão a morada ignora-se.
+  `campo: "codigoPostal"` e a frase a dizê-lo); na `ue` é texto livre, e o `pais` é obrigatório e um de
+  `R.PAISES_UE`. No levantamento em mão a morada ignora-se.
 - `nif`, `morada`, `codigoPostal`, `localidade`, `pais`, `mensagem`, `notas`: opcionais (ausentes, não
   vazios). O NIF, se vier, tem de ser válido (`R.nifValido`). `mensagem` até 240 caracteres, `notas`
   até 600; `oferta` é sim ou não.
@@ -281,7 +283,15 @@ carrinho tira as linhas esgotadas e o `/checkout` recusa-as (`R.conferirEscolha`
 
 **Os cupões** vivem no objecto durável `Cupoes` deste Worker (worker/encomendas/cupoes.js), nunca no
 repositório (é público). A regra: `{ codigo, tipo: "percentagem" | "valor" | "portes", valor, minimo?,
-desde?, ate?, limite?, porCliente?, categorias?, ativo, nota? }`.
+desde?, ate?, limite?, porCliente?, categorias?, ativo, nota? }`. As `categorias` são as secções do menu
+(`presentes`) ou as suas categorias (`presentes/papas`); um artigo está nelas pelas `categorias` da entrada
+do catálogo publicado.
+
+**Os avisos de stock** (20 nov 2026; worker/encomendas/avisos.js, docs/MENU-E-CATEGORIAS.md §6): `POST /aviso`
+`{ produto, variante: { grupo, valor } | null, email }` (público, CORS, o travão por IP com a chave `aviso:`) guarda
+o pedido no objecto durável `Avisos` só se o que se pede existe e está esgotado no catálogo publicado (409 se já
+se compra). O painel: `GET /painel/avisos` (quantos esperam, sem os emails) e `POST /painel/avisos/<produto>/enviar`
+(avisa quem pediu o que já se compra; o pedido apaga-se; o que falha fica) → `{ enviados, falharam, esperam }`.
 
 - `POST /cupao` `{ codigo, linhas, entrega }` (público, CORS, o travão do `/checkout`) → `{ cupao: {
   codigo, tipo, valor, minimo, categorias, descricao }, desconto_cents }`, ou 400 `{ erro, campo: "cupao" }`.

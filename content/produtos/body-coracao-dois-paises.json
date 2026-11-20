@@ -1,8 +1,8 @@
 {
   "nome": "Body «Coração de dois países»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "entre-paises"
+  "categorias": [
+    "personalizados/bodies",
+    "colecoes/entre-paises"
   ],
   "preco": 12,
   "resumo": "Um coração com as duas bandeiras, ou os dois mapas ligados por um caminho.",

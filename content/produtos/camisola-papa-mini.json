@@ -1,9 +1,10 @@
 {
   "nome": "Camisolas «Papa» e «Mini»",
-  "categoria": "camisolas",
-  "ocasioes": [
-    "papa",
-    "familia"
+  "categorias": [
+    "crianca-e-familia/sweatshirts-de-crianca",
+    "crianca-e-familia/sweatshirts-de-adulto",
+    "presentes/papas",
+    "colecoes/dia-do-pai"
   ],
   "preco": null,
   "resumo": "Para o pai e o filho (ou a filha) andarem a condizer.",

@@ -1,9 +1,9 @@
 {
   "nome": "Body «Queridos avós, preparem o colinho»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "avos",
-    "bebe-a-caminho"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/avos-e-bisavos",
+    "presentes/anunciar-gravidez"
   ],
   "preco": 12,
   "resumo": "Para dar a notícia aos avós e aos bisavós. Também fazemos «Bisa» e «Vovó».",

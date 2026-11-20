@@ -1,7 +1,8 @@
 {
   "nome": "Body com nome",
-  "categoria": "bodies",
-  "ocasioes": [],
+  "categorias": [
+    "personalizados/bodies"
+  ],
   "preco": null,
   "resumo": "O nome do bebé na letra e na cor que escolheres, com ou sem desenho.",
   "fotos": [

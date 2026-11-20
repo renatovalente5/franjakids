@@ -11,16 +11,16 @@ afterEach(() => { if (rede) rede.repor(); rede = null; });
 const porCorreio = (sobre = {}) => ({ entrega: 'continente', cliente: clienteValido(moradaValida()), total_cents: 2380, ...sobre });
 
 test('GET /encomenda: com a chave certa dá só o que a pessoa já sabe (§3); sem ela, ou errada, 404', async () => {
-  rede = redeFalsa({ catalogo: catalogoDeEnsaio({ portes: { continente: null } }) });
+  rede = redeFalsa({ catalogo: catalogoDeEnsaio() });
   const env = envFalso();
-  const { encomenda, chave } = await registar(worker, env, porCorreio({ total_cents: 1990, cliente: clienteValido({ ...moradaValida(), nif: '123456789' }), oferta: true, mensagem: 'Para a avó Rosa', notas: 'Deixar no café' }));
+  const { encomenda, chave } = await registar(worker, env, porCorreio({ total_cents: 2380, cliente: clienteValido({ ...moradaValida(), nif: '123456789' }), oferta: true, mensagem: 'Para a avó Rosa', notas: 'Deixar no café' }));
   const r = await pedir(worker, env, 'GET', `/encomenda?e=${encomenda}&c=${chave}`, { cabecalhos: { Origin: ORIGEM } });
   assert.equal(r.status, 200);
   assert.equal(r.headers.get('Access-Control-Allow-Origin'), ORIGEM);
   assert.deepEqual(r.json, {
-    encomenda, estado: 'registada', modo: 'encomenda', entrega: 'continente', portes_por_confirmar: true,
+    encomenda, estado: 'registada', modo: 'encomenda', entrega: 'continente', portes_por_confirmar: false,
     linhas: [{ nome: 'Babygrow', qtd: 1, total_cents: 1990, escolhas: ['Tamanho: 1 mês', 'Cor: Rosa', 'Nome a bordar: Clara'] }],
-    artigos_cents: 1990, portes_cents: 0, total_cents: 1990,
+    artigos_cents: 1990, portes_cents: 390, total_cents: 2380,
     cliente: { nome: 'Maria' },
   });
   const texto = JSON.stringify(r.json);
@@ -212,7 +212,7 @@ test('entrega em mão: «registada» não passa a «pronta»; registada → paga
   let emails = rede.resend();
   assert.equal(emails.length, 1, 'marcada pela dona, só o cliente é avisado');
   assert.equal(emails[0].subject, `Pagamento recebido — encomenda ${encomenda}`);
-  assert.match(emails[0].text, /Recebemos o teu pagamento\. Quando estiver pronta, combinamos contigo a entrega\./);
+  assert.match(emails[0].text, /Recebemos o teu pagamento\. Quando estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./);
   assert.doesNotMatch(emails[0].text, /pré-visualização/, 'em modo «encomenda», a pré-visualização combina-se antes');
   assert.deepEqual({ ...paga.json.avisos.paga, em: 'x' }, { em: 'x', cliente: 'enviado', loja: 'não se aplica' });
 
@@ -222,7 +222,7 @@ test('entrega em mão: «registada» não passa a «pronta»; registada → paga
   emails = rede.resend();
   assert.equal(emails.length, 1);
   assert.equal(emails[0].subject, `A tua encomenda ${encomenda} está pronta`);
-  assert.match(emails[0].text, /Vamos combinar contigo o dia da entrega em mão\./);
+  assert.match(emails[0].text, /Vamos contactar-te pelo WhatsApp para combinar o levantamento\./);
   assert.equal(JSON.parse(await env.ORDERS.get(`order:${encomenda}`)).estado, 'pronta');
   assert.equal(env.ORDERS.dados.get(`order:${encomenda}`).metadata.estado, 'pronta', 'os metadados acompanham');
 
@@ -306,7 +306,7 @@ test('a tabela das transições do painel é a do contrato (§4), e está fechad
   // Cada par (estado, entrega) × destino: só passa o que a tabela deixa E a entrega permite.
   const SO_MAO = ['pronta', 'levantada'];
   for (const de of ESTADOS) {
-    for (const entrega of ['mao', 'continente', 'ilhas', 'estrangeiro']) {
+    for (const entrega of ['mao', 'continente', 'ilhas', 'ue', 'estrangeiro']) {
       for (const para of ESTADOS) {
         const pode = TRANSICOES_PAINEL[de].includes(para) && (entrega === 'mao' ? para !== 'enviada' : !SO_MAO.includes(para));
         assert.equal(razaoParaNao({ estado: de, entrega }, para) === null, pode, `${de} → ${para} (${entrega})`);

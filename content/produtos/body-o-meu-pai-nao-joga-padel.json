@@ -1,8 +1,9 @@
 {
   "nome": "Body «Sou a prova de que o meu pai não joga padel o tempo todo»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "papa"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/papas",
+    "colecoes/dia-do-pai"
   ],
   "preco": 12,
   "resumo": "Para o pai do padel, do ténis ou do futebol: trocamos o desporto.",

@@ -32,21 +32,32 @@ test('a regra: o código em maiúsculas, os tipos, os limites e as datas; o que 
 });
 
 test('o desconto: a percentagem arredonda ao cêntimo, o valor fixo não passa dos artigos, os portes só com tudo da categoria', () => {
-  const linhas = [{ total_cents: 1990, categoria: 'babygrows' }, { total_cents: 1500, categoria: 't-shirts' }];
+  const linhas = [{ total_cents: 1990, categorias: ['bebe/bodies-e-babygrows', 'personalizados/babygrows'] }, { total_cents: 1500, categorias: ['crianca-e-familia/t-shirts-de-adulto'] }];
   assert.deepEqual(descontoDoCupao({ tipo: 'percentagem', valor: 15 }, linhas), { cents: 524, portes: false });
-  assert.deepEqual(descontoDoCupao({ tipo: 'percentagem', valor: 10, categorias: ['t-shirts'] }, linhas), { cents: 150, portes: false });
+  // uma categoria («crianca-e-familia/t-shirts-de-adulto») ou uma secção inteira («crianca-e-familia»)
+  assert.deepEqual(descontoDoCupao({ tipo: 'percentagem', valor: 10, categorias: ['crianca-e-familia/t-shirts-de-adulto'] }, linhas), { cents: 150, portes: false });
+  assert.deepEqual(descontoDoCupao({ tipo: 'percentagem', valor: 10, categorias: ['crianca-e-familia'] }, linhas), { cents: 150, portes: false });
+  assert.deepEqual(descontoDoCupao({ tipo: 'percentagem', valor: 10, categorias: ['personalizados'] }, linhas), { cents: 199, portes: false }, 'um produto em várias secções conta uma vez');
+  assert.deepEqual(descontoDoCupao({ tipo: 'percentagem', valor: 10, categorias: ['personalizados/bodies'] }, linhas), { cents: 0, portes: false });
   assert.deepEqual(descontoDoCupao({ tipo: 'valor', valor: 50 }, linhas), { cents: 3490, portes: false });
-  assert.deepEqual(descontoDoCupao({ tipo: 'portes', categorias: ['t-shirts'] }, linhas), { cents: 0, portes: false });
+  assert.deepEqual(descontoDoCupao({ tipo: 'portes', categorias: ['crianca-e-familia'] }, linhas), { cents: 0, portes: false });
+  assert.deepEqual(descontoDoCupao({ tipo: 'portes', categorias: ['bebe', 'crianca-e-familia'] }, linhas), { cents: 0, portes: true });
+  assert.deepEqual(descontoDoCupao({ tipo: 'percentagem', valor: 10 }, [{ total_cents: 1000 }]), { cents: 100, portes: false }, 'sem as categorias da linha (o catálogo antigo), só os cupões da loja toda');
   assert.deepEqual(descontoDoCupao({ tipo: 'portes' }, linhas), { cents: 0, portes: true });
 });
 
 test('o painel: cria, lista com os usos e a frase, recusa o que não presta e apaga', async () => {
   rede = redeFalsa({ catalogo: catalogoDeEnsaio() });
   const env = envFalso();
-  const r = await gravarCupao(env, 'bemvindo', { tipo: 'percentagem', valor: 10, minimo: 20, categorias: ['babygrows'], nota: 'Para a primeira compra' });
+  const r = await gravarCupao(env, 'bemvindo', { tipo: 'percentagem', valor: 10, minimo: 20, categorias: ['personalizados/babygrows'], nota: 'Para a primeira compra' });
   assert.equal(r.status, 200, r.texto);
   assert.equal(r.json.codigo, 'BEMVINDO');
   assert.equal(r.json.descricao, '10% de desconto em Babygrows, nas compras a partir de 20 €');
+  // uma secção inteira também, com o nome dela
+  const s = await gravarCupao(env, 'PRESENTES', { tipo: 'portes', categorias: ['presentes'] });
+  assert.equal(s.json.descricao, 'portes grátis em Presentes');
+  assert.equal((await gravarCupao(env, 'MAUS', { tipo: 'portes', categorias: ['presentes/'] })).json.campo, 'categorias');
+  assert.equal((await pedir(worker, env, 'DELETE', '/painel/cupoes/PRESENTES', { cabecalhos: bearer() })).status, 200);
   assert.equal((await gravarCupao(env, 'MAU', { tipo: 'percentagem', valor: 0 })).json.campo, 'valor');
   assert.equal((await gravarCupao(env, 'OUTRO', { tipo: 'portes', categorias: ['inventada'] })).json.campo, 'categorias');
   const l = await pedir(worker, env, 'GET', '/painel/cupoes', { cabecalhos: bearer() });

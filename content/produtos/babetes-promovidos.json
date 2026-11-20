@@ -1,10 +1,9 @@
 {
   "nome": "Babete «Promovidos a…»",
-  "categoria": "babetes",
-  "ocasioes": [
-    "avos",
-    "padrinhos",
-    "familia"
+  "categorias": [
+    "personalizados/babetes",
+    "presentes/avos-e-bisavos",
+    "presentes/padrinhos"
   ],
   "preco": null,
   "resumo": "Promovidos a avós, a tios, a padrinhos ou a bisavós: um babete para cada um.",

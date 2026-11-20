@@ -1,8 +1,9 @@
 {
   "nome": "Body «Baby 2027»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "bebe-a-caminho"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/anunciar-gravidez",
+    "colecoes/baby-2027"
   ],
   "preco": 12,
   "resumo": "O ano em que chega o bebé, com o apelido da família se quiseres.",

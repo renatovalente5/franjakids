@@ -1,8 +1,8 @@
 {
   "nome": "Box Franja",
-  "categoria": "box-franja",
-  "ocasioes": [
-    "bebe-a-caminho"
+  "categorias": [
+    "presentes/caixas-presente",
+    "presentes/anunciar-gravidez"
   ],
   "preco": 30,
   "resumo": "Tudo para os primeiros dias, numa caixa. Com o nome do bebé gravado por mais 8 €.",

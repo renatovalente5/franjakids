@@ -6,7 +6,8 @@
  *
  * A REGRA: { codigo, tipo: 'percentagem' | 'valor' | 'portes', valor (% ou €; 0 nos portes),
  *   minimo?: € em artigos, desde?/ate?: 'AAAA-MM-DD' (dia de Lisboa), limite?: usos, porCliente?: bool,
- *   categorias?: [slug] (vazio: a loja toda), ativo: bool, nota?: da dona, criado_em, actualizado_em }
+ *   categorias?: [chave] (as secções do menu, «presentes», ou as categorias, «presentes/papas»: o menu de 20 nov
+ *   2026; vazio: a loja toda), ativo: bool, nota?: da dona, criado_em, actualizado_em }
  *
  * O PERCURSO: o finalizar confere o código (POST /cupao) e mostra o desconto; o /checkout lê a regra, faz
  * as contas com ela (descontoDoCupao) e RESERVA um uso (atómico: se o limite acabou entretanto, recusa);
@@ -20,6 +21,8 @@
 import { pedirAoObjecto } from './objecto.js';
 
 export const RE_CODIGO = /^[A-Z0-9][A-Z0-9_-]{2,29}$/;
+/* Onde vale um cupão: uma secção («presentes») ou uma categoria dela («presentes/papas»). */
+export const RE_ALVO = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)?$/;
 export const TIPOS = Object.freeze({ percentagem: 'Percentagem', valor: 'Valor fixo', portes: 'Portes grátis' });
 const RE_DIA = /^\d{4}-\d{2}-\d{2}$/;
 const eObjecto = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
@@ -34,7 +37,7 @@ const eur = (v) => `${Number(v).toLocaleString('pt-PT', { minimumFractionDigits:
 const dia = (d) => d.split('-').reverse().join('/');
 
 /* A frase do cupão, para o finalizar e para o painel: «10% de desconto em Bodies, nas compras a partir de
-   20 €». `nomes`: { slug: nome } das categorias (do catálogo publicado). */
+   20 €». `nomes`: { chave: nome } das secções e das categorias (do catálogo publicado). */
 export function descricaoDe(r, nomes = {}) {
   const base = r.tipo === 'portes' ? 'portes grátis' : r.tipo === 'percentagem' ? `${r.valor}% de desconto` : `${eur(r.valor)} de desconto`;
   const cats = (Array.isArray(r.categorias) ? r.categorias : []).map((c) => nomes[c] || c);
@@ -53,8 +56,8 @@ export function publico(r, nomes = {}) {
   };
 }
 
-/* Confere a regra que o painel manda gravar. `categorias`: os slugs que existem (do catálogo), ou null
-   (sem catálogo não se confere a lista). → { regra } ou { erro, campo } */
+/* Confere a regra que o painel manda gravar. `categorias`: as chaves que existem (as secções e as categorias do
+   catálogo publicado), ou null (sem catálogo não se confere a lista). → { regra } ou { erro, campo } */
 export function validarRegra(bruto, { categorias = null } = {}) {
   const b = eObjecto(bruto) ? bruto : {};
   const codigo = normalizarCodigo(b.codigo);
@@ -84,7 +87,7 @@ export function validarRegra(bruto, { categorias = null } = {}) {
   }
   if (b.porCliente === true) r.porCliente = true;
   if (b.categorias !== undefined && b.categorias !== null) {
-    if (!Array.isArray(b.categorias) || !b.categorias.every((c) => typeof c === 'string' && /^[a-z0-9-]{1,60}$/.test(c))) return { erro: 'As categorias do cupão não se reconhecem.', campo: 'categorias' };
+    if (!Array.isArray(b.categorias) || b.categorias.length > 40 || !b.categorias.every((c) => typeof c === 'string' && c.length <= 120 && RE_ALVO.test(c))) return { erro: 'As categorias do cupão não se reconhecem.', campo: 'categorias' };
     if (categorias) { const fora = b.categorias.find((c) => !categorias.includes(c)); if (fora) return { erro: `A categoria «${fora}» não existe na loja.`, campo: 'categorias' }; }
     if (b.categorias.length) r.categorias = [...new Set(b.categorias)];
   }
@@ -123,10 +126,11 @@ export function porQueNaoVale(r, { hoje, artigos_cents = null, usos = 0, usado =
 /* O DESCONTO (a mesma conta do finalizar, site.js): em cêntimos, sobre os artigos das categorias do cupão
    (todos, sem categorias); a percentagem arredonda ao cêntimo; o valor fixo nunca passa dos artigos a que
    se aplica. O de portes grátis tira os portes (desconto zero nos artigos), e com categorias só quando a
-   encomenda é toda delas. `linhas`: [{ total_cents, categoria }]. → { cents, portes } */
+   encomenda é toda delas. Um artigo está numa categoria do cupão quando uma das suas («presentes/papas») é
+   uma delas, ou é de uma secção que é («presentes»). `linhas`: [{ total_cents, categorias }]. → { cents, portes } */
 export function descontoDoCupao(regra, linhas) {
   const cats = Array.isArray(regra.categorias) ? regra.categorias : [];
-  const daCategoria = (l) => !cats.length || cats.includes(l.categoria);
+  const daCategoria = (l) => !cats.length || (Array.isArray(l.categorias) ? l.categorias : []).some((k) => cats.includes(k) || cats.includes(String(k).split('/')[0]));
   if (regra.tipo === 'portes') return { cents: 0, portes: linhas.length > 0 && linhas.every(daCategoria) };
   const base = linhas.filter(daCategoria).reduce((s, l) => s + l.total_cents, 0);
   if (regra.tipo === 'percentagem') return { cents: Math.round((base * regra.valor) / 100), portes: false };

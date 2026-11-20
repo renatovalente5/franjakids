@@ -1,8 +1,8 @@
 {
   "nome": "Body «A melhor mãe do mundo é a minha»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "mama"
+  "categorias": [
+    "personalizados/bodies",
+    "colecoes/dia-da-mae"
   ],
   "preco": 12,
   "resumo": "Para o primeiro Dia da Mãe, ou para qualquer dia.",

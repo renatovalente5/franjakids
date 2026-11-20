@@ -1,7 +1,8 @@
 {
   "nome": "Conjunto de malha: casaco, gorro e luvas",
-  "categoria": "conjuntos",
-  "ocasioes": [],
+  "categorias": [
+    "bebe/conjuntos-de-malha"
+  ],
   "preco": null,
   "resumo": "Três peças de malha para os dias frios, em sete cores.",
   "fotos": [

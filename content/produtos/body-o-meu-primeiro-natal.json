@@ -1,8 +1,8 @@
 {
   "nome": "Body «O meu primeiro Natal»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "natal"
+  "categorias": [
+    "personalizados/bodies",
+    "colecoes/natal"
   ],
   "preco": null,
   "resumo": "Para a primeira fotografia de Natal. Também fazemos a primeira Páscoa e o primeiro Halloween.",

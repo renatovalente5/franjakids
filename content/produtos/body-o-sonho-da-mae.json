@@ -1,9 +1,9 @@
 {
   "nome": "Body «O sonho da mãe + o desejo do pai»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "bebe-a-caminho",
-    "irmaos"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/anunciar-gravidez",
+    "presentes/irmaos"
   ],
   "preco": 12,
   "resumo": "A conta mais bonita: o sonho da mãe, o desejo do pai e, se houver, o pedido dos manos.",

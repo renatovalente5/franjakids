@@ -1,7 +1,8 @@
 {
   "nome": "Conjunto de três peças, primavera-verão",
-  "categoria": "conjuntos",
-  "ocasioes": [],
+  "categorias": [
+    "bebe/outros"
+  ],
   "preco": null,
   "resumo": "100% algodão, leve e suave, em três cores.",
   "fotos": [

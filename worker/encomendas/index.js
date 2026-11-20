@@ -10,6 +10,8 @@
  *                             encomenda pendente fica «expirou», sem emails (11 nov 2026).
  *   POST /cupao               { codigo, linhas, entrega } — o finalizar confere um cupão: → { cupao, desconto_cents }
  *                             ou 400 { erro, campo: 'cupao' } (cupoes.js; 11 nov 2026).
+ *   POST /aviso               { produto, variante, email } — «Avisa-me quando voltar», num artigo esgotado
+ *                             (avisos.js; 20 nov 2026): → { ok } ou 400/404/409/429 { erro }.
  *   POST /stripe/webhook      os eventos da Stripe (a fonte da verdade do pagamento).
  *   /painel/…                 as rotas do painel, com o PAINEL_SEGREDO (painel.js).
  *
@@ -30,11 +32,14 @@ import { criarSessao, stripeFetch, verificarAssinatura, aplicarEvento, idDoEvent
 import { avisar, falhou, podeAvisarCliente } from './email.js';
 import { rotaPainel } from './painel.js';
 import { normalizarCodigo, pedirCupoes, resumoDoEmail, publico, porQueNaoVale, acertarCupao, fazerAcerto, libertarUso } from './cupoes.js';
-import { hojeLisboa as hoje, contas as fazerContas } from './contas.js';
+import { hojeLisboa as hoje, contas as fazerContas, limpar } from './contas.js';
+import { pedirAvisos, varianteDe, existe, disponivel } from './avisos.js';
+import { emailValido } from '../../src/lib/regras.mjs';
 
 // Os objectos duráveis (objecto.js, cupoes.js): cada encomenda, o contador dos emails por endereço e os cupões.
 export { Encomenda, Contador } from './objecto.js';
 export { Cupoes } from './cupoes.js';
+export { Avisos } from './avisos.js';
 
 const JANELA_DE_REENTREGA_SEGUNDOS = 3600;   // até quando vale pedir à Stripe que reentregue
 // Os avisos ao cliente sem pagamento, com o travão por endereço (podeAvisarCliente).
@@ -70,16 +75,17 @@ function travadoEmMemoria(ip, agora = Date.now()) {
   if (batidas.size > 5000) batidas.clear();
   return r.n > 10;
 }
-async function travado(env, ip) {
+/* `tipo`: cada rota conta à parte (o aviso de stock não gasta as tentativas do /checkout). */
+async function travado(env, ip, tipo = 'checkout') {
   if (env.TRAVAO_CHECKOUT && typeof env.TRAVAO_CHECKOUT.limit === 'function') {
     try {
-      const { success } = await env.TRAVAO_CHECKOUT.limit({ key: `checkout:${ip}` });
+      const { success } = await env.TRAVAO_CHECKOUT.limit({ key: `${tipo}:${ip}` });
       if (!success) return true;
     } catch (e) {
       console.error('travão da Cloudflare falhou (vale o de memória):', e.message);
     }
   }
-  return travadoEmMemoria(ip);
+  return travadoEmMemoria(tipo === 'checkout' ? ip : `${tipo}:${ip}`);
 }
 
 /* ---------------------------------------------------------------- POST /checkout */
@@ -295,6 +301,32 @@ async function conferirCupao(request, env, cors) {
   return json({ cupao: publico(regra, cat.categorias || {}), desconto_cents: c ? c.desconto_cents : 0 }, 200, cors);
 }
 
+/* ---------------------------------------------------------------- POST /aviso
+   «Avisa-me quando voltar» (avisos.js). Só se guarda o que existe e está mesmo esgotado no catálogo publicado (o
+   que já há, compra-se); o email confere-se como no /checkout. As respostas dizem à pessoa o que fazer. */
+async function pedirAviso(request, env, cors) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'desconhecido';
+  if (await travado(env, ip, 'aviso')) return json({ erro: 'Demasiadas tentativas. Espera um minuto e tenta outra vez.' }, 429, cors);
+  const { corpo, resposta } = await lerCorpoJson(request, cors);
+  if (resposta) return resposta;
+  const email = limpar(corpo.email).toLowerCase();
+  if (!emailValido(email)) return json({ erro: 'Escreve um email como nome@exemplo.pt.', campo: 'email' }, 400, cors);
+  const variante = varianteDe(corpo.variante);
+  if (variante === undefined || typeof corpo.produto !== 'string') return json({ erro: 'Pedido inválido.' }, 400, cors);
+  let cat;
+  try { cat = await lerCatalogo(env); } catch (e) { console.error('catálogo por ler (aviso):', e.message); return json({ erro: 'Não conseguimos guardar o aviso agora. Tenta daqui a um minuto.' }, 503, cors); }
+  const produtos = cat && cat.produtos && typeof cat.produtos === 'object' ? cat.produtos : {};
+  const p = Object.prototype.hasOwnProperty.call(produtos, corpo.produto) ? produtos[corpo.produto] : null;
+  if (!p) return json({ erro: 'Este artigo já não está à venda no site.' }, 404, cors);
+  if (!existe(p, variante)) return json({ erro: 'Essa escolha já não existe neste artigo. Recarrega a página.' }, 400, cors);
+  if (disponivel(p, variante)) return json({ erro: 'Já há outra vez! Recarrega a página para encomendar.' }, 409, cors);
+  let r;
+  try { r = await pedirAvisos(env, { op: 'pedir', produto: corpo.produto, variante, email }); } catch (e) { console.error('aviso por guardar', e.message); return json({ erro: 'Não conseguimos guardar o aviso agora. Tenta daqui a um minuto.' }, 503, cors); }
+  if (r.erro === 'cheio') return json({ erro: 'Este email já tem muitos avisos à espera. Fala connosco no Instagram.' }, 429, cors);
+  if (!r.ok) return json({ erro: 'Não conseguimos guardar o aviso agora. Tenta daqui a um minuto.' }, 503, cors);
+  return json({ ok: true }, 200, cors);
+}
+
 /* ---------------------------------------------------------------- POST /stripe/webhook
    Sem CORS, sem Origin, sem travão: a Stripe não é um browser, e um 403/429 provocava reentregas
    sem fim. O estado grava-se ANTES do 200 (num waitUntil, uma falha perdia o pagamento); a marca do
@@ -386,12 +418,13 @@ export default {
 
       const cors = corsDe(request, env);
       if (!cors) return json({ erro: 'Origem não autorizada.' }, 403);
-      const publica = caminho === '/checkout' || caminho === '/encomenda' || caminho === '/encomenda/desistir' || caminho === '/cupao';
+      const publica = caminho === '/checkout' || caminho === '/encomenda' || caminho === '/encomenda/desistir' || caminho === '/cupao' || caminho === '/aviso';
       if (request.method === 'OPTIONS') return publica ? new Response(null, { status: 204, headers: cors }) : json({ erro: 'Rota desconhecida.' }, 404, cors);
       if (caminho === '/checkout') return request.method === 'POST' ? await checkout(request, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
       if (caminho === '/encomenda') return request.method === 'GET' ? await encomenda(url, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
       if (caminho === '/encomenda/desistir') return request.method === 'POST' ? await desistir(request, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
       if (caminho === '/cupao') return request.method === 'POST' ? await conferirCupao(request, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
+      if (caminho === '/aviso') return request.method === 'POST' ? await pedirAviso(request, env, cors) : json({ erro: 'Método não permitido.' }, 405, cors);
       if (caminho === '/') return json({ ok: true, servico: 'franjakids-encomendas' }, 200, cors);
       return json({ erro: 'Rota desconhecida.' }, 404, cors);
     } catch (e) {

@@ -1,7 +1,8 @@
 {
   "nome": "T-shirt «Eu posso ser tudo o que eu quiser»",
-  "categoria": "t-shirts",
-  "ocasioes": [],
+  "categorias": [
+    "crianca-e-familia/t-shirts-de-crianca"
+  ],
   "preco": 12,
   "resumo": "Com uma menina ou um menino rodeados de profissões. Juntamos o nome, se quiseres.",
   "fotos": [

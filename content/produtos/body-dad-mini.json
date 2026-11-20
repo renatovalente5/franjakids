@@ -1,9 +1,9 @@
 {
   "nome": "Body «Mini» e t-shirt «Dad»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "papa",
-    "familia"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/papas",
+    "colecoes/dia-do-pai"
   ],
   "preco": null,
   "resumo": "Tal pai, tal mini. O ano muda para o do nascimento do bebé.",

@@ -33,22 +33,36 @@ function imagemDePartilha(imagem) {
 /* JSON-LD dentro de um <script>: um «</script>» num nome fechava-o antes do tempo. */
 const ld = (j) => `<script type="application/ld+json">${JSON.stringify(j).replace(/</g, '\\u003c')}</script>`;
 
-export const MENU = [
-  ['Personalizados', '/personalizados/'],
-  ['Bebé', '/bebe/'],
-  ['Presentes', '/presentes/'],
-  ['Como funciona', '/como-funciona/'],
-  ['Sobre nós', '/sobre/'],
-];
+/* O «SOBRE NÓS» DO MENU (o pedido da loja de 20 nov 2026): as páginas fixas, depois das secções do catálogo. */
+export const SOBRE_NOS = Object.freeze({ nome: 'Sobre Nós', href: '/sobre/', itens: [
+  ['A nossa história', '/sobre/'], ['Como funciona', '/como-funciona/'], ['Como personalizar', '/como-personalizar/'],
+  ['Envios e entregas', '/envios/'], ['Perguntas frequentes', '/perguntas-frequentes/'], ['Contactos', '/contactos/'],
+].map(([nome, href]) => ({ nome, href })) });
 
-export function pagina({ loja, versao, api = '', caminho, titulo, tituloSeo, descricao, corpo, imagem, jsonld = [], semRodape = false, indexar = true }) {
+/* O MENU PRINCIPAL: cada entrada abre as suas categorias (no computador, por baixo, ao passar o rato ou no botão
+   da seta; no telemóvel, no menu de ecrã inteiro). `menu` = [{ id, nome, href, itens: [{ nome, href }] }] (o
+   build.mjs faz-o com as secções que têm produtos, e junta o «Sobre Nós»). A entrada da página onde se está fica
+   marcada. */
+const naEntrada = (m, caminho) => caminho === m.href || (m.id && caminho.startsWith(m.href)) || m.itens.some((i) => i.href === caminho);
+function menuDoTopo(menu, caminho) {
+  return `<ul class="contentor menu" data-menu-principal>${menu.map((m, k) => `<li class="menu__entrada" data-entrada>
+      <a class="menu__ligacao" href="${url(m.href)}"${naEntrada(m, caminho) ? ' aria-current="page"' : ''}>${esc(m.nome)}</a>${m.itens.length ? `<button class="menu__abrir" type="button" aria-expanded="false" aria-controls="sub-${k}"><span class="so-leitor">${m.id ? 'Categorias de' : 'Páginas de'} ${esc(m.nome)}</span>${icone('abaixo', 'icone icone--pequeno')}</button>
+      <div class="menu__painel" id="sub-${k}"><ul>${m.id ? `<li class="menu__tudo"><a href="${url(m.href)}"${caminho === m.href ? ' aria-current="page"' : ''}>Tudo em ${esc(m.nome)}</a></li>` : ''}${m.itens.map((i) => `<li><a href="${url(i.href)}"${i.href === caminho ? ' aria-current="page"' : ''}>${esc(i.nome)}</a></li>`).join('')}</ul></div>` : ''}
+    </li>`).join('')}</ul>`;
+}
+function menuDoTelemovel(menu, caminho) {
+  return `<ul class="contentor">${menu.map((m) => (m.itens.length
+    ? `<li><details${naEntrada(m, caminho) ? ' open' : ''}><summary>${esc(m.nome)}${icone('abaixo', 'icone')}</summary><ul class="menu-telemovel__sub">${m.id ? `<li><a href="${url(m.href)}"${caminho === m.href ? ' aria-current="page"' : ''}>Tudo em ${esc(m.nome)}</a></li>` : ''}${m.itens.map((i) => `<li><a href="${url(i.href)}"${i.href === caminho ? ' aria-current="page"' : ''}>${esc(i.nome)}</a></li>`).join('')}</ul></details></li>`
+    : `<li><a href="${url(m.href)}"${caminho === m.href ? ' aria-current="page"' : ''}>${esc(m.nome)}${icone('seta', 'icone')}</a></li>`)).join('')}</ul>`;
+}
+
+export function pagina({ loja, versao, api = '', caminho, titulo, tituloSeo, descricao, corpo, imagem, jsonld = [], semRodape = false, indexar = true, menu = [SOBRE_NOS] }) {
   // a página 404 serve qualquer morada que não existe: não tem uma morada sua para dizer ao Google
   const sem404 = (html) => (caminho === '/404.html' ? '' : html);
   // um nome comprido (os produtos têm os nomes que a dona escreve) vai sem « · Franja Kids»: o Google corta
   // o título a ~60 caracteres e já mostra o nome do site por cima do resultado
   const base = tituloSeo || titulo;
   const tituloCompleto = caminho === '/' ? `${loja.nome} · ${TITULO_INICIO}` : `${base} · ${loja.nome}`.length > 65 ? base : `${base} · ${loja.nome}`;
-  const lista = (classe) => MENU.map(([t, h]) => `<li><a href="${url(h)}"${caminho.startsWith(h) ? ' aria-current="page"' : ''}>${t}</a></li>`).join('');
   return `<!doctype html>
 <html lang="pt-PT">
 <head>
@@ -81,7 +95,6 @@ ${jsonld.map(ld).join('\n')}
 <header class="topo">
   <div class="contentor topo__barra">
     <a class="topo__marca" href="${url('/')}" aria-label="Franja Kids, início">${logotipo(92)}</a>
-    <nav class="topo__nav" aria-label="Principal"><ul>${lista()}</ul></nav>
     <div class="topo__accoes">
       <a class="topo__procura" href="${url('/procurar/')}">${icone('procurar', 'icone icone--pequeno')}<span>Procurar</span></a>
       <a class="redondo topo__procurar" href="${url('/procurar/')}" aria-label="Procurar">${icone('procurar')}</a>
@@ -89,9 +102,10 @@ ${jsonld.map(ld).join('\n')}
       <button class="redondo topo__menu" type="button" data-menu aria-expanded="false" aria-controls="menu-telemovel">${icone('menu', 'icone icone--abrir')}${icone('fechar', 'icone icone--fechar')}<span class="so-leitor">Menu</span></button>
     </div>
   </div>
+  <nav class="topo__nav" aria-label="Principal">${menuDoTopo(menu, caminho)}</nav>
 </header>
 <nav id="menu-telemovel" class="menu-telemovel" aria-label="Principal" hidden>
-  <ul class="contentor">${MENU.map(([t, h]) => `<li><a href="${url(h)}"${caminho.startsWith(h) ? ' aria-current="page"' : ''}>${t}${icone('seta', 'icone')}</a></li>`).join('')}</ul>
+  ${menuDoTelemovel(menu, caminho)}
   <div class="contentor menu-telemovel__fim"><a href="https://www.instagram.com/${loja.instagram}/">${icone('instagram', 'icone icone--pequeno')}@${loja.instagram}</a><a href="${url('/contactos/')}">Contactos</a></div>
 </nav>
 <script>/* o número do carrinho já no primeiro desenho (a passagem entre páginas não pisca); o site.js mantém-no. A chave é a do site.js (CHAVE). */try{const n=(JSON.parse(localStorage.getItem('franja:carrinho:v2'))||[]).reduce((s,i)=>s+(i&&typeof i==='object'&&typeof i.slug==='string'&&i.slug?Math.min(20,Math.max(1,Math.floor(Number(i.qtd))||1)):0),0);if(n>0){const b=document.querySelector('[data-carrinho-conta]');b.textContent=n;b.hidden=false}}catch(e){}</script>
@@ -99,7 +113,7 @@ ${jsonld.map(ld).join('\n')}
 <main id="conteudo">
 ${corpo}
 </main>
-${semRodape ? '' : rodape(loja)}
+${semRodape ? '' : rodape(loja, menu)}
 <dialog class="gaveta" id="gaveta" aria-labelledby="gaveta-titulo">
   <div class="gaveta__topo"><h2 id="gaveta-titulo">Juntámos ao carrinho</h2><button class="redondo" type="button" data-fechar aria-label="Fechar">${icone('fechar')}</button></div>
   <div class="gaveta__corpo" data-gaveta-corpo></div>
@@ -119,7 +133,7 @@ ${semRodape ? '' : rodape(loja)}
 // O BASE vai no body para o JavaScript montar caminhos (fotografias e ligações do carrinho).
 const BASE_ATTR = () => esc(url(''));
 
-export function rodape(loja) {
+export function rodape(loja, menu = []) {
   return `<footer class="rodape">
   <div class="contentor rodape__grelha">
     <div class="rodape__marca">
@@ -132,11 +146,11 @@ export function rodape(loja) {
     </div>
     <nav class="rodape__coluna" aria-labelledby="rodape-loja">
       <h2 id="rodape-loja">Loja</h2>
-      <ul><li><a href="${url('/personalizados/')}">Personalizados</a></li><li><a href="${url('/bebe/')}">Bebé</a></li><li><a href="${url('/presentes/')}">Presentes</a></li><li><a href="${url('/procurar/')}">Procurar</a></li></ul>
+      <ul>${menu.filter((m) => m.id).map((m) => `<li><a href="${url(m.href)}">${esc(m.nome)}</a></li>`).join('')}<li><a href="${url('/procurar/')}">Procurar</a></li></ul>
     </nav>
     <nav class="rodape__coluna" aria-labelledby="rodape-ajuda">
       <h2 id="rodape-ajuda">Ajuda</h2>
-      <ul><li><a href="${url('/como-funciona/')}">Como encomendar</a></li><li><a href="${url('/envios/')}">Envios e prazos</a></li><li><a href="${url('/trocas-e-devolucoes/')}">Trocas e devoluções</a></li><li><a href="${url('/contactos/')}">Contactos</a></li></ul>
+      <ul><li><a href="${url('/como-funciona/')}">Como encomendar</a></li><li><a href="${url('/envios/')}">Envios e prazos</a></li><li><a href="${url('/trocas-e-devolucoes/')}">Trocas e devoluções</a></li><li><a href="${url('/contactos/')}">Contactos</a></li><li><a href="${url('/informacoes-legais/')}">Informações legais</a></li></ul>
     </nav>
   </div>
   <div class="contentor rodape__legal">

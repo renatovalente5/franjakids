@@ -1,8 +1,9 @@
 {
   "nome": "Body «O nosso maior sonho chega em 2027»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "bebe-a-caminho"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/anunciar-gravidez",
+    "colecoes/baby-2027"
   ],
   "preco": 12,
   "resumo": "Para anunciar a gravidez com a data em que o sonho chega.",

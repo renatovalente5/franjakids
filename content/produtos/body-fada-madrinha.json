@@ -1,8 +1,8 @@
 {
   "nome": "Body «Toda a princesa precisa de uma fada-madrinha»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "padrinhos"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/padrinhos"
   ],
   "preco": 12,
   "resumo": "Para pedir à tia, à prima ou à amiga que seja a fada-madrinha.",

@@ -1,9 +1,8 @@
 {
   "nome": "Body «Preparem o colinho»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "bebe-a-caminho",
-    "familia"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/anunciar-gravidez"
   ],
   "preco": null,
   "resumo": "A forma mais doce de dizer que vem aí um bebé. Juntamos a data ou um nome, se quiseres.",

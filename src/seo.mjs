@@ -19,48 +19,41 @@ export const VERIFICACOES = Object.freeze({
   'msvalidate.01': 'DE1BA388910A8DC62D873CAEEF7B2BB8',
 });
 
-export const LINHAS = {
-  personalizados: {
-    titulo: 'Roupa personalizada para bebé e família',
-    descricao: 'Bodies, t-shirts, camisolas e babetes com o nome, a data ou a frase que escolheres. Feitos por encomenda, com pré-visualização antes de produzir.',
-  },
-  bebe: {
-    titulo: 'Roupa de bebé, mantas e primeira roupinha',
-    descricao: 'Babygrows, conjuntos de malha e de algodão, mantas, toalhas com o nome e a bolsa da primeira roupinha, para os primeiros dias do bebé.',
-  },
-  presentes: {
-    titulo: 'Presentes personalizados para bebés e família',
-    descricao: 'A Box Franja para os primeiros dias, caixas surpresa para dar a notícia e placas de madeira para as primeiras datas.',
-  },
+/* OS TÍTULOS PARA O GOOGLE das secções do menu e das suas categorias (o <title>; a descrição é a `frase` de cada
+   uma, no content/catalogo.json, que a dona muda no painel). Uma secção ou uma categoria que não está aqui (uma que
+   a dona juntou) leva o nome dela, com a secção: «Gorros · Personalizados». */
+export const SECCOES = {
+  bebe: { titulo: 'Roupa de bebé, mantas e primeira roupinha', descricao: 'Bodies e babygrows, conjuntos de malha, mantas, toalhas e a bolsa da primeira roupinha, para os primeiros dias do bebé.' },
+  personalizados: { titulo: 'Personalizados para bebé com nome', descricao: 'Bodies, babygrows, babetes e toalhas com o nome, a data ou a frase que escolheres. Feitos por encomenda, com pré-visualização antes de produzir.' },
+  'crianca-e-familia': { titulo: 'T-shirts e sweatshirts personalizadas', descricao: 'T-shirts, sweatshirts e conjuntos a combinar, com o nome ou a frase que escolheres, para crianças e adultos.' },
+  presentes: { titulo: 'Presentes personalizados para bebés e família', descricao: 'Para anunciar a gravidez, convidar os padrinhos, surpreender os avós e celebrar o nascimento: presentes com a frase que escolheres.' },
+  colecoes: { titulo: 'Coleções: Natal, Dia da Mãe, Dia do Pai e mais' },
+  promocoes: { titulo: 'Promoções e últimas unidades' },
+};
+export const TITULOS = {
+  'personalizados/bodies': 'Bodies personalizados para bebé',
+  'personalizados/babygrows': 'Babygrows personalizados com nome',
+  'personalizados/babetes': 'Babetes personalizados',
+  'personalizados/toalhas-de-banho': 'Toalhas de banho personalizadas com nome',
+  'crianca-e-familia/t-shirts-de-crianca': 'T-shirts de criança personalizadas',
+  'crianca-e-familia/t-shirts-de-adulto': 'T-shirts de adulto personalizadas',
+  'crianca-e-familia/sweatshirts-de-crianca': 'Sweatshirts de criança personalizadas',
+  'crianca-e-familia/sweatshirts-de-adulto': 'Sweatshirts de adulto personalizadas',
+  'bebe/primeira-roupinha': 'Bolsa da primeira roupinha',
+  'bebe/conjuntos-de-malha': 'Conjuntos de malha para bebé',
+  'bebe/mantas-e-cobertores': 'Mantas e cobertores para bebé',
+  'presentes/anunciar-gravidez': 'Anúncio de gravidez: bodies e presentes',
+  'presentes/padrinhos': 'Pedido aos padrinhos: bodies e caixas surpresa',
+  'presentes/avos-e-bisavos': 'Presentes personalizados para os avós',
+  'presentes/papas': 'Presentes personalizados para o pai',
+  'presentes/irmaos': 'T-shirts e bodies para irmãos',
+  'presentes/caixas-presente': 'Caixas surpresa personalizadas',
+  'colecoes/entre-paises': 'Bodies para bebés de dois países',
+  'colecoes/natal': 'Personalizados de Natal para bebé e família',
+  'colecoes/dia-da-mae': 'Presentes para o Dia da Mãe',
+  'colecoes/dia-do-pai': 'Presentes para o Dia do Pai',
 };
 
-export const CATEGORIAS = {
-  bodies: { titulo: 'Bodies personalizados para bebé', frase: 'Bodies com o nome, a data ou a frase que escolheres: para anunciar a gravidez, pedir aos padrinhos ou dar a notícia aos avós.' },
-  't-shirts': { titulo: 'T-shirts personalizadas para crianças e adultos', frase: 'T-shirts com o nome ou a frase que escolheres, para crianças e adultos, e para a família andar a condizer.' },
-  camisolas: { titulo: 'Camisolas personalizadas com nome', frase: 'Camisolas com o nome ou a frase que escolheres, para crianças e adultos.' },
-  babetes: { titulo: 'Babetes personalizados', frase: 'Babetes com frases para os avós, os tios e os padrinhos, e o nome que escolheres.' },
-  babygrows: { titulo: 'Babygrows personalizados com nome', frase: 'Babygrows com o nome do bebé, para os primeiros meses.' },
-  conjuntos: { titulo: 'Conjuntos de roupa para bebé', frase: 'Conjuntos de malha e de algodão para bebé, para os dias frios e para o verão.' },
-  'mantas-e-toalhas': { titulo: 'Mantas e toalhas para bebé', frase: 'Mantas para o berço, o carrinho e o colo, e toalhas de banho com capuz e o nome do bebé.' },
-  'primeira-roupinha': { titulo: 'Bolsa da primeira roupinha', frase: 'Para levar a primeira roupinha do bebé para a maternidade, e guardar depois.' },
-  'box-franja': { titulo: 'Box Franja, a caixa dos primeiros dias', frase: 'Tudo para os primeiros dias do bebé numa caixa, com o nome dele, se quiseres.' },
-  caixas: { titulo: 'Caixas surpresa personalizadas', frase: 'Caixas com a tua frase na tampa, para dar a notícia aos avós, aos padrinhos ou à família.' },
-  placas: { titulo: 'Placas de madeira personalizadas', frase: 'Placas de madeira para as fotografias das primeiras datas: Dia do Pai, Dia da Mãe, aniversário ou Natal.' },
-};
-
-export const OCASIOES = {
-  'bebe-a-caminho': { titulo: 'Anúncio de gravidez: bodies e presentes', frase: 'Bodies, t-shirts e caixas surpresa para contar a novidade à família.' },
-  avos: { titulo: 'Presentes personalizados para os avós', frase: 'Para contar aos avós que vem aí um neto: bodies, babetes e caixas surpresa com a frase que escolheres.' },
-  padrinhos: { titulo: 'Pedido aos padrinhos: bodies e caixas surpresa', frase: 'Para pedir aos padrinhos de uma forma que não esquecem: bodies, babetes e caixas surpresa.' },
-  papa: { titulo: 'Presentes para o pai e para o Dia do Pai', frase: 'Para o Dia do Pai ou para qualquer dia: bodies, t-shirts, camisolas e placas para o pai e o bebé.' },
-  mama: { titulo: 'Presentes para a mãe e para o Dia da Mãe', frase: 'Para o Dia da Mãe ou para qualquer dia: bodies, t-shirts e placas com o nome que escolheres.' },
-  irmaos: { titulo: 'T-shirts e bodies para irmãos', frase: 'Para o irmão mais velho receber a notícia, ou para os irmãos andarem a condizer.' },
-  'entre-paises': { titulo: 'Bodies para bebés de dois países', frase: 'Para os bebés de duas terras: as duas bandeiras, os dois mapas ou a frase que escolheres.' },
-  natal: { titulo: 'Personalizados de Natal para bebé e família', frase: 'Para o primeiro Natal do bebé e para as fotografias de Natal da família.' },
-  familia: { titulo: 'Presentes para tios e primos', frase: 'Bodies, t-shirts, camisolas e babetes para contar aos tios e aos primos, ou para a família andar a condizer.' },
-};
-
-/** Uma descrição até `max` caracteres, cortada numa palavra (com reticências se cortou). */
 export function resumir(texto, max = 155) {
   const t = String(texto ?? '').replace(/\s+/g, ' ').trim();
   if (t.length <= max) return t;
@@ -127,11 +120,11 @@ export const ldMigalhas = (itens) => ({
 /* Um produto com preço (sem preço não há Offer, e em produção ele nem está no site). Para as fichas de comerciante do
    Google: InStock e não MadeToOrder (que não é aceite; tudo aqui é feito por encomenda e está sempre à venda),
    NewCondition, o sku, até 6 fotografias, e o preço que a ficha mostra ao abrir (o de base, sem acréscimos). */
-export function ldProduto({ loja, catalogo }, p) {
+export function ldProduto({ loja }, p) {
   const pagina = absoluto(`/produtos/${p.slug}/`);
   return {
     '@context': 'https://schema.org', '@type': 'Product', '@id': pagina + '#produto', name: p.nome,
-    description: descricaoDoProduto(p), sku: p.slug, category: catalogo.categorias[p.categoria],
+    description: descricaoDoProduto(p), sku: p.slug, ...(p._nomeCategoria ? { category: p._nomeCategoria } : {}),
     image: p.fotos.slice(0, 6).map(fotoJpg).filter(Boolean), brand: { '@type': 'Brand', name: loja.nome },
     offers: {
       '@type': 'Offer', url: pagina, price: p.preco.toFixed(2), priceCurrency: 'EUR',

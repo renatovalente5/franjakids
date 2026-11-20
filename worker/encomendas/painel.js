@@ -10,6 +10,8 @@
  *   GET    /painel/cupoes                 os cupões, com os usos e a frase (cupoes.js)
  *   PUT    /painel/cupoes/<CÓDIGO>        cria ou muda um cupão (a regra: cupoes.js, validarRegra) → a regra gravada
  *   DELETE /painel/cupoes/<CÓDIGO>        apaga um cupão (as encomendas que o usaram ficam como estão)
+ *   GET    /painel/avisos                 os avisos de stock à espera, por produto e escolha (sem os emails: avisos.js)
+ *   POST   /painel/avisos/<produto>/enviar  avisa quem pediu o que já não está esgotado no site → { enviados, falharam, esperam }
  */
 
 import { json, lerCorpoJson } from './http.js';
@@ -19,6 +21,8 @@ import { avisar } from './email.js';
 import { limpar } from './contas.js';
 import { stripeFetch } from './stripe.js';
 import { pedirCupoes, normalizarCodigo, validarRegra, descricaoDe, acertarCupao, fazerAcerto } from './cupoes.js';
+import { pedirAvisos, disponivel } from './avisos.js';
+import { enviar, emailDeStock } from './email.js';
 
 const POR_PAGINA = 200;
 /* As transições do painel que avisam o cliente (§6). «levantada» não manda nada. */
@@ -35,6 +39,9 @@ export async function rotaPainel(request, env, url, caminho) {
   if (resto === '/cupoes') return request.method === 'GET' ? listarCupoes(env) : json({ erro: 'Método não permitido.' }, 405);
   const rc = /^\/cupoes\/([^/]+)$/.exec(resto);
   if (rc) return cupao(request, env, decodeURIComponent(rc[1]));
+  if (resto === '/avisos') return request.method === 'GET' ? listarAvisos(env) : json({ erro: 'Método não permitido.' }, 405);
+  const ra = /^\/avisos\/([a-z0-9-]+)\/enviar$/.exec(resto);
+  if (ra) return request.method === 'POST' ? enviarAvisos(env, ra[1]) : json({ erro: 'Método não permitido.' }, 405);
   const r = /^\/encomendas\/([^/]+)(?:\/(estado|nota))?$/.exec(resto);
   if (!r) return json({ erro: 'Rota desconhecida.' }, 404);
   const id = r[1];
@@ -238,4 +245,47 @@ async function cupao(request, env, codigoUrl) {
   if (v.erro) return json({ erro: v.erro, campo: v.campo }, 400);
   const { regra } = await pedirCupoes(env, { op: 'gravar', codigo, regra: v.regra });
   return json({ ...regra, descricao: descricaoDe(regra, nomes || {}) });
+}
+
+/* ---------------------------------------------------------------- os avisos de stock (avisos.js; 20 nov 2026) */
+
+async function listarAvisos(env) {
+  try {
+    return json(await pedirAvisos(env, { op: 'contar' }));
+  } catch (e) {
+    console.error('avisos por ler', e.message);
+    return json({ erro: 'Os avisos não se conseguem ler agora.' }, 503);
+  }
+}
+
+/* O botão «Avisar quem pediu»: com o catálogo publicado de agora (o que o site vende), avisa quem pediu o que já
+   não está esgotado; os pedidos de uma escolha ainda esgotada ficam. Um email que falha fica para a próxima vez. */
+async function enviarAvisos(env, produto) {
+  let cat;
+  try { cat = await lerCatalogo(env); } catch (e) { console.error('catálogo por ler (avisos):', e.message); return json({ erro: 'O site não respondeu: tente daqui a um minuto.' }, 503); }
+  const produtos = cat && cat.produtos && typeof cat.produtos === 'object' ? cat.produtos : {};
+  const p = Object.prototype.hasOwnProperty.call(produtos, produto) ? produtos[produto] : null;
+  // as escolhas que já se compram: o produto inteiro (null) e cada tamanho, cor e valor que não está esgotado
+  const disponiveis = [];
+  if (p && disponivel(p, null)) {
+    disponiveis.push(null);
+    for (const t of Array.isArray(p.tamanhos) ? p.tamanhos : []) if (disponivel(p, { grupo: 'Tamanho', valor: t })) disponiveis.push(['Tamanho', t]);
+    for (const c of Array.isArray(p.cores) ? p.cores : []) if (c && disponivel(p, { grupo: 'Cor', valor: c.nome })) disponiveis.push(['Cor', c.nome]);
+    for (const g of Array.isArray(p.opcoes) ? p.opcoes : []) for (const v of (g && Array.isArray(g.valores) ? g.valores : [])) if (v && disponivel(p, { grupo: g.nome, valor: v.nome })) disponiveis.push([g.nome, v.nome]);
+  }
+  let r;
+  try { r = await pedirAvisos(env, { op: 'reservar', produto, disponiveis }); } catch (e) { console.error('avisos por reservar', e.message); return json({ erro: 'Os avisos não se conseguem ler agora.' }, 503); }
+  const enviados = [];
+  const falharam = [];
+  const url = p && typeof p.url === 'string' && /^https?:/.test(p.url) ? p.url : `${String(env.SITE_URL || '').replace(/\/$/, '')}${p && typeof p.url === 'string' ? p.url : `/produtos/${produto}/`}`;
+  for (const x of r.reservados || []) {
+    const m = emailDeStock(env, { nome: p.nome, url, variante: x.variante });
+    const estado = await enviar(env, { para: x.email, ...m, responderA: env.STORE_EMAIL || undefined });
+    (estado === 'enviado' ? enviados : falharam).push(x.id);
+  }
+  let fim = { esperam: r.esperam || 0 };
+  if (enviados.length || falharam.length) {
+    try { fim = await pedirAvisos(env, { op: 'fechar', produto, enviados, falharam }); } catch (e) { console.error('avisos por fechar', produto, e.message); }
+  }
+  return json({ enviados: enviados.length, falharam: falharam.length, esperam: fim.esperam ?? 0 });
 }

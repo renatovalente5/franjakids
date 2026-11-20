@@ -1,9 +1,9 @@
 {
   "nome": "T-shirt «Fui promovido a irmão mais velho»",
-  "categoria": "t-shirts",
-  "ocasioes": [
-    "irmaos",
-    "bebe-a-caminho"
+  "categorias": [
+    "crianca-e-familia/t-shirts-de-crianca",
+    "presentes/irmaos",
+    "presentes/anunciar-gravidez"
   ],
   "preco": 12,
   "resumo": "Para o mano mais velho dar a notícia. Também em «irmã».",

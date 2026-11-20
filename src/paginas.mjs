@@ -2,23 +2,45 @@
 // indexar?, fontes? }: `tituloSeo` é o <title> (sem « · Franja Kids»), quando não é o `titulo`; `indexar: false`
 // põe a página fora do Google (noindex, follow, e fora do sitemap); `fontes` são os ficheiros do conteúdo que
 // a página mostra, para a data do sitemap (build.mjs).
-// ctx = { loja, catalogo, cat (R.catalogoDe), produtos (os do site, já pela ordem), api }
+// ctx = { loja, catalogo, cat (R.catalogoDe), produtos (os do site, já pela ordem), seccoes (seccoesComProdutos), api }
 import { BOTAO_ENCOMENDA } from '../legal-comum/index.mjs';
 import * as R from './lib/regras.mjs';
 import { url, esc, euro, foto, icone, FOTOS } from './util.mjs';
-import { LINHAS, CATEGORIAS, OCASIOES, resumir, descricaoDoProduto, ldSite, ldLoja, ldMigalhas, ldProduto } from './seo.mjs';
+import { SECCOES, TITULOS, resumir, descricaoDoProduto, ldSite, ldLoja, ldMigalhas, ldProduto } from './seo.mjs';
 
-const zonaMao = (loja) => loja.entrega.zonas.find((z) => z.id === 'mao');
+const zonaMao = (loja) => loja.entrega.zonas.find((z) => z.id === 'mao' && !R.zonaSobConsulta(z));
 const online = (loja) => loja.pagamentos?.modo === 'online';
+export const mensagemInstagram = (loja) => `https://ig.me/m/${loja.instagram}`;
+/* O coração dos textos da loja («Fala connosco no Instagram ♡»): à vista, mas o leitor de ecrã não o lê. */
+export const coracao = (html) => html.replace(/\s*♡/g, ' <span class="coracao" aria-hidden="true">♡</span>');
 
-/* As páginas das categorias e das ocasiões: /personalizados/bodies/, /ocasioes/avos/. Só existem com produtos
-   (uma categoria vazia não tem página nem pastilha), e só entram no Google com MINIMO_INDEXAR ou mais: uma
-   categoria com um produto só é quase a ficha dele. */
+/* ── O MENU E AS LISTAS (o pedido da loja de 20 nov 2026; docs/MENU-E-CATEGORIAS.md) ──
+   As secções do catálogo (Bebé, Personalizados…) e as suas categorias, só as que têm produtos: uma vazia não tem
+   página nem entrada no menu. A página de uma secção junta os produtos de todas as suas categorias, sem repetir e
+   pela ordem dos produtos. As listas entram no Google com MINIMO_INDEXAR produtos ou mais: uma lista de um produto
+   só é quase a ficha dele. */
 export const MINIMO_INDEXAR = 2;
-export const caminhoCategoria = (catalogo, c) => `/${R.linhaDaCategoria(catalogo, c)}/${c}/`;
-export const caminhoOcasiao = (o) => `/ocasioes/${o}/`;
-const comCategoria = (produtos, c) => produtos.filter((p) => p.categoria === c);
-const comOcasiao = (produtos, o) => produtos.filter((p) => p.ocasioes.includes(o));
+/* As secções em que tudo é personalizado: os cartões delas não levam a etiqueta «Personalizável». */
+const SECCOES_PERSONALIZADAS = new Set(['personalizados', 'crianca-e-familia']);
+
+/** [{ id, nome, frase, foto, href, produtos, itens: [{ id, nome, frase, foto, chave, href, produtos }] }] */
+export function seccoesComProdutos(cat, produtos) {
+  return cat.seccoes.map((s) => {
+    const itens = s.itens.map((i) => {
+      const chave = R.chaveDaCategoria(s.id, i.id);
+      return { ...i, chave, href: `/${s.id}/${i.id}/`, produtos: produtos.filter((p) => p._categorias.includes(chave)) };
+    }).filter((i) => i.produtos.length);
+    return { ...s, href: `/${s.id}/`, itens, produtos: produtos.filter((p) => itens.some((i) => i.produtos.includes(p))) };
+  }).filter((s) => s.itens.length);
+}
+
+/* Para onde vão o «Começar a personalizar» da capa, o «Ver tudo» e a página 404: os Personalizados, ou a primeira
+   secção com produtos (a dona pode tirar uma secção, e a ligação não pode ficar a apontar para o vazio). */
+export function destinoDaLoja(seccoes) {
+  const p = seccoes.find((s) => s.id === 'personalizados');
+  if (p) return { href: p.href, texto: 'Começar a personalizar', ver: 'Ver os personalizados' };
+  return seccoes.length ? { href: seccoes[0].href, texto: 'Ver a loja', ver: 'Ver a loja' } : { href: '/procurar/', texto: 'Ver a loja', ver: 'Ver a loja' };
+}
 
 /** Os ficheiros do conteúdo que mostram estes produtos (o JSON e a fotografia do cartão, ou todas). */
 const fontesDe = (lista, todas = false) => [R.FICHEIROS.fotos, ...lista.flatMap((p) => [R.ficheiroDoArtigo(p.slug), ...(todas ? p.fotos : p.fotos.slice(0, 1)).map(R.ficheiroDaFoto)])];
@@ -26,16 +48,24 @@ const fontesDe = (lista, todas = false) => [R.FICHEIROS.fotos, ...lista.flatMap(
 /** As migalhas à vista: [[nome, caminho], …]; a última é a página onde se está (sem ligação). */
 const navMigalhas = (itens) => `<nav aria-label="Estás aqui"><ol class="migalhas">${itens.map(([n, c], i) => (i < itens.length - 1 ? `<li><a href="${url(c)}">${esc(n)}</a></li>` : `<li aria-current="page">${esc(n)}</li>`)).join('')}</ol></nav>`;
 
+/* Uma descrição para o Google tem de dizer alguma coisa (50 a 160 caracteres): uma frase curta, ou nenhuma, leva o
+   resto. */
+const descricaoDeLista = (frase, nome) => {
+  const f = String(frase || '').trim();
+  return resumir(f.length >= 50 ? f : `${f ? `${f.replace(/[.!?…]*$/, '.')} ` : ''}${nome} na Franja Kids: peças feitas por encomenda, com envio para todo o país.`);
+};
+
 // ── Produtos ────────────────────────────────────────────────────────────────
 
 export function precoHtml(p, classe = 'cartao__preco') {
   if (p.preco == null) return `<p class="${classe} ${classe}--falta">Preço por confirmar</p>`;
-  return `<p class="${classe}">${R.temSuplementos(p) ? 'desde ' : ''}${euro(p.preco)}</p>`;
+  return `<p class="${classe}">${R.temSuplementos(p, p._tamanhos) ? 'desde ' : ''}${euro(p.preco)}</p>`;
 }
 
 /* Um cartão de produto. Numa grelha, os primeiros (os que se vêem logo, até 4 por fila) carregam sem esperar
-   (`lazy: false`) e o 1.º com prioridade: é a imagem maior do ecrã (o LCP), e «lazy» atrasava-a. */
-export function cartao(p, { sizes = '(min-width: 1024px) 270px, (min-width: 768px) 30vw, 45vw', selo = p._linha !== 'personalizados', prioridade = false, lazy = true } = {}) {
+   (`lazy: false`) e o 1.º com prioridade: é a imagem maior do ecrã (o LCP), e «lazy» atrasava-a. A etiqueta
+   «Personalizável» não vai nos produtos das secções personalizadas (lá, é tudo). */
+export function cartao(p, { sizes = '(min-width: 1024px) 270px, (min-width: 768px) 30vw, 45vw', selo = !SECCOES_PERSONALIZADAS.has(p._seccao), prioridade = false, lazy = true } = {}) {
   return `<a class="cartao" href="${url(`/produtos/${p.slug}/`)}">`
     + `<div class="cartao__foto">${foto(p.fotos[0], { sizes, alt: '', prioridade, lazy })}${p._esgotado ? '<span class="cartao__selo cartao__selo--esgotado">Esgotado</span>' : selo && p._pers ? '<span class="cartao__selo">Personalizável</span>' : ''}</div>`
     + `<h3>${esc(p.nome)}</h3>${precoHtml(p)}</a>`;
@@ -43,16 +73,38 @@ export function cartao(p, { sizes = '(min-width: 1024px) 270px, (min-width: 768p
 
 // ── Início ──────────────────────────────────────────────────────────────────
 
-export function inicio({ loja, catalogo, produtos }) {
-  const ocasioes = catalogo.ocasioes.filter((o) => o.foto && FOTOS[o.foto] && comOcasiao(produtos, o.id).length);
+/* A NOSSA HISTÓRIA (o texto da loja, 20 nov 2026). A fotografia escolhe-a a dona no painel (loja.fotoHistoria). */
+const HISTORIA_ABERTURA = 'Uma marca que nasceu do amor de uma família e cresceu com a força da amizade.';
+const HISTORIA = [
+  'Tudo começou com uma ideia, um sonho e duas meninas muito especiais. Primeiro chegou a Francisca, a nossa Fran. Mais tarde, com a chegada da Jade, a nossa Ja, nasceu também a inspiração para criar algo que tivesse um bocadinho das duas.',
+  'E foi assim, da junção de Fran + Ja, que nasceu a Franja Kids, no dia 10 de setembro de 2025. A ideia nasceu entre nós enquanto casal, Daniela e Samuel, com a vontade de criar uma marca dedicada aos bebés, às crianças e às famílias, onde cada peça pudesse contar uma história.',
+  'Mas os sonhos tornam-se ainda mais especiais quando são partilhados com pessoas que acreditam neles. Foi através de um convite nosso que a Juliana e o Sérgio se juntaram a esta aventura. Trouxeram novas ideias, dedicação, mais mãos para ajudar e a mesma vontade de fazer crescer este projeto.',
+  'E assim, aquilo que começou com um casal transformou-se numa verdadeira equipa de amigos. Hoje, não somos apenas a Daniela e o Samuel: somos uma família, unida pelo carinho, pela amizade e pela certeza de que juntos somos mais fortes.',
+  'A Franja Kids é muito mais do que uma marca. É um projeto construído com amor, dedicação e muitos sonhos por realizar.',
+];
+const HISTORIA_FECHO = 'Bem-vindos à nossa família. Bem-vindos à Franja Kids!';
+export const fotoDaHistoria = (loja) => [loja.fotoHistoria, R.FOTO_HISTORIA].find((f) => typeof f === 'string' && FOTOS[f]) || null;
+
+/* «Para quem é?»: as categorias dos Presentes com fotografia (a dona escolhe quais, ao dar-lhes uma), com o nome
+   curto: «Presentes para avós e bisavós» → «Avós e bisavós». */
+const PARA_QUEM = /^(?:presentes|prendas|convites|ideias)\s+(?:para|de)\s+(?:(?:os|as|o|a)\s+)?/i;
+const nomeParaQuem = (n) => { const c = n.replace(PARA_QUEM, ''); return c ? c.charAt(0).toUpperCase() + c.slice(1) : n; };
+/* A fotografia de uma secção na montra: a dela, ou a do primeiro produto. */
+const fotoDaSeccao = (s) => (s.foto && FOTOS[s.foto] ? s.foto : s.produtos[0].fotos[0]);
+
+export function inicio({ loja, produtos, seccoes }) {
+  const presentes = seccoes.find((s) => s.id === 'presentes');
+  const paraQuem = (presentes?.itens || []).filter((i) => i.foto && FOTOS[i.foto]);
   const destaques = produtos.filter((p) => p.destaque === true);
+  const destino = destinoDaLoja(seccoes);
   const insta = ['ig-forro-fado', 'ig-sonho', 'ig-mapa', 'vais-ser-avo', 'ig-maior-sonho', 'ig-coracao'];
   const passos = [
-    ['Escolhe a peça', 'O tamanho, a cor e a ocasião.', 'saco'],
-    ['Diz-nos o nome ou a frase', 'Também mudamos a cor, a letra ou o desenho.', 'lapis'],
-    ['Aprovas a pré-visualização', 'Só produzimos depois do teu sim.', 'olho'],
-    ['Recebes em casa', `Pronto em ${loja.producao} e enviado por CTT.`, 'carrinha'],
+    ['Escolhe o teu favorito', 'Explora os nossos artigos e encontra o que mais gostas.', 'saco'],
+    ['Personaliza ao teu gosto', 'Acrescenta o nome, a frase ou os detalhes que tornam a tua peça única.', 'lapis'],
+    ['Finaliza a encomenda', online(loja) ? 'Confirma os teus dados e paga de forma simples e segura.' : 'Confirma os teus dados e envia a encomenda; o pagamento combinamos contigo.', 'cartao'],
+    ['Recebe com carinho', 'Preparamos a tua encomenda com todo o cuidado e enviamos até ti.', 'carrinha'],
   ];
+  const fh = fotoDaHistoria(loja);
   return {
     caminho: '/',
     titulo: 'Início',
@@ -65,8 +117,8 @@ export function inicio({ loja, catalogo, produtos }) {
     <h1 id="t-heroi">Tu imaginas, nós personalizamos.</h1>
     <p>Roupa e presentes com nome, feitos por encomenda para bebés, crianças e família.</p>
     <div class="heroi__botoes">
-      <a class="botao botao--cheio" href="${url('/personalizados/')}">Começar a personalizar</a>
-      <a class="ligacao" href="#ocasioes">Ver ocasiões ${icone('seta', 'icone icone--pequeno')}</a>
+      <a class="botao botao--cheio" href="${url(destino.href)}">${destino.texto}</a>
+      ${paraQuem.length ? `<a class="ligacao" href="#ocasioes">Ver ocasiões ${icone('seta', 'icone icone--pequeno')}</a>` : ''}
     </div>
   </div>
   <div class="heroi__imagem">
@@ -81,25 +133,25 @@ export function inicio({ loja, catalogo, produtos }) {
     </div>
   </div>
 </section>
-
-<section id="ocasioes" class="seccao" aria-labelledby="t-ocasioes"${ocasioes.length ? '' : ' hidden'}>
+${paraQuem.length ? `
+<section id="ocasioes" class="seccao" aria-labelledby="t-ocasioes">
   <div class="contentor seccao__topo"><h2 id="t-ocasioes">Para quem é?</h2></div>
   <ul class="contentor ocasioes">
-    ${ocasioes.map((o) => `<li><a href="${url(caminhoOcasiao(o.id))}"><span class="ocasioes__nome">${esc(o.nome)}</span>${foto(o.foto, { sizes: '116px', alt: '', classe: 'ocasioes__foto' })}${icone('seta', 'icone icone--pequeno ocasioes__seta')}</a></li>`).join('\n    ')}
+    ${paraQuem.map((i) => `<li><a href="${url(i.href)}"><span class="ocasioes__nome">${esc(nomeParaQuem(i.nome))}</span>${foto(i.foto, { sizes: '116px', alt: '', classe: 'ocasioes__foto' })}${icone('seta', 'icone icone--pequeno ocasioes__seta')}</a></li>`).join('\n    ')}
   </ul>
 </section>
-
+` : ''}
 <section class="seccao" aria-labelledby="t-loja">
   <div class="contentor seccao__topo"><h2 id="t-loja">O que fazemos</h2></div>
-  <ul class="contentor linhas">
-    ${catalogo.linhas.map((l) => `<li class="linhas__cartao">${FOTOS[l.foto] ? foto(l.foto, { sizes: '(min-width: 1024px) 380px, calc(100vw - 40px)', alt: '', classe: 'linhas__foto' }) : ''}<h3><a href="${url(`/${l.id}/`)}">${esc(l.nome)}</a></h3><ul class="linhas__subs">${l.categorias.filter((c) => comCategoria(produtos, c).length).map((c) => `<li><a href="${url(caminhoCategoria(catalogo, c))}">${esc(catalogo.categorias[c])}</a></li>`).join('')}</ul></li>`).join('\n    ')}
+  <ul class="fila montra" style="--n:${Math.max(1, Math.min(6, seccoes.length))}">
+    ${seccoes.map((s) => `<li><a href="${url(s.href)}">${foto(fotoDaSeccao(s), { sizes: '(min-width: 1024px) 240px, 60vw', alt: '', classe: 'montra__foto' })}<span class="montra__nome">${esc(s.nome)}${icone('seta', 'icone icone--pequeno')}</span></a></li>`).join('\n    ')}
   </ul>
 </section>
 ${destaques.length ? `
 <section class="seccao" aria-labelledby="t-destaques">
   <div class="contentor seccao__topo">
     <h2 id="t-destaques">Mais pedidos</h2>
-    <a class="ligacao" href="${url('/personalizados/')}">Ver tudo ${icone('seta', 'icone icone--pequeno')}</a>
+    <a class="ligacao" href="${url(destino.href)}">Ver tudo ${icone('seta', 'icone icone--pequeno')}</a>
   </div>
   <ul class="fila produtos">
     ${destaques.map((p) => `<li>${cartao(p, { sizes: '(min-width: 1024px) 270px, 66vw', selo: false })}</li>`).join('\n    ')}
@@ -116,13 +168,15 @@ ${destaques.length ? `
   </ol>
 </section>
 
-<section class="seccao" aria-labelledby="t-sobre">
+<section id="historia" class="seccao" aria-labelledby="t-historia">
   <div class="contentor sobre">
-    ${foto('mercadinho', { sizes: '(min-width: 1024px) 520px, calc(100vw - 64px)', classe: 'sobre__foto' })}
+    ${fh ? foto(fh, { sizes: '(min-width: 1024px) 560px, calc(100vw - 64px)', classe: 'sobre__foto' }) : ''}
     <div class="sobre__texto">
-      <h2 id="t-sobre">Duas amigas, uma ideia</h2>
-      <p>A Franja Kids nasceu em setembro de 2025. Começámos pela roupa de bebé e foram vocês que nos levaram para os personalizados: hoje cada peça sai das nossas mãos com um nome e uma história.</p>
-      <a class="botao botao--linha" href="${url('/sobre/')}">A nossa história</a>
+      <h2 id="t-historia">A nossa história</h2>
+      <p class="sobre__abertura">${HISTORIA_ABERTURA}</p>
+      ${HISTORIA.map((t) => `<p>${t}</p>`).join('\n      ')}
+      <p class="sobre__fecho">${HISTORIA_FECHO}</p>
+      <a class="botao botao--linha" href="${url('/sobre/')}">Sobre nós</a>
     </div>
   </div>
 </section>
@@ -139,81 +193,49 @@ ${destaques.length ? `
   };
 }
 
-// ── Listagens: as linhas (Personalizados, Bebé, Presentes), as categorias e as ocasiões ──────────────
+// ── As listas: a página de cada secção e a de cada categoria ────────────────────────────────
 
-/* As pastilhas são ligações entre páginas (o Google não lê filtros com «?»). Nas linhas e nas categorias: «Tudo»
-   e as categorias da linha (na dos Personalizados, também as ocasiões); nas ocasiões, as ocasiões. A pastilha
-   da página onde se está leva aria-current. Os endereços antigos (?categoria=, ?ocasiao=) vão para a página
-   certa pelo site.js, através do data-categoria / data-ocasiao das pastilhas. */
-function listagem({ catalogo, produtos }, { caminho, titulo, tituloSeo, frase, descricao, migalhas, meus, linha: l, atual = '', imagem }) {
-  const pastilha = (href, texto, ativa, dado = '') => `<a class="pastilha" href="${url(href)}"${dado}${ativa ? ' aria-current="page"' : ''}>${esc(texto)}</a>`;
-  const ocasioes = catalogo.ocasioes.filter((o) => comOcasiao(produtos, o.id).length);
-  const filaOcasioes = () => (ocasioes.length ? `<div class="fila filtros__fila" role="group" aria-label="Para quem">
-      ${ocasioes.map((o) => pastilha(caminhoOcasiao(o.id), o.nome, atual === o.id, ` data-ocasiao="${o.id}"`)).join('\n      ')}
-    </div>` : '');
-  const filas = l ? `<div class="fila filtros__fila" role="group" aria-label="Categoria">
-      ${pastilha(`/${l.id}/`, 'Tudo', !atual)}
-      ${l.categorias.filter((c) => comCategoria(produtos, c).length).map((c) => pastilha(caminhoCategoria(catalogo, c), catalogo.categorias[c], atual === c, ` data-categoria="${c}"`)).join('\n      ')}
-    </div>
-    ${l.id === 'personalizados' ? filaOcasioes() : ''}` : filaOcasioes();
+/* As pastilhas são ligações entre páginas (o Google não lê filtros com «?»): «Tudo» e as categorias da secção, com
+   a da página onde se está marcada. */
+function listagem(ctx, s, i = null) {
+  const pastilha = (href, texto, ativa) => `<a class="pastilha" href="${url(href)}"${ativa ? ' aria-current="page"' : ''}>${esc(texto)}</a>`;
+  const meus = i ? i.produtos : s.produtos;
+  const titulo = i ? i.nome : s.nome;
+  const frase = i ? i.frase || s.frase : s.frase;
+  const seo = SECCOES[s.id] || {};
+  const comSeccao = i ? `${i.nome} · ${s.nome}` : '';
+  const tituloSeo = i ? TITULOS[i.chave] || (comSeccao.length <= 50 ? comSeccao : i.nome) : seo.titulo || s.nome;
+  const migalhas = [['Início', '/'], [s.nome, s.href], ...(i ? [[i.nome, i.href]] : [])];
+  const propria = i ? i.foto : s.foto;
   return {
-    caminho, titulo, tituloSeo, descricao: resumir(descricao || frase), indexar: meus.length >= MINIMO_INDEXAR,
-    imagem: meus[0]?.fotos[0] || imagem,
+    caminho: i ? i.href : s.href,
+    titulo,
+    tituloSeo,
+    descricao: descricaoDeLista(i ? frase : seo.descricao || frase, titulo),
+    indexar: meus.length >= MINIMO_INDEXAR,
+    imagem: meus[0]?.fotos[0] || (propria && FOTOS[propria] ? propria : undefined),
     jsonld: [ldMigalhas(migalhas)],
     fontes: fontesDe(meus),
     corpo: `<section class="contentor pagina" aria-labelledby="t-linha">
-  ${migalhas.length > 2 ? navMigalhas(migalhas) : ''}
+  ${i ? navMigalhas(migalhas) : ''}
   <h1 id="t-linha">${esc(titulo)}</h1>
   ${frase ? `<p>${esc(frase)}</p>` : ''}
   <div class="filtros" data-filtros>
-    ${filas}
+    <div class="fila filtros__fila" role="group" aria-label="Categorias de ${esc(s.nome)}">
+      ${pastilha(s.href, 'Tudo', !i)}
+      ${s.itens.map((x) => pastilha(x.href, x.nome, x === i)).join('\n      ')}
+    </div>
   </div>
   <h2 class="contagem">${meus.length} ${meus.length === 1 ? 'artigo' : 'artigos'}</h2>
   <ul class="grelha" data-grelha>
-    ${meus.map((p, i) => `<li>${cartao(p, { prioridade: i === 0, lazy: i >= 4 })}</li>`).join('\n    ')}
+    ${meus.map((p, k) => `<li>${cartao(p, { prioridade: k === 0, lazy: k >= 4, selo: !SECCOES_PERSONALIZADAS.has(s.id) && !SECCOES_PERSONALIZADAS.has(p._seccao) })}</li>`).join('\n    ')}
   </ul>
-  ${meus.length ? '' : '<div class="vazio"><p>Ainda não temos peças aqui.</p></div>'}
 </section>`,
   };
 }
 
-export function linha(ctx, l) {
-  const seo = LINHAS[l.id] || {};
-  return listagem(ctx, {
-    caminho: `/${l.id}/`, titulo: l.nome, tituloSeo: seo.titulo, frase: l.frase, descricao: seo.descricao,
-    migalhas: [['Início', '/'], [l.nome, `/${l.id}/`]], linha: l,
-    meus: ctx.produtos.filter((p) => l.categorias.includes(p.categoria)), imagem: FOTOS[l.foto] ? l.foto : undefined,
-  });
-}
-
-/** A página de uma categoria (só para as que têm produtos: build.mjs). */
-export function categoria(ctx, l, c) {
-  const nome = ctx.catalogo.categorias[c];
-  const seo = CATEGORIAS[c] || {};
-  const caminho = caminhoCategoria(ctx.catalogo, c);
-  return listagem(ctx, {
-    caminho, titulo: nome, tituloSeo: seo.titulo, frase: seo.frase || l.frase,
-    migalhas: [['Início', '/'], [l.nome, `/${l.id}/`], [nome, caminho]], linha: l, atual: c,
-    meus: comCategoria(ctx.produtos, c),
-  });
-}
-
-/** A página de uma ocasião, com os produtos dela de todas as linhas (só para as que têm produtos: build.mjs). */
-export function ocasiao(ctx, o) {
-  const seo = OCASIOES[o.id] || {};
-  const caminho = caminhoOcasiao(o.id);
-  return listagem(ctx, {
-    caminho, titulo: o.nome, tituloSeo: seo.titulo, frase: seo.frase || `${o.nome}: peças personalizadas da Franja Kids.`,
-    migalhas: [['Início', '/'], [o.nome, caminho]], atual: o.id,
-    meus: comOcasiao(ctx.produtos, o.id), imagem: FOTOS[o.foto] ? o.foto : undefined,
-  });
-}
-
-/** As páginas de categoria e de ocasião que existem (as que têm produtos). */
-export const listagensComProdutos = (ctx) => [
-  ...ctx.catalogo.linhas.flatMap((l) => l.categorias.filter((c) => comCategoria(ctx.produtos, c).length).map((c) => categoria(ctx, l, c))),
-  ...ctx.catalogo.ocasioes.filter((o) => comOcasiao(ctx.produtos, o.id).length).map((o) => ocasiao(ctx, o)),
-];
+/** As páginas das secções e das categorias que existem (as que têm produtos). */
+export const listas = (ctx) => ctx.seccoes.flatMap((s) => [listagem(ctx, s), ...s.itens.map((i) => listagem(ctx, s, i))]);
 
 // ── Ficha do produto ────────────────────────────────────────────────────────
 
@@ -239,11 +261,45 @@ function semPreco(p) {
   return linhas.length ? `<dl class="ficha__lista">${linhas.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : '';
 }
 
-export function produto({ loja, catalogo, produtos }, p) {
-  const linhaDe = catalogo.linhas.find((l) => l.categorias.includes(p.categoria));
+/* O AVISO DE STOCK (20 nov 2026, o pedido da loja; docs/MENU-E-CATEGORIAS.md §6): num produto esgotado, ou com um
+   tamanho, uma cor ou uma escolha esgotados, a cliente deixa o email e o Worker das encomendas guarda o pedido. A
+   loja avisa quando quiser, no painel. Só com o Worker no ar (a pré-visualização não tem para onde mandar). */
+function avisoDeStock(p, esgotados) {
+  const variantes = p._esgotado ? [] : esgotados;
+  const so = (g) => variantes.every((v) => v.grupo === g);
+  const pergunta = so('Tamanho') ? 'Esgotado o tamanho que procuras?' : so('Cor') ? 'Esgotada a cor que procuras?' : 'Esgotado o que procuras?';
+  const form = `<form class="aviso-stock__form" data-aviso-stock data-aviso-produto="${esc(p.slug)}" novalidate>
+      ${variantes.length ? `<div class="campo"><label for="aviso-variante">O que procuras</label><select id="aviso-variante" name="variante">${variantes.map((v) => `<option value="${esc(JSON.stringify(v))}">${esc(v.grupo === 'Tamanho' || v.grupo === 'Cor' ? `${v.grupo} ${v.valor}` : `${v.grupo}: ${v.valor}`)}</option>`).join('')}</select></div>` : ''}
+      <div class="campo"><label for="aviso-email">Email</label><input id="aviso-email" name="email" type="email" autocomplete="email" required aria-describedby="aviso-email-erro"><p class="campo__erro" id="aviso-email-erro" data-erro></p></div>
+      <button class="botao botao--cheio" type="submit">Avisa-me</button>
+      <p class="campo__pista">Usamos o email só para este aviso, uma vez: depois apagamo-lo (e ao fim de 6 meses, se não voltar). <a href="${url('/privacidade/')}">Privacidade</a></p>
+    </form>
+    <p class="aviso-stock__feito" data-aviso-feito role="status" tabindex="-1" hidden></p>`;
+  return p._esgotado
+    ? `<section class="aviso-stock" aria-labelledby="t-aviso"><h2 id="t-aviso">Avisa-me quando voltar</h2><p>Deixa o teu email e mandamos-te uma mensagem quando voltar a haver.</p>${form}</section>`
+    : `<details class="aviso-stock"><summary>${pergunta} <span>Avisamos-te quando voltar.</span></summary>${form}</details>`;
+}
+
+/* O prazo da peça (o pedido da loja de 20 nov 2026: os personalizados, o tempo de produção; os outros, o de
+   preparação): com a personalização numa caixa que se marca, os dois; com um campo de texto, ou numa secção
+   personalizada (uma peça estampada é feita por encomenda), o de produção; sem nada disso, o de preparação. */
+function prazoDaPeca(loja, p) {
+  const ps = p._pers;
+  const fazer = `Feito por encomenda em ${esc(loja.producao)}.`;
+  const preparar = typeof loja.preparacao === 'string' && loja.preparacao.trim() ? esc(loja.preparacao.trim()) : null;
+  if (!preparar) return fazer;
+  if (ps?.opcional) return `Sem personalização, sai em ${preparar}; personalizado, em ${esc(loja.producao)}.`;
+  if (ps || p._categorias.some((k) => SECCOES_PERSONALIZADAS.has(R.seccaoDaChave(k)))) return fazer;
+  return `Preparado para envio em ${preparar}.`;
+}
+
+export function produto({ loja, catalogo, produtos, seccoes, api }, p) {
+  const principal = p._categorias[0];
+  const s = seccoes.find((x) => x.id === R.seccaoDaChave(principal));
+  const categoria = s.itens.find((x) => x.chave === principal);
   const fotos = p.fotos;
   const grupos = [];
-  if (p._tamanhos.length) grupos.push(grupo('Tamanho', p._tamanhos.map((t) => ({ nome: t, esgotado: p._tamanhosEsgotados.includes(t) })), { campo: 'tamanho' }));
+  if (p._tamanhos.length) grupos.push(grupo('Tamanho', p._tamanhos.map((t) => ({ nome: t, suplemento: p._supTam[t] || 0, esgotado: p._tamanhosEsgotados.includes(t) })), { campo: 'tamanho' }));
   if (p._cores.length) {
     // marcada à partida: a primeira cor que não está esgotada
     const primeira = Math.max(0, p._cores.findIndex((c) => !c.esgotado));
@@ -267,21 +323,30 @@ export function produto({ loja, catalogo, produtos }, p) {
     </div>` : '';
   const personalizar = ps?.opcional ? `<label class="marcar"><input type="checkbox" name="personalizar" data-personalizar data-suplemento="${ps.suplemento || 0}"><span>${esc(ps.opcional)}${ps.suplemento ? ` <small>+${euro(ps.suplemento)}</small>` : ''}</span></label>` : '';
   const dados = { slug: p.slug, nome: p.nome, preco: p.preco };
+  // o que está esgotado (para o aviso de stock): o produto inteiro, ou os tamanhos, as cores e os valores esgotados
+  const esgotados = [
+    ...p._tamanhosEsgotados.map((t) => ({ grupo: 'Tamanho', valor: t })),
+    ...p._cores.filter((c) => c.esgotado).map((c) => ({ grupo: 'Cor', valor: c.nome })),
+    ...p._opcoes.flatMap((g) => g.valores.filter((v) => v.esgotado).map((v) => ({ grupo: g.nome, valor: v.nome }))),
+  ];
+  const comAviso = Boolean(api) && p.preco != null && (p._esgotado || esgotados.length > 0);
   const comprar = p.preco == null
     ? `<p class="aviso">O preço desta peça ainda não está no site. Diz-nos o que queres por mensagem e respondemos com o valor.</p>
-    <a class="botao botao--cheio" href="https://ig.me/m/${loja.instagram}">${icone('mensagem', 'icone icone--pequeno')} Pedir por mensagem</a>`
+    <a class="botao botao--cheio" href="${mensagemInstagram(loja)}">${icone('mensagem', 'icone icone--pequeno')} Pedir por mensagem</a>`
     : p._esgotado
-      ? `<p class="aviso" data-esgotado>Esta peça está esgotada. Manda-nos mensagem para saberes quando volta.</p>
-    <a class="botao botao--linha" href="https://ig.me/m/${loja.instagram}">${icone('mensagem', 'icone icone--pequeno')} Perguntar por mensagem</a>`
+      ? `<p class="aviso" data-esgotado>Esta peça está esgotada.${comAviso ? '' : ' Manda-nos mensagem para saberes quando volta.'}</p>${comAviso ? '' : `
+    <a class="botao botao--linha" href="${mensagemInstagram(loja)}">${icone('mensagem', 'icone icone--pequeno')} Perguntar por mensagem</a>`}`
       : `<div class="ficha__comprar">
       <div class="quantidade" data-quantidade><button type="button" data-menos aria-label="Diminuir a quantidade">−</button><input type="text" inputmode="numeric" pattern="[0-9]*" value="1" aria-label="Quantidade" name="quantidade"><button type="button" data-mais aria-label="Aumentar a quantidade">+</button></div>
       <button class="botao botao--cheio" type="submit">Adicionar ao carrinho</button>
     </div>
     <p class="ficha__total" aria-live="polite">Total: <strong data-total>${euro(p.preco)}</strong></p>`;
   const mao = zonaMao(loja);
-  const catNome = catalogo.categorias[p.categoria];
-  const outros = produtos.filter((o) => o.slug !== p.slug && (o.categoria === p.categoria || o.ocasioes.some((x) => p.ocasioes.includes(x)))).slice(0, 4);
-  const jsonld = [ldMigalhas([['Início', '/'], [linhaDe.nome, `/${linhaDe.id}/`], [catNome, caminhoCategoria(catalogo, p.categoria)], [p.nome, `/produtos/${p.slug}/`]])];
+  // «Também podes gostar»: primeiro os da mesma categoria, depois os que partilham outra
+  const outrosQue = (f) => produtos.filter((o) => o.slug !== p.slug && f(o));
+  const outros = [...new Set([...outrosQue((o) => o._categorias.includes(principal)), ...outrosQue((o) => o._categorias.some((k) => p._categorias.includes(k)))])].slice(0, 4);
+  const migalhas = [['Início', '/'], [s.nome, s.href], [categoria.nome, categoria.href]];
+  const jsonld = [ldMigalhas([...migalhas, [p.nome, `/produtos/${p.slug}/`]])];
   if (p.preco != null) jsonld.push(ldProduto({ loja, catalogo }, p));
   return {
     caminho: `/produtos/${p.slug}/`,
@@ -291,14 +356,14 @@ export function produto({ loja, catalogo, produtos }, p) {
     jsonld,
     fontes: [...fontesDe([p], true), ...fontesDe(outros)],
     corpo: `<div class="contentor">
-  <nav aria-label="Estás aqui"><ol class="migalhas"><li><a href="${url('/')}">Início</a></li><li><a href="${url(`/${linhaDe.id}/`)}">${esc(linhaDe.nome)}</a></li><li><a href="${url(caminhoCategoria(catalogo, p.categoria))}">${esc(catNome)}</a></li></ol></nav>
+  <nav aria-label="Estás aqui"><ol class="migalhas">${migalhas.map(([n, c]) => `<li><a href="${url(c)}">${esc(n)}</a></li>`).join('')}</ol></nav>
   <div class="ficha">
     <div class="galeria" data-galeria>
       <div class="galeria__principal">${fotos.map((f, i) => `<div${i ? ' hidden' : ''} data-foto-grande="${i}">${foto(f, { sizes: '(min-width: 1024px) 600px, calc(100vw - 40px)', prioridade: i === 0 })}</div>`).join('')}</div>
       ${fotos.length > 1 ? `<div class="fila galeria__miniaturas" role="group" aria-label="Fotografias">${fotos.map((f, i) => `<button type="button" data-miniatura="${i}" aria-pressed="${i ? 'false' : 'true'}" aria-label="Fotografia ${i + 1} de ${fotos.length}">${foto(f, { sizes: '72px', alt: '' })}</button>`).join('')}</div>` : ''}
     </div>
     <div class="ficha__info">
-      <p class="ficha__etiqueta">${esc(catalogo.categorias[p.categoria])}${ps ? ' · Personalizável' : ''}</p>
+      <p class="ficha__etiqueta">${esc(categoria.nome)}${ps ? ' · Personalizável' : ''}</p>
       <h1>${esc(p.nome)}</h1>
       ${p.preco == null ? '<p class="ficha__preco ficha__preco--falta">Preço por confirmar</p>' : `<p class="ficha__preco">${euro(p.preco)}${p._esgotado ? ' <span class="ficha__esgotado">Esgotado</span>' : ''}</p>`}
       <p class="ficha__resumo">${esc(p.resumo)}</p>
@@ -307,17 +372,16 @@ export function produto({ loja, catalogo, produtos }, p) {
         ${p.detalhes.length ? `<ul class="ficha__detalhes">${p.detalhes.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>` : ''}
         ${p.preco == null || p._esgotado ? semPreco(p) : grupos.join('\n        ') + personalizar + campoTexto}
         ${comprar}
-        <ul class="ficha__linhas">
-          <li>${icone('relogio', 'icone icone--pequeno')}<span>Feito por encomenda em ${esc(loja.producao)}. Depois, ${esc(loja.entrega.prazoContinente)} por CTT no continente${mao ? `, ou ${esc(mao.nome.charAt(0).toLowerCase() + mao.nome.slice(1))}` : ''}.</span></li>
-          <li>${icone('troca', 'icone icone--pequeno')}<span>${ps?.obrigatoria ? 'Por ser personalizada, esta peça não tem troca nem devolução por desistência.' : ps ? 'Sem personalização, tens 14 dias para desistir; personalizada, não há troca nem devolução por desistência.' : 'Tens 14 dias para desistir depois de receberes.'} <a href="${url('/trocas-e-devolucoes/')}">Trocas e devoluções</a></span></li>
-        </ul>
       </form>
+      ${comAviso ? avisoDeStock(p, esgotados) : ''}
+      <ul class="ficha__linhas">
+        <li>${icone('relogio', 'icone icone--pequeno')}<span>${prazoDaPeca(loja, p)} Depois, até ${esc(loja.entrega.prazoContinente)} por CTT no continente${mao ? `, ou levantamento em mão em ${esc(loja.entrega.concelho)}, sem portes` : ''}.</span></li>
+        <li>${icone('troca', 'icone icone--pequeno')}<span>${ps?.obrigatoria ? 'Por ser personalizada, esta peça não tem troca nem devolução por desistência.' : ps ? 'Sem personalização, tens 14 dias para desistir; personalizada, não há troca nem devolução por desistência.' : 'Tens 14 dias para desistir depois de receberes.'} <a href="${url('/trocas-e-devolucoes/')}">Trocas e devoluções</a></span></li>
+      </ul>
     </div>
   </div>
 </div>
-${(() => {
-  return outros.length ?`<section class="seccao" aria-labelledby="t-mais"><div class="contentor seccao__topo"><h2 id="t-mais">Também podes gostar</h2></div><ul class="contentor grelha">${outros.map((o) => `<li>${cartao(o)}</li>`).join('')}</ul></section>` : '';
-})()}`,
+${outros.length ? `<section class="seccao" aria-labelledby="t-mais"><div class="contentor seccao__topo"><h2 id="t-mais">Também podes gostar</h2></div><ul class="contentor grelha">${outros.map((o) => `<li>${cartao(o)}</li>`).join('')}</ul></section>` : ''}`,
   };
 }
 
@@ -327,7 +391,7 @@ const meiosOnline = () => R.MEIOS_ONLINE.map((m) => `<span>${esc(m[0].toUpperCas
 
 const gratisDe = (loja) => (typeof loja.entrega.gratisAPartirDe === 'number' ? loja.entrega.gratisAPartirDe : '');
 
-export function carrinho({ loja }) {
+export function carrinho({ loja, seccoes }) {
   const mao = zonaMao(loja);
   return {
     caminho: '/carrinho/',
@@ -335,7 +399,7 @@ export function carrinho({ loja }) {
     indexar: false,
     descricao: 'O teu carrinho na Franja Kids.',
     corpo: `<section class="contentor pagina" aria-labelledby="t-carrinho"><h1 id="t-carrinho">Carrinho</h1></section>
-<div class="contentor carrinho" data-carrinho data-portes-gratis="${gratisDe(loja)}">
+<div class="contentor carrinho" data-carrinho data-portes-gratis="${gratisDe(loja)}" data-loja="${url(destinoDaLoja(seccoes).href)}" data-loja-texto="${esc(destinoDaLoja(seccoes).ver)}">
   <div class="painel" data-itens><p class="vazio">A carregar o carrinho…</p></div>
   <aside class="resumo" aria-labelledby="t-resumo" data-resumo hidden>
     <h2 id="t-resumo">Resumo</h2>
@@ -348,14 +412,21 @@ export function carrinho({ loja }) {
   };
 }
 
+/* AS ENTREGAS NO FINALIZAR (o pedido da loja de 20 nov 2026): as cinco zonas, sempre à vista. Uma zona sem portes é
+   sob consulta: escolhê-la troca o envio pela ligação ao Instagram (o Worker também a recusa). A União Europeia
+   pede o país (de R.PAISES_UE); o levantamento em mão não pede morada, e o telemóvel serve para o combinar pelo
+   WhatsApp. */
 export function finalizar({ loja, termosUrl, api }) {
   const pagaAgora = online(loja);
-  // em modo «online» só as entregas com portes (não se cobra o que não se sabe)
-  const zonas = loja.entrega.zonas.filter((z) => !pagaAgora || typeof z.portes === 'number');
-  const nota = (z) => (z.id === 'mao' ? 'Sem custo; combinamos o dia por mensagem'
-    : z.id === 'continente' ? `Correio registado CTT; chega em até ${loja.entrega.prazoContinente} depois de enviado`
-      : 'Confirmamos o prazo e os portes antes do pagamento');
-  const envio = zonas.map((z, i) => `<label><input type="radio" name="envio" value="${z.id}" data-preco="${z.portes ?? ''}"${i === 0 ? ' checked' : ''}><span>${esc(z.nome)}<small>${esc(nota(z))}</small></span><b>${z.portes === 0 ? 'Grátis' : z.portes == null ? 'A confirmar' : euro(z.portes)}</b></label>`).join('\n          ');
+  const ent = loja.entrega;
+  const gratis = typeof ent.gratisAPartirDe === 'number' ? ent.gratisAPartirDe : null;
+  const nota = (z) => (R.zonaSobConsulta(z) ? 'Portes e prazo sob consulta, pelo Instagram'
+    : z.id === 'mao' ? 'Quando estiver pronta, combinamos o levantamento pelo WhatsApp'
+      : z.id === 'continente' ? `Correio registado CTT; chega em até ${ent.prazoContinente} depois de enviada${gratis != null ? `. Grátis a partir de ${euro(gratis)}` : ''}`
+        : z.id === 'ilhas' ? 'Correio registado CTT; o prazo varia consoante a ilha'
+          : 'Correio registado; o prazo varia consoante o destino');
+  const preco = (z) => (R.zonaSobConsulta(z) ? 'Sob consulta' : z.portes === 0 ? 'Grátis' : euro(z.portes));
+  const envio = ent.zonas.map((z, i) => `<label><input type="radio" name="envio" value="${z.id}" data-preco="${R.zonaSobConsulta(z) ? '' : z.portes}"${R.zonaSobConsulta(z) ? ' data-sob-consulta' : ''}${i === 0 ? ' checked' : ''}><span>${esc(z.nome)}<small>${esc(nota(z))}</small></span><b data-preco-zona="${z.id}">${preco(z)}</b></label>`).join('\n          ');
   const campo = (id, rotulo, tipo, auto, extra = '') => `<div class="campo"><label for="${id}">${rotulo}</label><input id="${id}" name="${id}" type="${tipo}" autocomplete="${auto}" aria-describedby="${id}-erro"${extra}><p class="campo__erro" id="${id}-erro" data-erro></p></div>`;
   return {
     caminho: '/finalizar/',
@@ -372,7 +443,7 @@ export function finalizar({ loja, termosUrl, api }) {
       <div class="duas">
         ${campo('nome', 'Nome', 'text', 'name', ' required')}
         ${campo('email', 'Email', 'email', 'email', ' required')}
-        ${campo('telemovel', 'Telemóvel', 'tel', 'tel', ' required')}
+        <div class="campo"><label for="telemovel">Telemóvel</label><p class="campo__pista" id="telemovel-pista" data-pista-mao hidden>Para combinarmos o levantamento pelo WhatsApp.</p><input id="telemovel" name="telemovel" type="tel" autocomplete="tel" aria-describedby="telemovel-erro" required><p class="campo__erro" id="telemovel-erro" data-erro></p></div>
         ${campo('nif', 'NIF <span class="campo__pista">(opcional, para a fatura)</span>', 'text', 'off', ' inputmode="numeric"')}
       </div>
     </section>
@@ -382,11 +453,15 @@ export function finalizar({ loja, termosUrl, api }) {
         <legend class="so-leitor">Como queres receber</legend>
           ${envio}
       </fieldset>
+      <div class="aviso aviso--consulta" data-sob-consulta-aviso hidden>
+        <p>${coracao('Para esta entrega, os portes e o prazo são sob consulta. Fala connosco no Instagram e dizemos-te quanto custa e quanto tempo demora. ♡')}</p>
+        <a class="botao botao--cheio" href="${mensagemInstagram(loja)}">${coracao('Fala connosco no Instagram ♡')}</a>
+      </div>
       <div class="duas" data-morada>
         ${campo('morada', 'Morada', 'text', 'street-address', ' required')}
         ${campo('codigo-postal', 'Código postal', 'text', 'postal-code', ' required')}
         ${campo('localidade', 'Localidade', 'text', 'address-level2', ' required')}
-        <div class="campo" data-pais hidden><label for="pais">País</label><input id="pais" name="pais" type="text" autocomplete="country-name" aria-describedby="pais-erro"><p class="campo__erro" id="pais-erro" data-erro></p></div>
+        <div class="campo" data-pais hidden><label for="pais">País</label><select id="pais" name="pais" autocomplete="country-name" aria-describedby="pais-erro"><option value="">Escolhe o país</option>${R.PAISES_UE.map((p) => `<option>${esc(p)}</option>`).join('')}</select><p class="campo__erro" id="pais-erro" data-erro></p></div>
       </div>
     </section>
     <section class="bloco" aria-labelledby="t-oferta">
@@ -408,17 +483,20 @@ export function finalizar({ loja, termosUrl, api }) {
     </div>` : ''}
     <dl><dt>Artigos</dt><dd data-subtotal></dd><dt data-desconto-rotulo hidden>Cupão</dt><dd data-desconto hidden></dd><dt>Portes</dt><dd data-portes></dd><dt class="total">Total</dt><dd class="total" data-total></dd></dl>
     <p class="aviso" data-aviso-personalizado hidden>Os artigos personalizados não têm troca nem devolução por desistência. Confirma o nome, a frase, o tamanho e a cor: é assim que os vamos fazer.</p>
-    <label class="marcar"><input type="checkbox" id="termos" name="termos" required aria-describedby="termos-erro"><span>Li e aceito os <a href="${url(termosUrl)}">termos e condições</a></span></label>
-    <p class="campo__erro" id="termos-erro" data-erro></p>
-    <p class="campo__erro" data-erro-envio role="alert"></p>
-    <button class="botao botao--cheio" type="submit" data-enviar>${pagaAgora ? esc(BOTAO_ENCOMENDA) : 'Enviar encomenda'}</button>
+    <div class="resumo__enviar" data-enviar-bloco>
+      <label class="marcar"><input type="checkbox" id="termos" name="termos" required aria-describedby="termos-erro"><span>Li e aceito os <a href="${url(termosUrl)}">termos e condições</a></span></label>
+      <p class="campo__erro" id="termos-erro" data-erro></p>
+      <p class="campo__erro" data-erro-envio role="alert"></p>
+      <button class="botao botao--cheio" type="submit" data-enviar>${pagaAgora ? esc(BOTAO_ENCOMENDA) : 'Enviar encomenda'}</button>
+    </div>
+    <p class="aviso" data-sob-consulta-resumo hidden>Esta entrega é sob consulta: a encomenda não se faz aqui. <a href="${mensagemInstagram(loja)}">Fala connosco no Instagram</a>.</p>
     <p class="pagamentos">${pagaAgora ? `${meiosOnline()}<span>Pagamento seguro pela Stripe</span>` : '<span>O pagamento combinamos contigo depois de confirmarmos a encomenda</span>'}</p>
   </aside>
 </form>${api ? '' : `
 <dialog class="caixa" id="pre-visualizacao" aria-labelledby="t-pre">
   <h2 id="t-pre">Quase a abrir</h2>
   <p>Esta é a pré-visualização da loja: as encomendas pelo site ligam-se quando a conta da Franja Kids estiver pronta.</p>
-  <p>Até lá, as encomendas fazem-se por <a href="https://ig.me/m/${loja.instagram}">mensagem no Instagram</a>.</p>
+  <p>Até lá, as encomendas fazem-se por <a href="${mensagemInstagram(loja)}">mensagem no Instagram</a>.</p>
   <button class="botao botao--cheio" type="button" data-fechar autofocus>Percebi</button>
 </dialog>`}`,
   };
@@ -433,26 +511,28 @@ export function obrigado({ loja }) {
     corpo: `<section class="contentor pagina obrigado" aria-labelledby="t-obrigado" data-obrigado>
   <h1 id="t-obrigado" tabindex="-1">Obrigado!</h1>
   <div data-obrigado-corpo><p>A carregar a tua encomenda…</p></div>
-  <div class="heroi__botoes"><a class="botao botao--linha" href="${url('/')}">Voltar à loja</a><a class="ligacao" href="https://ig.me/m/${loja.instagram}">Falar connosco ${icone('seta', 'icone icone--pequeno')}</a></div>
+  <div class="heroi__botoes"><a class="botao botao--linha" href="${url('/')}">Voltar à loja</a><a class="ligacao" href="${mensagemInstagram(loja)}">Falar connosco ${icone('seta', 'icone icone--pequeno')}</a></div>
 </section>`,
   };
 }
 
 // ── Procurar ───────────────────────────────────────────────────────────────
 
-export function procurar({ produtos, catalogo }) {
+export function procurar({ produtos, cat }) {
+  // procura-se pelo nome, pela frase curta, e pelos nomes das categorias e das secções onde o produto está
+  const nomesDe = (p) => [...new Set(p._categorias.flatMap((k) => [cat.nomes[k], cat.nomes[R.seccaoDaChave(k)]]).filter(Boolean))];
   return {
     caminho: '/procurar/',
     titulo: 'Procurar',
     indexar: false,
-    descricao: 'Procura bodies, t-shirts, camisolas e presentes na Franja Kids.',
+    descricao: 'Procura bodies, t-shirts, sweatshirts e presentes na Franja Kids.',
     corpo: `<section class="contentor pagina" aria-labelledby="t-procurar">
   <h1 id="t-procurar">Procurar</h1>
   <form class="procura" role="search" data-procura action="${url('/procurar/')}">${icone('procurar')}<label class="so-leitor" for="q">Procurar na loja</label><input id="q" name="q" type="search" placeholder="Padrinhos, avós, babygrow…" autocomplete="off"></form>
   <p class="contagem" data-contagem aria-live="polite"></p>
   <h2 class="so-leitor">Produtos</h2>
   <ul class="grelha" data-grelha>
-    ${produtos.map((p, i) => `<li data-texto="${esc([p.nome, p.resumo, catalogo.categorias[p.categoria], ...p.ocasioes.map((o) => catalogo.ocasioes.find((x) => x.id === o)?.nome || o)].join(' '))}">${cartao(p, { prioridade: i === 0, lazy: i >= 4 })}</li>`).join('\n    ')}
+    ${produtos.map((p, i) => `<li data-texto="${esc([p.nome, p.resumo, ...nomesDe(p)].join(' '))}">${cartao(p, { prioridade: i === 0, lazy: i >= 4 })}</li>`).join('\n    ')}
   </ul>
 </section>`,
   };
@@ -460,27 +540,28 @@ export function procurar({ produtos, catalogo }) {
 
 // ── Textos (ajuda, sobre, legais) ──────────────────────────────────────────
 
-/** Uma página de texto. `indexar: false` para as que não interessam a quem procura (os termos, a privacidade). */
+/** Uma página de texto. `indexar: false` para as que não interessam a quem procura (as legais e as de políticas). */
 export function texto(caminho, titulo, frase, html, descricao, { indexar = true } = {}) {
   return {
-    caminho, titulo, descricao: resumir(descricao || frase), indexar,
-    corpo: `<section class="contentor pagina" aria-labelledby="t-pagina"><h1 id="t-pagina">${esc(titulo)}</h1>${frase ? `<p>${esc(frase)}</p>` : ''}</section>
+    caminho, titulo, descricao: resumir(descricao || frase.replace(/\s*♡/g, '')), indexar,
+    corpo: `<section class="contentor pagina" aria-labelledby="t-pagina"><h1 id="t-pagina">${esc(titulo)}</h1>${frase ? `<p>${coracao(esc(frase))}</p>` : ''}</section>
 <div class="contentor texto">${html}</div>`,
   };
 }
 
-export function sobre({ loja }) {
+export function sobre({ loja, seccoes }) {
   const mao = zonaMao(loja);
+  const destino = destinoDaLoja(seccoes);
   return {
     caminho: '/sobre/',
     titulo: 'Sobre nós',
-    descricao: 'A Franja Kids são duas amigas que personalizam roupa e presentes para bebés, crianças e família.',
+    descricao: 'A Franja Kids nasceu a 10 de setembro de 2025: roupa e presentes personalizados para bebés, crianças e família, feitos com amor.',
     imagem: 'donas',
     fontes: [R.FICHEIROS.fotos, R.ficheiroDaFoto('donas')],
     corpo: `<section class="contentor historia" aria-labelledby="t-sobre">
   ${foto('donas', { sizes: '(min-width: 1024px) 460px, calc(100vw - 40px)', classe: 'historia__foto', prioridade: true })}
   <div class="historia__texto">
-    <h1 id="t-sobre" class="pagina__titulo">Duas amigas, uma ideia</h1>
+    <h1 id="t-sobre" class="pagina__titulo">Um sonho, muitas mãos e muito amor.</h1>
     <p>A Franja Kids nasceu a 10 de setembro de 2025, com roupa de bebé escolhida com carinho. Foram vocês que nos levaram para os personalizados: hoje fazemos bodies, t-shirts, camisolas e presentes com o nome e a história de cada família.</p>
     <p>Cada peça é preparada por nós, uma a uma. Antes de produzir, mandamos-te sempre a pré-visualização.</p>
     <ul class="factos">
@@ -488,19 +569,20 @@ export function sobre({ loja }) {
       ${mao ? `<li><span class="passos__icone">${icone('local')}</span>${esc(mao.nome)}</li>` : ''}
       <li><span class="passos__icone">${icone('carrinha')}</span>Enviamos para Portugal e para o estrangeiro</li>
     </ul>
-    <div class="heroi__botoes"><a class="botao botao--cheio" href="${url('/personalizados/')}">Ver os personalizados</a><a class="ligacao" href="https://www.instagram.com/${loja.instagram}/">@${loja.instagram} ${icone('seta', 'icone icone--pequeno')}</a></div>
+    <div class="heroi__botoes"><a class="botao botao--cheio" href="${url(destino.href)}">${destino.ver}</a><a class="ligacao" href="https://www.instagram.com/${loja.instagram}/">@${loja.instagram} ${icone('seta', 'icone icone--pequeno')}</a></div>
   </div>
 </section>`,
   };
 }
 
-export function naoEncontrada() {
+export function naoEncontrada(seccoes) {
+  const destino = destinoDaLoja(seccoes);
   return {
     caminho: '/404.html',
     titulo: 'Página não encontrada',
     indexar: false,
     descricao: 'Esta página não existe.',
     corpo: `<section class="contentor pagina" aria-labelledby="t-404"><h1 id="t-404">Esta página não existe</h1><p>Pode ter mudado de sítio. Experimenta a loja ou procura o que querias.</p>
-<div class="heroi__botoes"><a class="botao botao--cheio" href="${url('/personalizados/')}">Ver os personalizados</a><a class="ligacao" href="${url('/procurar/')}">Procurar ${icone('seta', 'icone icone--pequeno')}</a></div></section>`,
+<div class="heroi__botoes"><a class="botao botao--cheio" href="${url(destino.href)}">${destino.ver}</a><a class="ligacao" href="${url('/procurar/')}">Procurar ${icone('seta', 'icone icone--pequeno')}</a></div></section>`,
   };
 }

@@ -1,7 +1,8 @@
 {
   "nome": "Bolsa «A minha primeira roupinha»",
-  "categoria": "primeira-roupinha",
-  "ocasioes": [],
+  "categorias": [
+    "bebe/primeira-roupinha"
+  ],
   "preco": null,
   "resumo": "Para levar a primeira roupinha para a maternidade, e guardar depois.",
   "fotos": [

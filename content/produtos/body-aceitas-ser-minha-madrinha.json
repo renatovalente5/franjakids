@@ -1,8 +1,8 @@
 {
   "nome": "Body «Aceitas ser minha madrinha?»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "padrinhos"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/padrinhos"
   ],
   "preco": 12,
   "resumo": "O pedido mais especial, com o nome da madrinha e a data do batizado.",

@@ -13,6 +13,11 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const anunciar = (t) => { const a = $('[data-anuncio]'); if (a) { a.textContent = ''; setTimeout(() => { a.textContent = t; }, 50); } };
   const cents = (v) => Math.round(v * 100);
+  /* O EMAIL como o Worker o confere (src/lib/regras.mjs, RE_EMAIL e TAMANHOS.email; scripts/testar.mjs confere que
+     não se afastam): o finalizar e o aviso de stock. */
+  const RE_EMAIL = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
+  const MAX_EMAIL = 160;
+  const emailCerto = (v) => v.length <= MAX_EMAIL && RE_EMAIL.test(v);
 
   // ── Carrinho guardado no browser ──
   /* O que está guardado lê-se com desconfiança: uma linha estragada (à mão, ou de uma versão antiga) não pode parar o
@@ -66,6 +71,9 @@
     if (p.tamanhos.length && (!p.tamanhos.includes(i.tamanho) || (p.tamanhosEsgotados || []).includes(i.tamanho))) return null;
     if (p.cores.length && !p.cores.some((c) => c.nome === i.cor && !c.esgotado)) return null;
     let v = cents(p.preco);
+    // o acréscimo do tamanho (os de adulto numa t-shirt de criança e de adulto: R.suplementosTamanhoDe)
+    const sup = p.suplementosTamanho;
+    if (i.tamanho && sup && typeof sup === 'object' && Object.prototype.hasOwnProperty.call(sup, i.tamanho) && Number(sup[i.tamanho]) > 0) v += cents(Number(sup[i.tamanho]));
     for (const g of p.opcoes) {
       const escolhido = (i.opcoes || {})[g.nome];
       const valor = g.valores.find((x) => x.nome === escolhido) || (escolhido == null ? g.valores.find((x) => !x.suplemento && !x.esgotado) : null);
@@ -97,7 +105,7 @@
   };
 
   // ── Movimento: o que entra ao descer (a MESMA lista do site.css, «Movimento») ──
-  const ENTRAM = '.seccao__topo h2, .ocasioes li, .linhas__cartao, .fila.produtos li, .passos li, .sobre__foto, .sobre__texto, .insta li, .grelha li, .cartoes-ajuda li, .factos li';
+  const ENTRAM = '.seccao__topo h2, .ocasioes li, .montra li, .fila.produtos li, .passos li, .sobre__foto, .sobre__texto, .insta li, .grelha li, .cartoes-ajuda li, .factos li';
   const raiz = document.documentElement;
   if ('IntersectionObserver' in window) {
     // os que entram juntos (uma fila de cartões) entram um a seguir ao outro
@@ -147,6 +155,44 @@
     addEventListener('pageshow', (e) => { if (e.persisted) mostrarMenu(false); });
   }
 
+  // ── O menu do computador: cada entrada abre a lista das suas categorias ──
+  /* Ao passar o rato abre pelo CSS; o botão da seta abre e fecha (o rato, o toque e o teclado), e diz-o no
+     aria-expanded. Uma de cada vez; o Escape fecha a aberta e devolve o foco à seta; um clique fora ou o foco que
+     sai dela também a fecham. */
+  const menuTopo = $('[data-menu-principal]');
+  if (menuTopo) {
+    const entradas = $$('[data-entrada]', menuTopo);
+    const fechar = (li, foco = false) => {
+      const b = $('.menu__abrir', li);
+      if (!b || !li.classList.contains('aberta')) return;
+      li.classList.remove('aberta');
+      b.setAttribute('aria-expanded', 'false');
+      if (foco) b.focus();
+    };
+    const abrir = (li) => {
+      entradas.forEach((x) => { if (x !== li) fechar(x); });
+      li.classList.add('aberta');
+      $('.menu__abrir', li).setAttribute('aria-expanded', 'true');
+    };
+    menuTopo.addEventListener('click', (e) => {
+      const b = e.target.closest('.menu__abrir');
+      if (!b) return;
+      const li = b.closest('[data-entrada]');
+      if (li.classList.contains('aberta')) fechar(li); else abrir(li);
+    });
+    document.addEventListener('click', (e) => { if (!e.target.closest('[data-menu-principal]')) entradas.forEach((li) => fechar(li)); });
+    menuTopo.addEventListener('keydown', (e) => {
+      const li = e.key === 'Escape' && e.target.closest('[data-entrada]');
+      if (li && li.classList.contains('aberta')) { e.stopPropagation(); fechar(li, true); }
+    });
+    menuTopo.addEventListener('focusout', (e) => {
+      const li = e.target.closest('[data-entrada]');
+      if (li && !li.contains(e.relatedTarget)) fechar(li);
+    });
+    // ao voltar atrás (bfcache), tudo fechado
+    addEventListener('pageshow', (e) => { if (e.persisted) entradas.forEach((li) => fechar(li)); });
+  }
+
   // ── Diálogos: fechar e clicar fora ──
   /* «Fora» é fora da caixa, pelas coordenadas: o próprio <dialog> também é o alvo de um clique no espaço vazio lá
      dentro (o enchimento da caixa, o meio da gaveta), e esse não a fecha. */
@@ -159,19 +205,12 @@
     });
   });
 
-  // ── Endereços antigos dos filtros ──
-  // As categorias e as ocasiões eram filtros (/personalizados/?categoria=bodies); agora são páginas
-  // (/personalizados/bodies/, /ocasioes/avos/). Uma ligação antiga vai para a página, pela pastilha que a tem.
+  // ── As pastilhas das listas ──
+  // a da página onde se está fica à vista na fila dela (no telemóvel as filas rolam para o lado)
   const filtros = $('[data-filtros]');
-  // a pastilha da página onde se está fica à vista na fila dela (no telemóvel as filas rolam para o lado)
   if (filtros) for (const a of $$('.pastilha[aria-current="page"]', filtros)) {
     const fila = a.parentElement;
     fila.scrollLeft += a.getBoundingClientRect().left - fila.getBoundingClientRect().left - (fila.clientWidth - a.offsetWidth) / 2;
-  }
-  if (filtros && location.search) {
-    const q = new URLSearchParams(location.search);
-    const ir = ['categoria', 'ocasiao'].map((k) => q.get(k) && $(`a[data-${k}="${CSS.escape(q.get(k))}"]`, filtros)).find(Boolean);
-    if (ir) location.replace(ir.href);
   }
 
   // ── Procurar ──
@@ -300,6 +339,44 @@
     });
   }
 
+  // ── O aviso de stock (20 nov 2026): «Avisa-me quando voltar», num produto ou numa escolha esgotada ──
+  /* O Worker das encomendas guarda o pedido (POST /aviso); a loja avisa quando quiser, no painel. O email confere-se
+     como no finalizar. */
+  const avisoStock = $('[data-aviso-stock]');
+  if (avisoStock && API) {
+    const campoAviso = $('#aviso-email', avisoStock);
+    const erroAviso = $('#aviso-email-erro', avisoStock);
+    const feito = avisoStock.parentElement.querySelector('[data-aviso-feito]');
+    const limpo = () => campoAviso.value.replace(/\p{Cf}/gu, '').trim();
+    const marcarAviso = (msg) => { erroAviso.textContent = msg; if (msg) campoAviso.setAttribute('aria-invalid', 'true'); else campoAviso.removeAttribute('aria-invalid'); };
+    campoAviso.addEventListener('input', () => { if (campoAviso.getAttribute('aria-invalid') === 'true' && emailCerto(limpo())) marcarAviso(''); });
+    avisoStock.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const b = $('button[type="submit"]', avisoStock);
+      if (b.disabled) return;
+      const email = limpo();
+      if (!emailCerto(email)) { marcarAviso('Escreve um email como nome@exemplo.pt.'); campoAviso.focus(); return; }
+      marcarAviso('');
+      const escolha = $('#aviso-variante', avisoStock);
+      let variante = null;
+      try { variante = escolha ? JSON.parse(escolha.value) : null; } catch { variante = null; }
+      b.disabled = true;
+      try {
+        const r = await fetch(API + '/aviso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ produto: avisoStock.dataset.avisoProduto, variante, email }) });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok) {
+          avisoStock.hidden = true;
+          feito.textContent = `Combinado: avisamos-te em ${email} quando voltar.`;
+          feito.hidden = false;
+          feito.focus();
+        } else { marcarAviso(j.erro || 'Não conseguimos guardar o aviso. Tenta outra vez daqui a pouco.'); campoAviso.focus(); }
+      } catch {
+        marcarAviso('Não conseguimos guardar o aviso (sem ligação?). Tenta outra vez daqui a pouco.');
+      }
+      b.disabled = false;
+    });
+  }
+
   /* A gaveta abre sempre que se junta uma peça. Com o catálogo, mostra a fotografia, as escolhas, o preço e quanto
      falta para os portes grátis; sem ele (sem rede), só o nome — a peça já está no carrinho na mesma. */
   async function abrirGaveta(item, nome) {
@@ -352,7 +429,7 @@
     const aviso = sairam ? `<p class="aviso">${sairam === 1 ? 'Uma peça do carrinho já não está à venda como a escolheste e saiu dele.' : `${sairam} peças do carrinho já não estão à venda como as escolheste e saíram dele.`}</p>` : '';
     const foco = lugarDoFoco(lista);
     if (!itens.length) {
-      lista.innerHTML = `${aviso}<p class="vazio">O carrinho está vazio. <a href="${BASE}/personalizados/">Ver os personalizados</a></p>`;
+      lista.innerHTML = `${aviso}<p class="vazio">O carrinho está vazio. <a href="${esc(raiz.dataset.loja || `${BASE}/`)}">${esc(raiz.dataset.lojaTexto || 'Ver a loja')}</a></p>`;
       resumo.hidden = true;
       reporFoco(lista, foco);
       return;
@@ -414,6 +491,21 @@
     const erroEnvio = $('[data-erro-envio]', form);
     let totalMostrado = null;
     const zonaEscolhida = () => $('input[name="envio"]:checked', form);
+    /* AS ENTREGAS (o pedido da loja de 20 nov 2026): uma zona sob consulta (sem portes) não se encomenda aqui — o
+       aviso leva ao Instagram e o botão de enviar sai; a União Europeia pede o país; o levantamento em mão não pede
+       morada, e o telemóvel diz para que serve. */
+    const sobConsulta = () => Boolean(zonaEscolhida()?.hasAttribute('data-sob-consulta'));
+    const mostrarEntrega = () => {
+      const z = zonaEscolhida()?.value;
+      const consulta = sobConsulta();
+      $('[data-morada]', form).hidden = z === 'mao' || consulta;
+      $('[data-pais]', form).hidden = z !== 'ue' || consulta;
+      $('[data-sob-consulta-aviso]', form).hidden = !consulta;
+      $('[data-sob-consulta-resumo]', form).hidden = !consulta;
+      $('[data-enviar-bloco]', form).hidden = consulta;
+      $('[data-pista-mao]', form).hidden = z !== 'mao';
+      form.elements.telemovel.setAttribute('aria-describedby', z === 'mao' ? 'telemovel-pista telemovel-erro' : 'telemovel-erro');
+    };
     /* O CUPÃO (11 nov 2026; o Worker: cupoes.js). Só com o Worker das encomendas no ar (a pré-visualização não tem o
        campo). O finalizar confere o código (POST /cupao) e faz a mesma conta do Worker para mostrar o total; o
        /checkout confere tudo outra vez. Fica neste separador (sessionStorage), para o «voltar» da Stripe. */
@@ -421,7 +513,7 @@
     let ultimasLinhas = [];
     const descontoDe = (r, linhas) => {
       const cats = Array.isArray(r.categorias) ? r.categorias : [];
-      const daCategoria = (l) => !cats.length || cats.includes(l.categoria);
+      const daCategoria = (l) => !cats.length || (Array.isArray(l.categorias) ? l.categorias : []).some((k) => cats.includes(k) || cats.includes(String(k).split('/')[0]));
       if (r.tipo === 'portes') return { cents: 0, portes: linhas.length > 0 && linhas.every(daCategoria) };
       const base = linhas.filter(daCategoria).reduce((s, l) => s + l.total_cents, 0);
       if (r.tipo === 'percentagem') return { cents: Math.round((base * r.valor) / 100), portes: false };
@@ -488,11 +580,18 @@
       $('[data-itens-resumo]', form).innerHTML = itens.map((i) => { const p = cat.produtos[i.slug]; return `<div class="item"><div class="item__foto">${fotoDe(p)}</div><div><h3>${esc(p.nome)}${i.qtd > 1 ? ' × ' + i.qtd : ''}</h3><p class="item__escolhas">${escolhasDe(i, p)}</p>${textoDe(i, p)}</div><p class="item__preco">${euro((unidade(i, cat) * i.qtd) / 100)}</p></div>`; }).join('');
       const artigos = itens.reduce((s, i) => s + unidade(i, cat) * i.qtd, 0);
       const zona = cat.zonas.find((z) => z.id === zonaEscolhida().value);
-      // a conta do Worker (regras.mjs, portesDe): acima do valor, o continente é grátis mesmo sem os portes escritos
-      let portes = zona && typeof zona.portes === 'number' ? cents(zona.portes) : null;
-      if (zona?.id === 'continente' && typeof cat.gratisAPartirDe === 'number' && artigos >= cents(cat.gratisAPartirDe)) portes = 0;
+      // sob consulta (sem portes): os portes não se sabem e a encomenda não se faz aqui; nas outras, a conta do Worker
+      // (regras.mjs, portesDe), com o continente grátis a partir do valor
+      const consulta = !zona || zona.sobConsulta === true || typeof zona.portes !== 'number';
+      const gratis = typeof cat.gratisAPartirDe === 'number' && artigos >= cents(cat.gratisAPartirDe);
+      let portes = consulta ? null : cents(zona.portes);
+      if (!consulta && zona.id === 'continente' && gratis) portes = 0;
+      // o preço do continente, na lista das entregas, acompanha os portes grátis
+      const continente = cat.zonas.find((z) => z.id === 'continente' && !z.sobConsulta && typeof z.portes === 'number');
+      const precoContinente = $('[data-preco-zona="continente"]', form);
+      if (continente && precoContinente) precoContinente.textContent = gratis || continente.portes === 0 ? 'Grátis' : euro(continente.portes);
       // o cupão, com a conta do Worker (cupoes.js, descontoDoCupao)
-      const d = cupao ? descontoDe(cupao, itens.map((i) => ({ total_cents: unidade(i, cat) * i.qtd, categoria: cat.produtos[i.slug].categoria || '' }))) : { cents: 0, portes: false };
+      const d = cupao ? descontoDe(cupao, itens.map((i) => ({ total_cents: unidade(i, cat) * i.qtd, categorias: cat.produtos[i.slug].categorias || [] }))) : { cents: 0, portes: false };
       const portesDoCupao = d.portes && portes != null && portes > 0;
       if (portesDoCupao) portes = 0;
       totalMostrado = artigos - d.cents + (portes == null ? 0 : portes);
@@ -500,13 +599,11 @@
       $('[data-desconto-rotulo]', form).hidden = $('[data-desconto]', form).hidden = !(d.cents > 0);
       $('[data-desconto-rotulo]', form).textContent = cupao ? `Cupão ${cupao.codigo}` : 'Cupão';
       $('[data-desconto]', form).textContent = d.cents > 0 ? `−${euro(d.cents / 100)}` : '';
-      $('[data-portes]', form).textContent = portes === 0 ? (portesDoCupao ? 'Grátis (cupão)' : 'Grátis') : portes == null ? 'A confirmar' : euro(portes / 100);
+      $('[data-portes]', form).textContent = portes === 0 ? (portesDoCupao ? 'Grátis (cupão)' : 'Grátis') : portes == null ? 'Sob consulta' : euro(portes / 100);
       $('[data-total]', form).textContent = portes == null ? `${euro(totalMostrado / 100)} + portes` : euro(totalMostrado / 100);
       ultimasLinhas = itens;
       $('[data-aviso-personalizado]', form).hidden = !itens.some((i) => i.texto);
-      const z = zonaEscolhida().value;
-      $('[data-morada]', form).hidden = z === 'mao';
-      $('[data-pais]', form).hidden = z !== 'estrangeiro';
+      mostrarEntrega();
       return itens;
     };
     // ── De volta da página da Stripe sem pagar ──
@@ -557,6 +654,7 @@
       }
     };
     deVoltaDaStripe();
+    mostrarEntrega();
     desenhar();
     // ao voltar atrás para esta página (bfcache), ela volta como estava: com o botão em «A enviar…»
     addEventListener('pageshow', (e) => {
@@ -564,14 +662,13 @@
       botao.disabled = false;
       botao.textContent = textoInicial;
       deVoltaDaStripe();
+      mostrarEntrega();
       desenhar();
     });
 
     /* AS REGRAS DOS CAMPOS SÃO AS DO WORKER DAS ENCOMENDAS (worker/encomendas/contas.js, validarCliente; o email e o
        NIF de src/lib/regras.mjs; scripts/testar.mjs confere que não se afastam): o que passa aqui não é recusado
        depois do envio, e o que é recusado aqui seria recusado lá. Cada regra → a frase do erro, ou '' se está certo. */
-    const RE_EMAIL = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
-    const MAX_EMAIL = 160;
     const MAX_CP_ESTRANGEIRO = 20;
     const nifValido = (nif) => {
       const s = String(nif).replace(/\s/g, '');
@@ -587,12 +684,12 @@
     const CP_E_DO_CONTINENTE = 'Nos Açores e na Madeira o código postal começa por 9. Para Portugal continental, escolhe essa entrega.';
     const regras = {
       nome: (v) => (v ? '' : 'Escreve o teu nome.'),
-      email: (v) => (v.length <= MAX_EMAIL && RE_EMAIL.test(v) ? '' : 'Escreve um email como nome@exemplo.pt.'),
+      email: (v) => (emailCerto(v) ? '' : 'Escreve um email como nome@exemplo.pt.'),
       telemovel: (v) => { const n = v.replace(/\D/g, '').length; return /^[+\d\s().-]+$/.test(v) && n >= 9 && n <= 15 ? '' : 'Escreve o telemóvel com 9 algarismos.'; },
       nif: (v) => (!v || nifValido(v) ? '' : 'O NIF não está certo. Confirma-o ou deixa-o em branco.'),
       morada: (v) => (v ? '' : 'Escreve a morada.'),
       'codigo-postal': (v, zona) => {
-        if (zona === 'estrangeiro') return !v ? 'Escreve o código postal.' : v.length > MAX_CP_ESTRANGEIRO ? `O código postal tem no máximo ${MAX_CP_ESTRANGEIRO} caracteres.` : '';
+        if (zona === 'ue') return !v ? 'Escreve o código postal.' : v.length > MAX_CP_ESTRANGEIRO ? `O código postal tem no máximo ${MAX_CP_ESTRANGEIRO} caracteres.` : '';
         const cp = cpPortugues(v);
         const continente = /^[1-8]\d{3}-\d{3}$/.test(cp);
         const ilhas = /^9\d{3}-\d{3}$/.test(cp);
@@ -600,11 +697,11 @@
         return continente ? '' : ilhas ? CP_E_DAS_ILHAS : 'Escreve o código postal como 4440-000.';
       },
       localidade: (v) => (v ? '' : 'Escreve a localidade.'),
-      pais: (v) => (v ? '' : 'Escreve o país.'),
+      pais: (v) => (v ? '' : 'Escolhe o país.'),
       termos: () => (form.elements.termos.checked ? '' : 'Para encomendar, aceita os termos e condições.'),
     };
     const camposDe = (zona) => ['nome', 'email', 'telemovel', 'nif',
-      ...(zona !== 'mao' ? ['morada', 'codigo-postal', 'localidade', ...(zona === 'estrangeiro' ? ['pais'] : [])] : []), 'termos'];
+      ...(zona !== 'mao' ? ['morada', 'codigo-postal', 'localidade', ...(zona === 'ue' ? ['pais'] : [])] : []), 'termos'];
     // o valor como o Worker o lê: sem os invisíveis e sem os espaços das pontas
     const v = (id) => (form.elements[id]?.value || '').replace(/\p{Cf}/gu, '').trim();
     const marcar = (id, msg) => {
@@ -625,6 +722,7 @@
     });
     form.addEventListener('change', (e) => {
       if (e.target.name === 'envio') {
+        mostrarEntrega();
         desenhar();
         // o código postal confere-se com a entrega; os campos da morada que a entrega já não pede ficam sem erro
         const pede = camposDe(e.target.value);
@@ -651,7 +749,7 @@
     });
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (botao.disabled) return;
+      if (botao.disabled || sobConsulta()) return;
       erroEnvio.textContent = '';
       const zona = zonaEscolhida().value;
       const erros = camposDe(zona).map((id) => [id, conferir(id)]).filter(([, m]) => m);
@@ -670,8 +768,8 @@
         cliente: {
           nome: v('nome'), email: v('email'), telefone: v('telemovel'),
           ...(v('nif') ? { nif: v('nif').replace(/\s/g, '') } : {}),
-          ...(zona !== 'mao' ? { morada: v('morada'), codigoPostal: zona === 'estrangeiro' ? cp : cpPortugues(cp), localidade: v('localidade') } : {}),
-          ...(zona === 'estrangeiro' ? { pais: v('pais') } : {}),
+          ...(zona !== 'mao' ? { morada: v('morada'), codigoPostal: zona === 'ue' ? cp : cpPortugues(cp), localidade: v('localidade') } : {}),
+          ...(zona === 'ue' ? { pais: v('pais') } : {}),
         },
         oferta: !!form.elements.oferta.checked,
         ...(form.elements.oferta.checked && v('mensagem') ? { mensagem: v('mensagem') } : {}),
@@ -755,9 +853,10 @@
             : mb ? 'Falta pagar: usa a referência Multibanco abaixo, no multibanco ou na app do teu banco. Assim que o pagamento entrar, avisamos-te por email.'
               : 'Assim que o pagamento entrar, avisamos-te por email.')
           : 'Vamos confirmar a encomenda e combinar contigo o pagamento. Antes de produzirmos, mandamos-te a pré-visualização para aprovares.';
+        const levantamento = e.entrega === 'mao' ? '<p>Quando estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.</p>' : '';
         const validade = mb && mb.validade ? new Date(mb.validade * 1000).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' }) : '';
         const caixaMB = mb ? `<dl class="obrigado__multibanco" data-multibanco><dt>Entidade</dt><dd>${esc(mb.entidade)}</dd><dt>Referência</dt><dd>${esc(mb.referencia)}</dd><dt>Valor</dt><dd>${euro(e.total_cents / 100)}</dd>${validade ? `<dt>Válida até</dt><dd>${esc(validade)}</dd>` : ''}</dl>` : '';
-        corpo.innerHTML = `<p>${e.cliente?.nome ? `${esc(e.cliente.nome)}, recebemos` : 'Recebemos'} a tua encomenda <strong>${esc(e.encomenda)}</strong>.</p><p>${proximo}</p>${caixaMB}
+        corpo.innerHTML = `<p>${e.cliente?.nome ? `${esc(e.cliente.nome)}, recebemos` : 'Recebemos'} a tua encomenda <strong>${esc(e.encomenda)}</strong>.</p><p>${proximo}</p>${levantamento}${caixaMB}
           <ul class="obrigado__linhas">${linhas}</ul>
           <dl class="obrigado__totais"><dt>Artigos</dt><dd>${euro(e.artigos_cents / 100)}</dd>${e.cupao && e.desconto_cents > 0 ? `<dt>Cupão ${esc(e.cupao)}</dt><dd>−${euro(e.desconto_cents / 100)}</dd>` : ''}<dt>Portes</dt><dd>${e.portes_por_confirmar ? 'A confirmar' : e.portes_cents ? euro(e.portes_cents / 100) : e.cupao_portes ? 'Grátis (cupão)' : 'Grátis'}</dd><dt>Total</dt><dd>${euro(e.total_cents / 100)}${e.portes_por_confirmar ? ' + portes' : ''}</dd></dl>`;
       }).catch((estado) => {

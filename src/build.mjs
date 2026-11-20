@@ -10,9 +10,9 @@ import { execFileSync } from 'node:child_process';
 import { procurarFrasesProibidas } from '../legal-comum/index.mjs';
 import * as R from './lib/regras.mjs';
 import { RAIZ, BASE, SITE_URL, PRODUCAO, lerTexto, absoluto, url, carregarFotos, FOTOS, fotoPequena } from './util.mjs';
-import { pagina } from './layout.mjs';
+import { pagina, SOBRE_NOS } from './layout.mjs';
 import { VERIFICACOES } from './seo.mjs';
-import { inicio, linha, listagensComProdutos, produto, carrinho, finalizar, obrigado, procurar, sobre, naoEncontrada } from './paginas.mjs';
+import { inicio, listas, seccoesComProdutos, produto, carrinho, finalizar, obrigado, procurar, sobre, naoEncontrada } from './paginas.mjs';
 import { paginasDeTexto } from './textos.mjs';
 
 const SAIDA = RAIZ + '_site/';
@@ -54,32 +54,41 @@ carregarFotos(indiceFotos);
 const { artigos, efeitos } = R.neutralizar(dados, problemas);
 for (const e of efeitos) console.warn(`aviso: ${e.nome} fica ${R.descreverEfeitos(e)}`);
 
-// Os produtos no site (pela «ordem», e depois pelo nome), cada um com o que as páginas precisam.
+/* Os produtos no site (pela «ordem», e depois pelo nome), cada um com o que as páginas precisam. As categorias
+   (as chaves «<secção>/<item>» que existem, a 1.ª é a principal): sem nenhuma, as regras já o esconderam. */
 const produtos = Object.entries(artigos)
-  .filter(([, a]) => R.noSite(a))
-  .map(([slug, a]) => ({
-    ...a, slug,
-    ocasioes: Array.isArray(a.ocasioes) ? a.ocasioes.filter((o) => cat.ocasioes.includes(o)) : [],
-    detalhes: Array.isArray(a.detalhes) ? a.detalhes.filter((d) => typeof d === 'string' && d.trim()) : [],
-    _linha: R.linhaDaCategoria(catalogo, a.categoria),
-    _tamanhos: R.tamanhosDe(a, cat),
-    _cores: R.coresDe(a),
-    _opcoes: R.opcoesDe(a),
-    _pers: R.personalizacaoDe(a),
-    _tamanhosEsgotados: R.tamanhosEsgotadosDe(a, R.tamanhosDe(a, cat)),
-    _esgotado: R.esgotadoDe(a, cat),
-    _ordem: Number.isInteger(a.ordem) ? a.ordem : R.POR_OMISSAO.ordem,
-  }))
+  .filter(([, a]) => R.noSite(a) && R.categoriasDe(a, cat).length)
+  .map(([slug, a]) => {
+    const categorias = R.categoriasDe(a, cat);
+    const tamanhos = R.tamanhosDe(a, cat);
+    return {
+      ...a, slug,
+      detalhes: Array.isArray(a.detalhes) ? a.detalhes.filter((d) => typeof d === 'string' && d.trim()) : [],
+      _categorias: categorias,
+      _seccao: R.seccaoDaChave(categorias[0]),
+      _nomeCategoria: cat.nomes[categorias[0]],
+      _tamanhos: tamanhos,
+      _supTam: R.suplementosTamanhoDe(a, tamanhos),
+      _cores: R.coresDe(a),
+      _opcoes: R.opcoesDe(a),
+      _pers: R.personalizacaoDe(a),
+      _tamanhosEsgotados: R.tamanhosEsgotadosDe(a, tamanhos),
+      _esgotado: R.esgotadoDe(a, cat),
+      _ordem: Number.isInteger(a.ordem) ? a.ordem : R.POR_OMISSAO.ordem,
+    };
+  })
   .sort((a, b) => a._ordem - b._ordem || a.nome.localeCompare(b.nome, 'pt'));
 for (const p of produtos) for (const f of p.fotos) if (!FOTOS[f]) { console.error(`falta a versão web de «${f}»: correr python3 scripts/imagens.py`); process.exit(1); }
 
-const ctx = { loja, catalogo, cat, produtos, api: API };
+const seccoes = seccoesComProdutos(cat, produtos);
+const ctx = { loja, catalogo, cat, produtos, seccoes, api: API };
+/* O menu principal: as secções com produtos (cada uma com as suas categorias com produtos) e o «Sobre Nós». */
+const menu = [...seccoes.map((s) => ({ id: s.id, nome: s.nome, href: s.href, itens: s.itens.map((i) => ({ nome: i.nome, href: i.href })) })), SOBRE_NOS];
 
 // ── Páginas ──
 const lista = [
   inicio(ctx),
-  ...catalogo.linhas.map((l) => linha(ctx, l)),
-  ...listagensComProdutos(ctx),
+  ...listas(ctx),
   ...produtos.map((p) => produto(ctx, p)),
   carrinho(ctx),
   finalizar({ ...ctx, termosUrl: '/termos/' }),
@@ -87,7 +96,7 @@ const lista = [
   procurar(ctx),
   sobre(ctx),
   ...paginasDeTexto(loja),
-  naoEncontrada(),
+  naoEncontrada(seccoes),
 ];
 
 const versao = createHash('sha1').update(readFileSync(RAIZ + 'assets/css/site.css')).update(readFileSync(RAIZ + 'assets/js/site.js')).digest('hex').slice(0, 8);
@@ -97,12 +106,12 @@ const html = {};
 const erros = [];
 for (const pg of lista) {
   const ficheiro = pg.caminho.endsWith('.html') ? pg.caminho : pg.caminho + 'index.html';
-  html[ficheiro] = pagina({ loja, versao, api: API, ...pg });
+  html[ficheiro] = pagina({ loja, versao, api: API, menu, ...pg });
   mkdirSync(SAIDA + ficheiro.slice(0, ficheiro.lastIndexOf('/')), { recursive: true });
   writeFileSync(SAIDA + ficheiro, html[ficheiro]);
 }
 
-// Ligações internas: cada página tem de existir, e nenhuma ligação leva «?» (as categorias e as ocasiões são
+// Ligações internas: cada página tem de existir, e nenhuma ligação leva «?» (as secções e as categorias são
 // páginas: um filtro com «?» o Google não lê, e já não há nenhum).
 const caminhos = new Set(lista.map((p) => p.caminho));
 if (caminhos.size !== lista.length) erros.push('há duas páginas com o mesmo endereço: ' + lista.map((p) => p.caminho).filter((c, i, t) => t.indexOf(c) !== i).join(', '));
@@ -134,7 +143,8 @@ for (const [nome, f] of Object.entries(manifesto)) {
 /* O CATÁLOGO PUBLICADO (assets/catalogo.json): o que o carrinho usa para recalcular os preços e o que
    o Worker das encomendas lê para refazer as contas (docs/ENCOMENDAS.md, §2). Só os produtos que se
    compram (publicados e com preço). Cada entrada tem a forma que R.conferirEscolha() espera. */
-const zonas = loja.entrega.zonas.map((z) => ({ id: z.id, nome: z.nome, portes: typeof z.portes === 'number' ? z.portes : null, morada: R.zonaComMorada(z.id) }));
+// uma zona sem portes é sob consulta: aparece no finalizar, mas não se encomenda (o Worker recusa-a)
+const zonas = loja.entrega.zonas.map((z) => ({ id: z.id, nome: z.nome, portes: R.zonaSobConsulta(z) ? null : z.portes, morada: R.zonaComMorada(z.id), ...(R.zonaSobConsulta(z) ? { sobConsulta: true } : {}) }));
 const paraCarrinho = {
   v: 2,
   modo: loja.pagamentos?.modo === 'online' ? 'online' : 'encomenda',
@@ -144,11 +154,14 @@ const paraCarrinho = {
   termos: absoluto('/termos/'),
   obrigado: absoluto('/obrigado/'),
   finalizar: absoluto('/finalizar/'),
-  // os nomes das categorias: a frase de um cupão «só em Bodies» (o Worker das encomendas, cupoes.js)
-  categorias: Object.fromEntries(Object.entries(catalogo.categorias || {}).filter(([, n]) => typeof n === 'string')),
+  // os nomes das secções e das categorias («bebe», «bebe/outros»): a frase de um cupão «só em Bodies» (o Worker
+  // das encomendas, cupoes.js)
+  categorias: cat.nomes,
   produtos: Object.fromEntries(produtos.filter(R.compravel).map((p) => [p.slug, {
-    nome: p.nome, url: url(`/produtos/${p.slug}/`), foto: fotoPequena(p.fotos[0]), preco: p.preco, categoria: p.categoria,
+    nome: p.nome, url: url(`/produtos/${p.slug}/`), foto: fotoPequena(p.fotos[0]), preco: p.preco, categorias: p._categorias,
     tamanhos: p._tamanhos, cores: p._cores, opcoes: p._opcoes, personalizacao: p._pers,
+    // o acréscimo de cada tamanho (R.conferirEscolha soma-o; só os tamanhos com acréscimo)
+    ...(Object.keys(p._supTam).length ? { suplementosTamanho: p._supTam } : {}),
     // o stock (R.esgotadoDe): o carrinho tira e o Worker recusa o que estiver esgotado
     ...(p._tamanhosEsgotados.length ? { tamanhosEsgotados: p._tamanhosEsgotados } : {}),
     ...(p._esgotado ? { esgotado: true } : {}),

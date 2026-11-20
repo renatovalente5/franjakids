@@ -1,9 +1,9 @@
 {
   "nome": "Body «Promovida a irmã mais velha»",
-  "categoria": "bodies",
-  "ocasioes": [
-    "irmaos",
-    "bebe-a-caminho"
+  "categorias": [
+    "personalizados/bodies",
+    "presentes/irmaos",
+    "presentes/anunciar-gravidez"
   ],
   "preco": 12,
   "resumo": "Para anunciar que vem aí um mano, com a data prevista.",

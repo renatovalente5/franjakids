@@ -1,7 +1,9 @@
 {
   "nome": "Babygrow",
-  "categoria": "babygrows",
-  "ocasioes": [],
+  "categorias": [
+    "bebe/bodies-e-babygrows",
+    "personalizados/babygrows"
+  ],
   "preco": 16.9,
   "resumo": "Algodão macio, com a etiqueta Franja Kids. Bordamos o nome por mais 3 €.",
   "fotos": [

@@ -1,7 +1,8 @@
 {
   "nome": "Manta remalhada",
-  "categoria": "mantas-e-toalhas",
-  "ocasioes": [],
+  "categorias": [
+    "bebe/mantas-e-cobertores"
+  ],
   "preco": 21.9,
   "resumo": "90 × 90 cm, de malha macia, para o berço, o carrinho e o colo.",
   "fotos": [

@@ -1,9 +1,9 @@
 {
   "nome": "Camisola com carapuço e nome",
-  "categoria": "camisolas",
-  "ocasioes": [
-    "familia",
-    "irmaos"
+  "categorias": [
+    "crianca-e-familia/sweatshirts-de-crianca",
+    "crianca-e-familia/sweatshirts-de-adulto",
+    "presentes/irmaos"
   ],
   "preco": null,
   "resumo": "Cardada por dentro, quentinha e com carapuço. Para crianças e adultos, em várias cores.",
