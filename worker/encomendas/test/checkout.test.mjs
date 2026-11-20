@@ -203,7 +203,7 @@ test('o catálogo em baixo, ou noutra versão, dá 503 sem gastar o KV', async (
   assert.equal(r.status, 503);
   assert.deepEqual(r.json, { erro: 'Não conseguimos confirmar os preços agora. Tenta daqui a um minuto.' });
   rede.repor();
-  rede = redeFalsa({ catalogo: { ...catalogoDeEnsaio(), v: 3 } });
+  rede = redeFalsa({ catalogo: { ...catalogoDeEnsaio(), v: 4 } });
   assert.equal((await pedir(worker, env, 'POST', '/checkout', { corpo: pedidoValido() })).status, 503, 'uma forma que o Worker não conhece não se usa');
   rede.repor();
   rede = redeFalsa({ catalogo: { ...catalogoDeEnsaio(), zonas: [] } });

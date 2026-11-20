@@ -284,7 +284,7 @@ teste('pré-visualização: cada imagem e ligação a recursos que as páginas p
 });
 teste('pré-visualização: o catálogo publicado tem as zonas, o modo e só os produtos que se compram', () => {
   const c = JSON.parse(pagina('assets/catalogo.json'));
-  assert.equal(c.v, 2);
+  assert.equal(c.v, 3);
   assert.equal(c.modo, 'encomenda');
   assert.deepEqual(c.zonas.map((z) => z.id), R.ZONAS);
   assert.deepEqual(Object.keys(c.produtos).sort(), ['babygrow-com-nome', 'body-dad-mini', 'box-franja', 'manta-remalhada']);
@@ -701,7 +701,8 @@ await teste('aviso de stock: com o Worker, o produto esgotado pede o email; numa
   r = construir(['--api=https://franjakids-encomendas.exemplo.workers.dev']);
   assert.equal(r.status, 0, r.stderr);
   const manta = pagina('produtos/manta-remalhada/index.html');
-  assert.match(manta, /<section class="aviso-stock" aria-labelledby="t-aviso"><h2 id="t-aviso">Avisa-me quando voltar<\/h2>/);
+  assert.match(manta, /<section class="aviso-stock" aria-labelledby="t-aviso" data-esgotado><h2 id="t-aviso">Esgotado: avisa-me quando voltar<\/h2>/);
+  assert.doesNotMatch(manta, /<p class="aviso" data-esgotado>/, 'o aviso de stock já diz que está esgotado');
   assert.match(manta, /data-aviso-stock data-aviso-produto="manta-remalhada"/);
   assert.doesNotMatch(manta, /id="aviso-variante"|Perguntar por mensagem/);
   assert.match(manta, /<input id="aviso-email" name="email" type="email" autocomplete="email" required/);

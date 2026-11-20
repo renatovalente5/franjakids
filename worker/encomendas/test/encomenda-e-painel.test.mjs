@@ -119,9 +119,9 @@ test('GET /painel/saude diz o modo e o que está ligado (booleanos), e o erro do
   assert.equal(semCat.json.modo, null);
   assert.match(semCat.json.catalogo, /HTTP 404/);
   rede.repor();
-  rede = redeFalsa({ catalogo: { ...catalogoDeEnsaio(), v: 3 } });
+  rede = redeFalsa({ catalogo: { ...catalogoDeEnsaio(), v: 4 } });
   const versao = await pedir(worker, envFalso({ MODO: 'encomenda' }), 'GET', '/painel/saude', { cabecalhos: bearer() });
-  assert.match(versao.json.catalogo, /versão 3, e o Worker só conhece a 2/);
+  assert.match(versao.json.catalogo, /versão 4, e o Worker só conhece a 3/);
   assert.equal(versao.json.modo, 'encomenda', 'com o travão, o modo sabe-se na mesma');
 });
 

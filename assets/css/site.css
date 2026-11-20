@@ -465,6 +465,11 @@ dialog::backdrop { background: rgb(46 30 22 / .35); }
 .texto ol { list-style: decimal; }
 .texto li + li { margin-top: 6px; }
 .texto a { color: var(--castanho); font-weight: 600; }
+/* os botões dentro de um texto ficam com as cores de botão (o «.texto a» é mais específico do que o «.botao--cheio»:
+   o «Enviar mensagem» dos Contactos tinha a letra castanha sobre o castanho) */
+.texto a.botao--cheio { color: #FBF3E6; }
+.texto a.botao--linha { color: var(--tinta); }
+.botao--cheio .coracao { color: var(--pessego); }
 .texto pre { margin-top: 12px; padding: 16px; border-radius: 16px; background: var(--superficie); white-space: pre-wrap; font: .9375rem/1.55 var(--texto); }
 .cartoes-ajuda { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 20px; }
 @media (min-width: 768px) { .cartoes-ajuda { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

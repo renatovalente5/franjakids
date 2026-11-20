@@ -11,7 +11,7 @@ export const CACHE = Object.freeze({ cf: Object.freeze({ cacheTtl: 60, cacheEver
 /* A versão da forma que este Worker sabe ler. Uma versão nova no build.mjs (outra forma dos
    produtos ou das zonas) pára as encomendas com um 503 e o motivo na /painel/saude, em vez de
    as contas saírem de uma forma que o Worker não conhece. Mudar as duas juntas. */
-export const VERSAO_CATALOGO = 2;
+export const VERSAO_CATALOGO = 3;   // 3: o menu de 20 nov 2026 (as categorias, o preço por tamanho, a UE)
 
 export const siteUrl = (env) => String(env.SITE_URL || '').replace(/\/+$/, '');
 export const urlDoCatalogo = (env) => String(env.CATALOGO_URL || `${siteUrl(env)}/assets/catalogo.json`);

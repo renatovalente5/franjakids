@@ -276,7 +276,7 @@ function avisoDeStock(p, esgotados) {
     </form>
     <p class="aviso-stock__feito" data-aviso-feito role="status" tabindex="-1" hidden></p>`;
   return p._esgotado
-    ? `<section class="aviso-stock" aria-labelledby="t-aviso"><h2 id="t-aviso">Avisa-me quando voltar</h2><p>Deixa o teu email e mandamos-te uma mensagem quando voltar a haver.</p>${form}</section>`
+    ? `<section class="aviso-stock" aria-labelledby="t-aviso" data-esgotado><h2 id="t-aviso">Esgotado: avisa-me quando voltar</h2><p>Deixa o teu email e mandamos-te uma mensagem quando voltar a haver.</p>${form}</section>`
     : `<details class="aviso-stock"><summary>${pergunta} <span>Avisamos-te quando voltar.</span></summary>${form}</details>`;
 }
 
@@ -334,8 +334,8 @@ export function produto({ loja, catalogo, produtos, seccoes, api }, p) {
     ? `<p class="aviso">O preço desta peça ainda não está no site. Diz-nos o que queres por mensagem e respondemos com o valor.</p>
     <a class="botao botao--cheio" href="${mensagemInstagram(loja)}">${icone('mensagem', 'icone icone--pequeno')} Pedir por mensagem</a>`
     : p._esgotado
-      ? `<p class="aviso" data-esgotado>Esta peça está esgotada.${comAviso ? '' : ' Manda-nos mensagem para saberes quando volta.'}</p>${comAviso ? '' : `
-    <a class="botao botao--linha" href="${mensagemInstagram(loja)}">${icone('mensagem', 'icone icone--pequeno')} Perguntar por mensagem</a>`}`
+      ? (comAviso ? '' : `<p class="aviso" data-esgotado>Esta peça está esgotada. Manda-nos mensagem para saberes quando volta.</p>
+    <a class="botao botao--linha" href="${mensagemInstagram(loja)}">${icone('mensagem', 'icone icone--pequeno')} Perguntar por mensagem</a>`)
       : `<div class="ficha__comprar">
       <div class="quantidade" data-quantidade><button type="button" data-menos aria-label="Diminuir a quantidade">−</button><input type="text" inputmode="numeric" pattern="[0-9]*" value="1" aria-label="Quantidade" name="quantidade"><button type="button" data-mais aria-label="Aumentar a quantidade">+</button></div>
       <button class="botao botao--cheio" type="submit">Adicionar ao carrinho</button>

@@ -146,7 +146,9 @@ for (const [nome, f] of Object.entries(manifesto)) {
 // uma zona sem portes é sob consulta: aparece no finalizar, mas não se encomenda (o Worker recusa-a)
 const zonas = loja.entrega.zonas.map((z) => ({ id: z.id, nome: z.nome, portes: R.zonaSobConsulta(z) ? null : z.portes, morada: R.zonaComMorada(z.id), ...(R.zonaSobConsulta(z) ? { sobConsulta: true } : {}) }));
 const paraCarrinho = {
-  v: 2,
+  // 3 (20 nov 2026): as `categorias` de cada produto, os `suplementosTamanho` e as zonas sob consulta (o Worker
+  // das encomendas, catalogo.js, VERSAO_CATALOGO, só lê a sua)
+  v: 3,
   modo: loja.pagamentos?.modo === 'online' ? 'online' : 'encomenda',
   api: API,
   zonas,
