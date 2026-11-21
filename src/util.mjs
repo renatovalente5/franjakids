@@ -80,6 +80,8 @@ const TRACOS = {
   troca: '<path d="M4 9h13l-3.5-3.5M20 15H7l3.5 3.5"/>',
   local: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
   abaixo: '<path d="m6 9.5 6 6 6-6"/>',
+  email: '<rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m4.5 7.5 7.5 5.5 7.5-5.5"/>',
+  whatsapp: '<path d="M5.07 16 4 20l4.62-.75A8 8 0 1 0 5.07 16z"/><path d="M9.3 7.9c-.4 0-.9.2-1.1.6-.4.6-.6 1.6-.2 2.8.6 1.7 2.1 3.4 3.9 4.4 1.3.7 2.4.8 3.1.5.4-.2.7-.6.8-1l.1-.6c0-.2-.1-.4-.3-.5l-1.7-.8c-.2-.1-.4 0-.6.1l-.7.8c-1.1-.5-2.2-1.5-2.8-2.6l.7-.7c.2-.2.2-.4.1-.6L9.8 8.1c-.1-.1-.3-.2-.5-.2z" fill="currentColor" stroke="none"/>',
 };
 export function icone(nome, classe = 'icone') {
   return `<svg class="${classe}" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TRACOS[nome]}</svg>`;

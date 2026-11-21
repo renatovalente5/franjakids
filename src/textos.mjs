@@ -15,6 +15,8 @@ const valor = (v, falta) => (typeof v === 'string' && v.trim() ? esc(v.trim()) :
 const moradaJunta = (html) => html.replace(/(\d{4}-\d{3}) /, '$1&nbsp;');
 /* O telefone com o custo da chamada ao lado (DL 59/2021; a forma «Chamada para a rede…» que o Renato usa nos sites). */
 const telefone = (t) => { const n = notaChamada(t, { frase: 'com-a' }); return `${esc(t)}${n ? ` <small>(${n.charAt(0).toLowerCase() + n.slice(1)})</small>` : ''}`; };
+/* A conversa no WhatsApp com o telemóvel da loja (só um número móvel português tem WhatsApp por certo). */
+const ligacaoWhatsapp = (t) => { const d = String(t || '').replace(/\D/g, ''); const n = /^9\d{8}$/.test(d) ? `351${d}` : d; return /^3519\d{8}$/.test(n) ? `https://wa.me/${n}` : null; };
 const identificacao = (e) => `<ul>
   <li>Nome: ${valor(e.nome, 'nome ou firma')}</li>
   <li>NIF: ${valor(e.nif, 'NIF')}</li>
@@ -23,7 +25,7 @@ const identificacao = (e) => `<ul>
   ${e.telefone ? `<li>Telefone: ${telefone(e.telefone)}</li>` : ''}
 </ul>`;
 
-const cartoes = (itens) => `<ul class="cartoes-ajuda">${itens.map(([i, t, d]) => `<li><span class="passos__icone">${icone(i)}</span><div><h2>${t}</h2><p>${d}</p></div></li>`).join('')}</ul>`;
+const cartoes = (itens, classe = '') => `<ul class="cartoes-ajuda${classe ? ` ${classe}` : ''}">${itens.map(([i, t, d]) => `<li><span class="passos__icone">${icone(i)}</span><div><h2>${t}</h2><p>${d}</p></div></li>`).join('')}</ul>`;
 
 export function paginasDeTexto(loja) {
   const e = loja.empresa;
@@ -47,6 +49,11 @@ export function paginasDeTexto(loja) {
     `<li>${z.id === 'mao' ? `Levantamento em mão em ${esc(ent.concelho)}` : esc(z.nome)}: ${portesDe(z)}.</li>`,
     ...(z.id === 'continente' && gratis ? [`<li>${esc(z.nome)}: portes grátis em compras iguais ou superiores a ${gratis}.</li>`] : []),
   ]).join('')}</ul>`;
+  /* A lista das perguntas frequentes (o texto da loja de 21 nov 2026): o continente numa linha, com os portes
+     grátis, e os restantes países antes do levantamento em mão. */
+  const ordemDasPerguntas = ['continente', 'ilhas', 'ue', 'estrangeiro', 'mao'];
+  const listaDasPerguntas = `<ul>${[...ent.zonas].sort((a, b) => ordemDasPerguntas.indexOf(a.id) - ordemDasPerguntas.indexOf(b.id)).map((z) =>
+    `<li>${z.id === 'mao' ? `Levantamento em mão em ${esc(ent.concelho)}` : esc(z.nome)}: ${portesDe(z)}${z.id === 'continente' && gratis && !zonaSobConsulta(z) ? ` — grátis em compras a partir de ${gratis}` : ''}.</li>`).join('')}</ul>`;
   // as zonas para onde se envia com portes (as ilhas e a UE), e as sob consulta, para os termos
   const comPortes = ent.zonas.filter((z) => !zonaSobConsulta(z) && !['continente', 'mao'].includes(z.id));
   const sobConsulta = ent.zonas.filter((z) => zonaSobConsulta(z) && z.id !== 'continente');
@@ -137,33 +144,71 @@ ${falarNoInstagram}`,
 <pre>${esc(e.nome && e.morada && e.email ? formularioLivreResolucao({ nome: e.nome.trim(), morada: e.morada.trim(), email: e.email.trim() }) : FORMULARIO_LIVRE_RESOLUCAO)}</pre>`,
     'Trocas e devoluções na Franja Kids: 14 dias nos artigos sem personalização; os personalizados não têm livre resolução.', { indexar: false }),
 
-    texto('/perguntas-frequentes/', 'Perguntas frequentes', 'As dúvidas mais comuns sobre encomendas, prazos e envios.', `
+    /* O texto da loja (o Samuel, 21 nov 2026), com os prazos, os portes e o nome do levantamento lidos dos dados:
+       o painel muda-os num sítio só. O pagamento só fala das opções do checkout quando o site recebe pagamentos. */
+    texto('/perguntas-frequentes/', 'Perguntas frequentes', 'Encontra aqui as respostas às dúvidas mais comuns sobre encomendas, personalizações, pagamentos e envios. Se precisares de ajuda, estamos sempre por perto! ♡', `
 <h2>Quanto tempo demora a minha encomenda?</h2>
-<p>A página de cada artigo diz o prazo dele. As peças personalizadas, e as estampadas ou bordadas por encomenda, levam ${producao} a ficar prontas; os outros artigos são preparados para envio em ${preparacao}. Depois, em Portugal continental, a entrega demora habitualmente até ${esc(ent.prazoContinente)}.</p>
-<h2>Quanto custam os portes?</h2>
-${listaDePortes}
-<p>Tens tudo em <a href="${url('/envios/')}">Envios e prazos</a>.</p>
-${mao ? `<h2>Posso levantar a encomenda em mão?</h2>
-<p>Sim, em ${esc(ent.concelho)} e sem portes: escolhe «${esc(mao.nome)}» ao finalizar a encomenda. Quando estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.</p>` : ''}
-<h2>Enviam para fora de Portugal?</h2>
-<p>${comPortes.some((z) => z.id === 'ue') ? `Para a União Europeia, sim, com portes de ${euro(zona('ue').portes)}. ` : ''}Para ${comPortes.some((z) => z.id === 'ue') ? 'os restantes países' : 'fora de Portugal'}, fala connosco no Instagram: vemos as possibilidades de envio, os portes e o prazo para o teu país.</p>
-<h2>Como posso pagar?</h2>
-<p>${online ? `No fim da encomenda, com ${meios}.` : 'Depois de confirmarmos a encomenda, combinamos contigo o pagamento, por MB WAY ou transferência.'}</p>
-<h2>Posso trocar ou devolver?</h2>
-<p>Nos artigos sem personalização, tens 14 dias para desistir depois de os receberes. Os personalizados são feitos só para ti e não têm troca nem devolução por desistência. Se alguma coisa chegar com defeito, resolvemos. <a href="${url('/trocas-e-devolucoes/')}">Trocas e devoluções</a></p>
+<p>Cada peça é preparada com todo o carinho e atenção aos detalhes.</p>
+<ul>
+  <li>Artigos personalizados: o prazo de preparação é, geralmente, de ${producao}.</li>
+  <li>Artigos sem personalização: o prazo de preparação é de ${preparacao}.</li>
+</ul>
+<p>Após o envio, a entrega em Portugal continental demora habitualmente até ${esc(ent.prazoContinente)}.</p>
+<p>Os prazos de preparação e transporte são distintos e podem variar.</p>
+<h2>Quanto custam os portes de envio?</h2>
+${listaDasPerguntas}
+<p>Podes consultar todas as informações em <a href="${url('/envios/')}">Envios e prazos</a>.</p>
+${mao ? `<h2>Posso levantar a minha encomenda em mão?</h2>
+<p>${coracao('Claro que sim! ♡')}</p>
+<p>Podes levantar a tua encomenda gratuitamente em ${esc(ent.concelho)}. Basta selecionares a opção «${esc(mao.nome)}» ao finalizar a compra.</p>
+<p>Assim que estiver pronta, entraremos em contacto contigo para combinar a entrega.</p>` : ''}
+<h2>Fazem envios internacionais?</h2>
+${comPortes.some((z) => z.id === 'ue') ? `<p>${coracao('Sim! A Franja Kids também chega além-fronteiras. ♡')}</p>
+<p>Enviamos para países da União Europeia, ${zona('ue').portes === 0 ? 'sem portes' : `com portes de ${euro(zona('ue').portes)}`}.</p>
+<p>Para outros destinos, fala connosco antes de encomendares para confirmarmos a disponibilidade, os custos e os prazos de envio.</p>` : `<p>Fala connosco antes de encomendares para confirmarmos a disponibilidade, os custos e os prazos de envio.</p>`}
+<h2>Como posso pagar a minha encomenda?</h2>
+${online ? `<p>Podes consultar os métodos de pagamento disponíveis ao finalizar a tua encomenda.</p>
+<p>O pagamento é realizado através das opções apresentadas no checkout, de forma simples e segura.</p>` : '<p>Depois de confirmarmos a encomenda, combinamos contigo o pagamento, por MB WAY ou transferência.</p>'}
+<h2>Posso trocar ou devolver um artigo?</h2>
+<p>Queremos que fiques feliz com a tua encomenda!</p>
+<p>Nos artigos não personalizados, podes exercer o direito de livre resolução no prazo legal de 14 dias após a receção, nas condições previstas na nossa política de devoluções.</p>
+<p>Os artigos feitos de acordo com as tuas especificações ou claramente personalizados estão, em regra, excluídos desse direito.</p>
+<p>Se receberes um artigo com defeito ou diferente do encomendado, entra em contacto connosco para resolvermos a situação, respeitando os teus direitos legais.</p>
+<p>Consulta a página <a href="${url('/trocas-e-devolucoes/')}">Trocas e devoluções</a> para mais informações.</p>
+<h2>Como indico o nome ou a personalização que pretendo?</h2>
+<p>Nos artigos personalizáveis, encontrarás um campo para indicares o nome, a frase ou os detalhes pretendidos.</p>
+<p>Confirma sempre a escrita antes de finalizares a encomenda, pois cada peça será preparada de acordo com as informações fornecidas.</p>
+<h2>Posso alterar a minha encomenda depois de a realizar?</h2>
+<p>Se precisares de alterar algum detalhe, entra em contacto connosco o mais rapidamente possível.</p>
+<p>Se a personalização ainda não tiver sido iniciada, faremos o possível para ajudar.</p>
+<h2>Como sei qual o tamanho mais indicado?</h2>
+<p>Sempre que disponível, consulta as informações de tamanho na página do artigo.</p>
+<p>Se tiveres dúvidas, fala connosco! Teremos todo o gosto em ajudar-te a escolher o tamanho mais adequado.</p>
 <h2>Preciso da encomenda para uma data especial. Chega a tempo?</h2>
-<p>Encomenda com a maior antecedência possível e diz-nos a data nas notas da encomenda, ou fala connosco no Instagram antes de encomendares.</p>
+<p>Se tens uma data especial em mente, recomendamos que faças a encomenda com antecedência.</p>
+<p>Podes indicar a data pretendida nas notas da encomenda ou falar connosco antes de comprar.</p>
+<p>Faremos o possível para ajudar, mas a entrega numa data específica só fica garantida quando expressamente confirmada.</p>
 <h2>Fazem personalizações que não estão no site?</h2>
-<p>Adoramos ideias novas! Fala connosco no Instagram e conta-nos o que imaginas.</p>
+<p>${coracao('Adoramos dar vida a ideias especiais! ♡')}</p>
+<p>Se tens uma frase, um nome ou uma ideia diferente daquilo que encontras na nossa loja, fala connosco.</p>
+<p>Vamos adorar conhecer a tua ideia e verificar se conseguimos torná-la realidade!</p>
+<h2>Não encontraste a resposta que procuravas?</h2>
+<p>${coracao(`Estamos à distância de uma mensagem. Entra em contacto connosco através do Instagram ou dos nossos <a href="${url('/contactos/')}">canais de atendimento</a>. ♡`)}</p>
 ${falarNoInstagram}`,
-    'Perguntas frequentes da Franja Kids: prazos, portes, levantamento em mão, envios para o estrangeiro, pagamento e trocas.'),
+    'Perguntas frequentes da Franja Kids: prazos, portes, levantamento em mão, envios para o estrangeiro, pagamento, trocas e personalização.'),
 
-    texto('/contactos/', 'Contactos', 'Respondemos por mensagem no Instagram, normalmente no próprio dia.', `
-<div class="heroi__botoes"><a class="botao botao--cheio" href="${mensagemInstagram(loja)}">${icone('mensagem', 'icone icone--pequeno')} Enviar mensagem</a><a class="ligacao" href="https://www.instagram.com/${loja.instagram}/">@${loja.instagram} ${icone('seta', 'icone icone--pequeno')}</a></div>
-${mao ? `<h2>${esc(mao.nome)}</h2>
-<p>Sem portes. Quando a tua encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.</p>` : ''}
-<h2>Quem somos</h2>
-${identificacao(e)}`),
+    /* O texto da loja (o Samuel, 21 nov 2026), por «tu» como o resto do site. O email e o WhatsApp vêm dos dados
+       da loja (o painel muda-os); o nome, o NIF e a morada ficam nas Informações legais, ligadas no rodapé. */
+    texto('/contactos/', 'Contactos', 'Estamos aqui para ajudar! ♡', `
+<p>Tens alguma dúvida sobre os nossos artigos, personalizações ou encomendas? Entra em contacto connosco. Teremos todo o gosto em ajudar!</p>
+${cartoes([
+  ['email', 'Email', e.email ? `<a href="mailto:${esc(e.email)}">${esc(e.email)}</a>` : porConfirmar('email')],
+  ...(ligacaoWhatsapp(e.telefone) ? [['whatsapp', 'WhatsApp', `<a href="${ligacaoWhatsapp(e.telefone)}">${esc(e.telefone)}</a>`]] : []),
+  ['instagram', 'Instagram', `<a href="${mensagemInstagram(loja)}">@${esc(loja.instagram)}</a>`],
+], 'cartoes-ajuda--lista')}
+<p>Respondemos a todas as mensagens com a maior brevidade possível.</p>
+<p class="contactos__fecho">${coracao('Franja Kids — Feito com amor, pensado para os mais pequenos. ♡')}</p>`,
+    'Os contactos da Franja Kids: email, WhatsApp e Instagram, para dúvidas sobre os artigos, as personalizações e as encomendas.'),
 
     texto('/informacoes-legais/', 'Informações legais', 'Quem é a Franja Kids, para efeitos legais.', `
 <dl class="dados-legais">

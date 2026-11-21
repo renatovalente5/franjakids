@@ -787,8 +787,8 @@ await teste('textos da loja: o «Como funciona», os «Envios e prazos», as «I
   for (const t of ['NIF', 'Morada', 'Email']) assert.ok(il.includes(`<dt>${t}</dt>`), t);
   assert.match(pagina('como-personalizar/index.html'), /<h1 id="t-pagina">Como personalizar<\/h1>/);
   const pf = pagina('perguntas-frequentes/index.html');
-  assert.match(pf, /<h2>Posso levantar a encomenda em mão\?<\/h2>/);
-  assert.match(pf, /Para a União Europeia, sim, com portes de 8,00 €\./);
+  assert.match(pf, /<h2>Posso levantar a minha encomenda em mão\?<\/h2>/);
+  assert.match(pf, /Enviamos para países da União Europeia, com portes de 8,00 €\./);
   // os termos dizem os prazos e o que é sob consulta
   const t = pagina('termos/index.html');
   assert.match(t, /os outros artigos são preparados para envio em 2 a 3 dias úteis\. A página de cada artigo diz o prazo dele, e os prazos de transporte acrescem a estes\./);
@@ -806,6 +806,44 @@ await teste('textos da loja: o «Como funciona», os «Envios e prazos», as «I
   // o formulário de livre resolução sem o marcador (os dados da loja entram quando os há), e sem o «feito à mão» que nenhuma ficha descreve
   const tr = pagina('trocas-e-devolucoes/index.html');
   assert.doesNotMatch(tr, /descrevem-se na ficha/);
+});
+
+await teste('o texto da loja de 21 nov 2026: as perguntas frequentes e os contactos, com os prazos, os portes e os contactos dos dados', () => {
+  repor();
+  mexer('loja.json', (o) => { legal(o); o.empresa.telefone = '+351 910 000 000'; o.entrega.zonas[1].portes = 5.5; });
+  let r = construir();
+  assert.equal(r.status, 0, r.stderr);
+  let pf = pagina('perguntas-frequentes/index.html');
+  assert.match(pf, /<p>Encontra aqui as respostas às dúvidas mais comuns sobre encomendas, personalizações, pagamentos e envios\. Se precisares de ajuda, estamos sempre por perto! <span class="coracao" aria-hidden="true">♡<\/span><\/p>/);
+  // os portes pela ordem da loja, o continente numa linha só com os portes grátis
+  assert.match(pf, /<ul><li>Portugal continental: 3,50 € — grátis em compras a partir de 50,00 €\.<\/li><li>Açores e Madeira: 5,50 €\.<\/li><li>União Europeia: 8,00 €\.<\/li><li>Restantes países: sob consulta\.<\/li><li>Levantamento em mão em Valongo: gratuito\.<\/li><\/ul>/);
+  assert.match(pf, /Artigos personalizados: o prazo de preparação é, geralmente, de 1 a 2 semanas\.<\/li>\s*<li>Artigos sem personalização: o prazo de preparação é de 2 a 3 dias úteis\./);
+  assert.match(pf, /Após o envio, a entrega em Portugal continental demora habitualmente até 2 dias úteis\./);
+  assert.match(pf, /Basta selecionares a opção «Levantamento em mão — Valongo» ao finalizar a compra\./);
+  assert.match(pf, /Podes indicar a data pretendida nas notas da encomenda/);
+  assert.match(pagina('finalizar/index.html'), /<textarea id="notas" name="notas"/, 'as notas da encomenda existem');
+  // em modo «encomenda» o pagamento combina-se depois: as opções do checkout só com os pagamentos ligados
+  assert.match(pf, /combinamos contigo o pagamento, por MB WAY ou transferência/);
+  assert.doesNotMatch(pf, /checkout/);
+  assert.match(pf, /<a href="\/contactos\/">canais de atendimento<\/a>/);
+  assert.match(pf, /<a class="botao botao--cheio" href="https:\/\/ig\.me\/m\/franjakids">/, 'o botão do Instagram fica');
+  const ct = pagina('contactos/index.html');
+  assert.match(ct, /<p>Estamos aqui para ajudar! <span class="coracao" aria-hidden="true">♡<\/span><\/p>/);
+  assert.match(ct, /Tens alguma dúvida sobre os nossos artigos, personalizações ou encomendas\? Entra em contacto connosco\. Teremos todo o gosto em ajudar!/);
+  assert.match(ct, /<h2>Email<\/h2><p><a href="mailto:ola@franjakids\.com">ola@franjakids\.com<\/a><\/p>/);
+  assert.match(ct, /<h2>WhatsApp<\/h2><p><a href="https:\/\/wa\.me\/351910000000">\+351 910 000 000<\/a><\/p>/);
+  assert.match(ct, /<h2>Instagram<\/h2><p><a href="https:\/\/ig\.me\/m\/franjakids">@franjakids<\/a><\/p>/);
+  assert.match(ct, /Respondemos a todas as mensagens com a maior brevidade possível\./);
+  assert.match(ct, /<p class="contactos__fecho">Franja Kids — Feito com amor, pensado para os mais pequenos\. <span class="coracao"/);
+  assert.doesNotMatch(ct, /123456789|Rua de Ensaio/, 'o NIF e a morada ficam nas Informações legais');
+  assert.match(ct, /<meta name="description" content="Os contactos da Franja Kids: email, WhatsApp e Instagram/);
+  // um telefone fixo não tem WhatsApp; com os pagamentos ligados, o texto da loja sobre as opções do checkout
+  mexer('loja.json', (o) => { o.empresa.telefone = '+351 220 000 000'; o.pagamentos.modo = 'online'; });
+  r = construir(['--api=https://franjakids-encomendas.exemplo.workers.dev']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(pagina('contactos/index.html'), /wa\.me|WhatsApp<\/h2>/);
+  pf = pagina('perguntas-frequentes/index.html');
+  assert.match(pf, /Podes consultar os métodos de pagamento disponíveis ao finalizar a tua encomenda\.<\/p>\s*<p>O pagamento é realizado através das opções apresentadas no checkout, de forma simples e segura\./);
 });
 
 // ---------------------------------------------------------------- os cupões (11 nov 2026)
