@@ -30,6 +30,9 @@
     "pista": "Opcional. Por exemplo: chego em julho 2027",
     "max": 40
   },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": true,
   "publicado": true,
   "ordem": 10
