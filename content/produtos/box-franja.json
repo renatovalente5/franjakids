@@ -2,7 +2,7 @@
   "nome": "Box Franja",
   "categorias": [
     "presentes/caixas-presente",
-    "presentes/anunciar-gravidez"
+    "bebe/outros"
   ],
   "preco": 30,
   "resumo": "Tudo para os primeiros dias, numa caixa. Com o nome do bebé gravado por mais 8 €.",
@@ -32,8 +32,8 @@
   ],
   "personalizacao": {
     "rotulo": "Nome do bebé",
-    "pista": "Gravado na escova e na placa",
-    "max": 20,
+    "pista": "DTF na manta e personalizado a laser na placa, no prendedor de chupeta e na escova do cabelo",
+    "max": 100,
     "opcional": "Personalizar com o nome",
     "suplemento": 8
   },
