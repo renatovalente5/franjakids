@@ -27,10 +27,10 @@
     }
   ],
   "personalizacao": {
-    "rotulo": "Nome a bordar",
+    "rotulo": "Nome a DTF",
     "pista": "Até 15 letras",
     "max": 15,
-    "opcional": "Bordar um nome",
+    "opcional": "Personalizar o nome a DTF",
     "suplemento": 3
   },
   "destaque": true,
