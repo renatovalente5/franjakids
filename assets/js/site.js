@@ -855,13 +855,11 @@
         const pago = ['paga', 'pronta', 'enviada', 'levantada'].includes(e.estado);
         // pagou por Multibanco e a referência ainda não foi paga: a referência, para pagar já
         const mb = e.estado === 'pendente' && e.multibanco;
-        // a pré-visualização, só quando há o que pré-visualizar (uma peça com nome ou frase), como nos emails
-        const previa = e.linhas.some((l) => l.personalizada) ? ' Antes de produzirmos, mandamos-te a pré-visualização para aprovares.' : '';
         const proximo = e.modo === 'online'
-          ? (pago ? `O pagamento entrou.${previa}`
+          ? (pago ? 'O pagamento entrou.'
             : mb ? 'Falta pagar: usa a referência Multibanco abaixo, no multibanco ou na app do teu banco. Assim que o pagamento entrar, avisamos-te por email.'
               : 'Assim que o pagamento entrar, avisamos-te por email.')
-          : `Vamos confirmar a encomenda e combinar contigo o pagamento.${previa}`;
+          : 'Vamos confirmar a encomenda e combinar contigo o pagamento.';
         const levantamento = e.entrega === 'mao' ? '<p>Quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.</p>' : '';
         const validade = mb && mb.validade ? new Date(mb.validade * 1000).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' }) : '';
         const caixaMB = mb ? `<dl class="obrigado__multibanco" data-multibanco><dt>Entidade</dt><dd>${esc(mb.entidade)}</dd><dt>Referência</dt><dd>${esc(mb.referencia)}</dd><dt>Valor</dt><dd>${euro(e.total_cents / 100)}</dd>${validade ? `<dt>Válida até</dt><dd>${esc(validade)}</dd>` : ''}</dl>` : '';

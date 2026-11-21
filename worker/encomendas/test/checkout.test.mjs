@@ -92,7 +92,7 @@ test('por CTT: a morada fica, os portes somam-se, e os emails saem ao cliente e 
   assert.match(cliente.text, /Portes: 3,90 €/);
   assert.match(cliente.text, /Total: 23,80 €/);
   assert.match(cliente.text, /Envio para Rua das Flores, 10, 2\.º Esq\., 4440-503 Valongo\./);
-  assert.match(cliente.text, /Antes de produzirmos, mandamos-te a pré-visualização para aprovares\./);
+  assert.doesNotMatch(cliente.text, /pré-visualização/, 'a peça do site faz-se como foi escrita (21 nov 2026)');
   assert.match(cliente.text, /Os artigos personalizados não têm troca nem devolução por desistência/);
   assert.match(cliente.text, /franjakids\/trocas-e-devolucoes\//);
   assert.match(cliente.html, /logotipo-320\.png/);

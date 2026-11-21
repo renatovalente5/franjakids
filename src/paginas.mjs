@@ -319,9 +319,13 @@ export function produto({ loja, catalogo, produtos, seccoes, api }, p) {
   // o rótulo já diz «(opcional)»: uma pista que começa por «Opcional.» dizia-o duas vezes
   const opcionalNoRotulo = ps && !ps.obrigatoria && !ps.opcional;
   const pista = ps?.pista && opcionalNoRotulo ? ps.pista.replace(/^\s*opcional[.:,]?\s*/i, '') : ps?.pista;
+  /* A loja deixou de mandar a pré-visualização das peças do site (o Samuel, 21 nov 2026: só nos pedidos à medida,
+     combinados por mensagem): a pista lembra que a peça fica como se escreve, a não ser que a do produto já fale
+     disso («Exactamente como queres que fique», «Diz-nos a ideia; mandamos a pré-visualização»). */
+  const lembrete = /exa(c)?tamente|pr[ée]-?visualiza/i.test(pista || '') ? '' : 'Fica tal e qual a escreves.';
   const campoTexto = ps ? `<div class="campo" data-campo-texto${ps.opcional ? ' hidden' : ''}>
       <label for="texto">${esc(ps.rotulo)}${ps.obrigatoria || ps.opcional ? '' : ' <span class="campo__pista">(opcional)</span>'}</label>
-      <p class="campo__pista" id="texto-pista">${pista ? `${esc(pista.replace(/\.$/, ''))}. ` : ''}Antes de produzir, mandamos-te a pré-visualização.</p>
+      <p class="campo__pista" id="texto-pista">${pista ? `${esc(pista.replace(/\.$/, ''))}.${lembrete ? ' ' : ''}` : ''}${lembrete}</p>
       <input id="texto" name="texto" type="text" autocomplete="off" spellcheck="false" data-max="${ps.max}"${ps.obrigatoria ? ' data-obrigatorio' : ''} aria-describedby="texto-pista texto-contador texto-erro">
       <p class="campo__contador" id="texto-contador" aria-live="polite" data-contador></p>
       <p class="campo__erro" id="texto-erro" data-erro></p>
@@ -568,7 +572,7 @@ export function sobre({ loja, seccoes }) {
   <div class="historia__texto">
     <h1 id="t-sobre" class="pagina__titulo">Um sonho, muitas mãos e muito amor.</h1>
     <p>A Franja Kids nasceu a 10 de setembro de 2025, com roupa de bebé escolhida com carinho. Foram vocês que nos levaram para os personalizados: hoje fazemos bodies, t-shirts, camisolas e presentes com o nome e a história de cada família.</p>
-    <p>Cada peça é preparada por nós, uma a uma. Antes de produzir, mandamos-te sempre a pré-visualização.</p>
+    <p>Cada peça é preparada por nós, uma a uma.</p>
     <ul class="factos">
       <li><span class="passos__icone">${icone('coracao')}</span>Mais de 7 mil pessoas acompanham-nos no Instagram</li>
       ${mao ? `<li><span class="passos__icone">${icone('local')}</span>${esc(mao.nome)}</li>` : ''}

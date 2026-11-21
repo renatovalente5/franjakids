@@ -49,7 +49,6 @@ const metodoPT = (m) => (m ? METODOS[m] || m : '—');
 
 /* ---------------------------------------------------------------- as peças comuns */
 
-const temPersonalizados = (enc) => (enc.linhas || []).some((l) => l.personalizada);
 const emMao = (enc) => enc.entrega === ENTREGA_EM_MAO;
 
 /* Os portes e o total, como o site os mostra: «Grátis», «a confirmar», ou o valor. */
@@ -94,9 +93,8 @@ function oferta(enc) {
   return { texto, html };
 }
 
-/* O que vem a seguir. A pré-visualização só quando há o que pré-visualizar (um produto com nome ou
-   frase); numa encomenda sem personalização ficava uma promessa que ninguém cumpre. */
-const previa = (enc) => (temPersonalizados(enc) ? 'Antes de produzirmos, mandamos-te a pré-visualização para aprovares.' : '');
+/* O que vem a seguir. Sem a pré-visualização: a loja deixou de a mandar nas peças do site (o Samuel, 21 nov 2026:
+   só nos pedidos à medida, combinados por mensagem); a peça faz-se tal e qual a cliente a escreveu. */
 const seguinte = (enc) => (emMao(enc) ? 'Quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.' : 'Avisamos-te quando a encomenda seguir.');
 
 const ligacaoDaEncomenda = (env, enc) => (enc.chave ? `${siteUrl(env)}/obrigado/?e=${encodeURIComponent(enc.encomenda)}&c=${encodeURIComponent(enc.chave)}` : null);
@@ -234,7 +232,7 @@ const AVISOS = {
     cliente: emailCliente(env, enc, {
       assunto: `Recebemos a tua encomenda ${enc.encomenda}`,
       titulo: 'Recebemos a tua encomenda',
-      frase: juntar('A tua encomenda ficou registada. Vamos confirmá-la e combinar contigo o pagamento.', previa(enc)),
+      frase: 'A tua encomenda ficou registada. Vamos confirmá-la e combinar contigo o pagamento.',
       comEntrega: true,
     }),
     loja: emailLoja(env, enc, {
@@ -264,9 +262,9 @@ const AVISOS = {
       cliente: emailCliente(env, enc, {
         assunto: `Pagamento recebido — encomenda ${enc.encomenda}`,
         titulo: 'Pagamento recebido',
-        // Pela Stripe, este é o primeiro email (a confirmação): leva a entrega e a pré-visualização.
+        // Pela Stripe, este é o primeiro email (a confirmação): leva a entrega.
         // Marcada no painel, a encomenda já foi confirmada com o cliente.
-        frase: juntar('Recebemos o teu pagamento.', stripe ? previa(enc) : '', seguinte(enc)),
+        frase: juntar('Recebemos o teu pagamento.', seguinte(enc)),
         comEntrega: stripe,
       }),
       // Pela Stripe, a loja tem de saber (faturar, produzir); pelo painel, foi ela que marcou.
@@ -274,7 +272,7 @@ const AVISOS = {
         assunto: `Encomenda paga ${enc.encomenda} — ${eur(enc.total_cents)}`,
         titulo: 'Encomenda paga',
         cabecalho: `Encomenda paga ${enc.encomenda} — ${eur(enc.total_cents)}.`,
-        rodape: [pagamentoTexto(enc), temPersonalizados(enc) ? 'A seguir: a fatura e a pré-visualização para o cliente aprovar.' : 'A seguir: a fatura.'],
+        rodape: [pagamentoTexto(enc), 'A seguir: a fatura.'],
       }) : null,
     };
   },

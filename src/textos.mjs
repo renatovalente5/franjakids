@@ -11,12 +11,14 @@ import { MEIOS_ONLINE, zonaSobConsulta } from './lib/regras.mjs';
 import { texto, coracao, mensagemInstagram } from './paginas.mjs';
 
 const valor = (v, falta) => (typeof v === 'string' && v.trim() ? esc(v.trim()) : porConfirmar(falta));
+/* A morada com «4100-083 Porto» junto: o código postal e a localidade não se partem em duas linhas. */
+const moradaJunta = (html) => html.replace(/(\d{4}-\d{3}) /, '$1&nbsp;');
 /* O telefone com o custo da chamada ao lado (DL 59/2021; a forma «Chamada para a rede…» que o Renato usa nos sites). */
 const telefone = (t) => { const n = notaChamada(t, { frase: 'com-a' }); return `${esc(t)}${n ? ` <small>(${n.charAt(0).toLowerCase() + n.slice(1)})</small>` : ''}`; };
 const identificacao = (e) => `<ul>
   <li>Nome: ${valor(e.nome, 'nome ou firma')}</li>
   <li>NIF: ${valor(e.nif, 'NIF')}</li>
-  <li>Morada: ${valor(e.morada, 'morada')}</li>
+  <li>Morada: ${moradaJunta(valor(e.morada, 'morada'))}</li>
   <li>Email: ${e.email ? `<a href="mailto:${esc(e.email)}">${esc(e.email)}</a>` : porConfirmar('email')}</li>
   ${e.telefone ? `<li>Telefone: ${telefone(e.telefone)}</li>` : ''}
 </ul>`;
@@ -92,17 +94,17 @@ ${falarNoInstagram}`,
 ${cartoes([
   ['saco', '1. Escolhe o artigo', 'Na página de cada artigo personalizável, escolhe o tamanho, a cor e as opções disponíveis.'],
   ['lapis', '2. Escreve o nome ou a frase', 'Escreve exatamente como queres que fique, com as maiúsculas e os acentos. Por baixo do campo vês quantos caracteres ainda podes usar.'],
-  ['olho', '3. Confirmamos contigo', 'Antes de produzir, mandamos-te a pré-visualização.'],
+  ['olho', '3. Confere', 'Fazemos a peça tal e qual a escreves. Vê bem o nome, a frase, o tamanho e a cor antes de encomendar.'],
   ['coracao', '4. Feito para ti', `Cada peça personalizada leva ${producao} a ficar pronta.`],
 ])}
 <h2>Personalização opcional</h2>
 <p>Em alguns artigos, o nome é opcional: marca a caixa para o acrescentar, e o acréscimo aparece logo no preço.</p>
 <h2>Trocas e devoluções</h2>
-<p>Os artigos personalizados são feitos só para ti, por isso não têm troca nem devolução por desistência. Confirma bem o nome, a frase, o tamanho e a cor antes de encomendares. <a href="${url('/trocas-e-devolucoes/')}">Trocas e devoluções</a></p>
+<p>Os artigos personalizados são feitos só para ti, por isso não têm troca nem devolução por desistência. <a href="${url('/trocas-e-devolucoes/')}">Trocas e devoluções</a></p>
 <h2>${coracao('Tens outra ideia? ♡')}</h2>
-<p>Se procuras uma personalização diferente das que encontras no site, fala connosco no Instagram.</p>
+<p>Se procuras uma personalização diferente das que encontras no site, fala connosco no Instagram: combinamos contigo e mandamos-te a pré-visualização antes de produzir.</p>
 ${falarNoInstagram}`,
-    'Como personalizar na Franja Kids: escolher o artigo, escrever o nome ou a frase e confirmar antes de produzirmos.'),
+    'Como personalizar na Franja Kids: escolher o artigo, escrever o nome ou a frase e conferir tudo antes de encomendar.'),
 
     texto('/envios/', 'Envios e prazos', 'Na Franja Kids, cada encomenda é preparada com todo o cuidado e carinho, para que chegue até ti da melhor forma possível. ♡', `
 ${cartoes([
@@ -127,7 +129,7 @@ ${falarNoInstagram}`,
 <p>${LIVRE_RESOLUCAO}</p>
 <h2>Artigos personalizados</h2>
 <p>${SEM_LIVRE_RESOLUCAO_PERSONALIZADO}</p>
-<p>Por isso, antes de produzirmos mandamos-te a pré-visualização: confirma o nome, a frase, o tamanho e a cor.</p>
+<p>Por isso, confirma bem o nome, a frase, o tamanho e a cor antes de encomendares: fazemos a peça tal e qual a escreves.</p>
 <h2>Se chegar com defeito ou diferente do que pediste</h2>
 <p>Diz-nos logo, com uma fotografia, e resolvemos. ${textoGarantia()}</p>
 <h2>Como pedir</h2>
@@ -168,7 +170,7 @@ ${identificacao(e)}`),
   <dt>Nome comercial</dt><dd>${esc(loja.nome)}</dd>
   <dt>Titular da atividade</dt><dd>${valor(e.nome, 'nome do titular')}</dd>
   <dt>NIF</dt><dd>${valor(e.nif, 'NIF')}</dd>
-  <dt>Morada</dt><dd>${valor(e.morada, 'morada')}</dd>
+  <dt>Morada</dt><dd>${moradaJunta(valor(e.morada, 'morada'))}</dd>
   <dt>Email</dt><dd>${e.email ? `<a href="mailto:${esc(e.email)}">${esc(e.email)}</a>` : porConfirmar('email')}</dd>
   ${e.telefone ? `<dt>Telefone</dt><dd>${telefone(e.telefone)}</dd>` : ''}
 </dl>`,
@@ -182,7 +184,7 @@ ${comoSeFaz()}
 <h2>3. Preços e pagamento</h2>
 <p>Os preços incluem IVA. Os portes aparecem antes da encomenda${gratis ? ` e são grátis em Portugal continental a partir de ${gratis} em artigos` : ''}. ${online ? `Paga-se por ${meios}, através da Stripe, no fim da encomenda. Com Multibanco, a encomenda só avança depois de a referência ser paga, e fica sem efeito se não for paga dentro do prazo indicado.` : 'Depois de confirmarmos a encomenda, combinamos o pagamento por MB WAY ou transferência; só produzimos depois de recebido.'}</p>
 <h2>4. Personalização</h2>
-<p>Depois da encomenda, mandamos a pré-visualização por email ou mensagem; só produzimos depois da sua aprovação. O texto é usado exatamente como foi escrito na encomenda.</p>
+<p>O texto é usado exatamente como foi escrito na encomenda, com as opções escolhidas. Nos pedidos à medida, combinados por mensagem, enviamos a pré-visualização antes de produzir e só produzimos depois da sua aprovação.</p>
 <h2>5. Prazos e entrega</h2>
 <p>As peças personalizadas, e as estampadas ou bordadas por encomenda, levam cerca de ${producao} a fazer; os outros artigos são preparados para envio em ${preparacao}. A página de cada artigo diz o prazo dele, e os prazos de transporte acrescem a estes. Em Portugal continental, o envio por correio registado CTT chega habitualmente em até ${esc(ent.prazoContinente)} depois de enviado.${comPortes.length ? ` Para ${juntar(comPortes.map(comArtigo))}, o prazo varia consoante o destino.` : ''}${sobConsulta.length ? ` Para ${juntar(sobConsulta.map(comArtigo))}, os portes e o prazo são sob consulta, e a encomenda não se faz no site.` : ''}${mao ? ` ${esc(mao.nome)}: sem custo; quando a encomenda estiver pronta, combinamos o levantamento pelo WhatsApp.` : ''}</p>
 <h2>6. Direito de livre resolução</h2>

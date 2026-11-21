@@ -232,8 +232,8 @@ pessoa; o Resend fica como plano B).
 
 | momento | ao cliente | à loja (`STORE_EMAIL`) |
 |---|---|---|
-| encomenda registada (modo «encomenda») | «Recebemos a tua encomenda» + o que vem a seguir (confirmamos e combinamos o pagamento; a pré-visualização antes de produzir) | «Nova encomenda FK-…» com tudo, e o telefone do cliente |
-| paga (Stripe) | «Pagamento recebido» + a pré-visualização vem a seguir | «Encomenda paga FK-…» |
+| encomenda registada (modo «encomenda») | «Recebemos a tua encomenda» + o que vem a seguir (confirmamos e combinamos o pagamento; sem pré-visualização: desde 21 nov 2026 só nos pedidos à medida, combinados por mensagem) | «Nova encomenda FK-…» com tudo, e o telefone do cliente |
+| paga (Stripe) | «Pagamento recebido» + o que vem a seguir (o envio ou o levantamento) | «Encomenda paga FK-…» |
 | referência Multibanco (Stripe, `payment_intent.requires_action`) | «Falta pagar: referência Multibanco…» com a entidade, a referência, o valor e a validade (texto, não imagem) | — |
 | paga (marcada no painel) | «Pagamento recebido» | — |
 | pronta | «A tua encomenda está pronta» + combinamos a entrega em mão | — |

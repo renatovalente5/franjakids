@@ -146,13 +146,12 @@ test('a livre resolução: 14 dias para o que não é personalizado; os personal
   }
 });
 
-test('a pré-visualização só se promete quando há o que pré-visualizar, e pela Stripe (pelo painel já foi combinada)', () => {
-  const PREVIA = /Antes de produzirmos, mandamos-te a pré-visualização para aprovares\./;
-  assert.match(mensagens(env, 'registada', enc).cliente.texto, PREVIA);
-  assert.doesNotMatch(mensagens(env, 'registada', { ...enc, linhas: [MANTA] }).cliente.texto, PREVIA, 'uma manta não tem pré-visualização');
-  assert.match(mensagens(env, 'paga', paraMomento('paga'), { origem: 'stripe' }).cliente.texto, PREVIA);
+test('nenhum email promete a pré-visualização (21 nov 2026: só nos pedidos à medida, combinados por mensagem)', () => {
+  const PREVIA = /pré-visualiza/;
+  assert.doesNotMatch(mensagens(env, 'registada', enc).cliente.texto, PREVIA);
+  assert.doesNotMatch(mensagens(env, 'paga', paraMomento('paga'), { origem: 'stripe' }).cliente.texto, PREVIA);
   assert.doesNotMatch(mensagens(env, 'paga', paraMomento('paga'), { origem: 'painel' }).cliente.texto, PREVIA);
-  assert.match(mensagens(env, 'paga', paraMomento('paga'), { origem: 'stripe' }).loja.texto, /A seguir: a fatura e a pré-visualização para o cliente aprovar\./);
+  assert.match(mensagens(env, 'paga', paraMomento('paga'), { origem: 'stripe' }).loja.texto, /A seguir: a fatura\.$/);
   assert.match(mensagens(env, 'paga', { ...paraMomento('paga'), linhas: [MANTA] }, { origem: 'stripe' }).loja.texto, /A seguir: a fatura\.$/);
 });
 

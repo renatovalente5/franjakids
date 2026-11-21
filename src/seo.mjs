@@ -25,7 +25,7 @@ export const VERIFICACOES = Object.freeze({
    a dona juntou) leva o nome dela, com a secção: «Gorros · Personalizados». */
 export const SECCOES = {
   bebe: { titulo: 'Roupa de bebé, mantas e primeira roupinha', descricao: 'Bodies e babygrows, conjuntos de malha, mantas, toalhas e a bolsa da primeira roupinha, para os primeiros dias do bebé.' },
-  personalizados: { titulo: 'Personalizados para bebé com nome', descricao: 'Bodies, babygrows, babetes e toalhas com o nome, a data ou a frase que escolheres. Feitos por encomenda, com pré-visualização antes de produzir.' },
+  personalizados: { titulo: 'Personalizados para bebé com nome', descricao: 'Bodies, babygrows, babetes e toalhas com o nome, a data ou a frase que escolheres, feitos por encomenda.' },
   'crianca-e-familia': { titulo: 'T-shirts e sweatshirts personalizadas', descricao: 'T-shirts, sweatshirts e conjuntos a combinar, com o nome ou a frase que escolheres, para crianças e adultos.' },
   presentes: { titulo: 'Presentes personalizados para bebés e família', descricao: 'Para anunciar a gravidez, convidar os padrinhos, surpreender os avós e celebrar o nascimento: presentes com a frase que escolheres.' },
   colecoes: { titulo: 'Coleções: Natal, Dia da Mãe, Dia do Pai e mais' },
@@ -100,11 +100,13 @@ export function ldLoja(loja) {
   const e = loja.empresa || {};
   const so = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
   const nif = so(e.nif)?.replace(/\s/g, '');
+  // «…, 4100-083 Porto»: o código postal e a localidade vêm no fim da morada (a da empresa; o levantamento é noutro sítio)
+  const cp = so(e.morada)?.match(/^(.+?),?\s+(\d{4}-\d{3})\s+(.+)$/);
   return {
     '@context': 'https://schema.org', '@type': 'OnlineStore', '@id': id('loja'), name: loja.nome, url: absoluto('/'),
     logo: absoluto('/assets/marca/logotipo-640.png'), description: loja.descricao,
     sameAs: [`https://www.instagram.com/${loja.instagram}/`],
-    address: { '@type': 'PostalAddress', ...(so(e.morada) ? { streetAddress: so(e.morada) } : {}), addressLocality: loja.entrega.concelho, addressCountry: 'PT' },
+    address: { '@type': 'PostalAddress', ...(cp ? { streetAddress: cp[1], postalCode: cp[2], addressLocality: cp[3] } : { ...(so(e.morada) ? { streetAddress: so(e.morada) } : {}), addressLocality: loja.entrega.concelho }), addressCountry: 'PT' },
     ...(so(e.nome) ? { legalName: so(e.nome) } : {}),
     ...(nif ? { vatID: 'PT' + nif } : {}),
     ...(so(e.email) ? { email: so(e.email) } : {}),

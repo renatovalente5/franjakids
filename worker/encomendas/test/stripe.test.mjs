@@ -87,13 +87,14 @@ test('o webhook: a sessão paga marca «paga», avisa o cliente e a loja UMA vez
   assert.equal(emails.length, 2);
   const cliente = emails.find((e) => e.to[0] === 'maria@exemplo.pt');
   assert.equal(cliente.subject, `Pagamento recebido — encomenda ${encomenda}`);
-  assert.match(cliente.text, /Recebemos o teu pagamento\. Antes de produzirmos, mandamos-te a pré-visualização para aprovares\. Quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./);
+  assert.match(cliente.text, /Recebemos o teu pagamento\. Quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./);
   assert.match(cliente.text, /ENTREGA\n {2}Levantamento em mão: quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./, 'pela Stripe é a confirmação: leva a entrega');
   assert.match(cliente.text, /Os artigos personalizados não têm troca nem devolução por desistência/);
   const loja = emails.find((e) => e.to[0] === 'loja@exemplo.pt');
   assert.equal(loja.subject, `Encomenda paga ${encomenda} — 19,90 €`);
   assert.match(loja.text, /Pagamento: cartão · Stripe: pi_1/);
-  assert.match(loja.text, /A seguir: a fatura e a pré-visualização para o cliente aprovar\./);
+  assert.match(loja.text, /A seguir: a fatura\./);
+  assert.doesNotMatch(loja.text, /pré-visualização/);
   // O mesmo evento outra vez: nada.
   rede.chamadas.length = 0;
   const escritas = env.ORDERS.escritas;
@@ -414,5 +415,5 @@ test('em modo «online» com envio, o webhook pago manda à loja a morada e o NI
   assert.match(loja.text, /NIF: 123456789/);
   const cliente = rede.resend().find((e) => e.to[0] === 'maria@exemplo.pt');
   assert.equal(cliente.text.includes('123456789'), false);
-  assert.match(cliente.text, /Recebemos o teu pagamento\. Antes de produzirmos, mandamos-te a pré-visualização para aprovares\. Avisamos-te quando a encomenda seguir\./);
+  assert.match(cliente.text, /Recebemos o teu pagamento\. Avisamos-te quando a encomenda seguir\./);
 });

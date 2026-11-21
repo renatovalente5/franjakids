@@ -19,7 +19,7 @@ test('GET /encomenda: com a chave certa dá só o que a pessoa já sabe (§3); s
   assert.equal(r.headers.get('Access-Control-Allow-Origin'), ORIGEM);
   assert.deepEqual(r.json, {
     encomenda, estado: 'registada', modo: 'encomenda', entrega: 'continente', portes_por_confirmar: false,
-    linhas: [{ nome: 'Babygrow', qtd: 1, total_cents: 1990, escolhas: ['Tamanho: 1 mês', 'Cor: Rosa', 'Nome a bordar: Clara'], personalizada: true }],
+    linhas: [{ nome: 'Babygrow', qtd: 1, total_cents: 1990, escolhas: ['Tamanho: 1 mês', 'Cor: Rosa', 'Nome a bordar: Clara'] }],
     artigos_cents: 1990, portes_cents: 390, total_cents: 2380,
     cliente: { nome: 'Maria' },
   });

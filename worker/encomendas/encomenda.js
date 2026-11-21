@@ -235,8 +235,7 @@ export function vistaPublica(enc) {
     modo: enc.modo,
     entrega: enc.entrega,
     portes_por_confirmar: Boolean(enc.portes_por_confirmar),
-    // `personalizada`: a «obrigado» só promete a pré-visualização quando há o que pré-visualizar (como os emails)
-    linhas: (enc.linhas || []).map((l) => ({ nome: l.nome, qtd: l.qtd, total_cents: l.total_cents, escolhas: l.escolhas || [], ...(l.personalizada ? { personalizada: true } : {}) })),
+    linhas: (enc.linhas || []).map((l) => ({ nome: l.nome, qtd: l.qtd, total_cents: l.total_cents, escolhas: l.escolhas || [] })),
     artigos_cents: enc.artigos_cents,
     portes_cents: enc.portes_cents,
     ...(enc.cupao ? { cupao: enc.cupao, desconto_cents: enc.desconto_cents || 0, ...(enc.cupao_portes ? { cupao_portes: true } : {}) } : {}),
