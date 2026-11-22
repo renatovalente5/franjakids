@@ -5,7 +5,7 @@
 // ctx = { loja, catalogo, cat (R.catalogoDe), produtos (os do site, já pela ordem), seccoes (seccoesComProdutos), api }
 import { BOTAO_ENCOMENDA } from '../legal-comum/index.mjs';
 import * as R from './lib/regras.mjs';
-import { url, esc, euro, foto, icone, FOTOS } from './util.mjs';
+import { url, esc, euro, euroRedondo, foto, icone, FOTOS } from './util.mjs';
 import { SECCOES, TITULOS, resumir, descricaoDoProduto, ldSite, ldLoja, ldMigalhas, ldProduto } from './seo.mjs';
 
 const zonaMao = (loja) => loja.entrega.zonas.find((z) => z.id === 'mao' && !R.zonaSobConsulta(z));
@@ -431,7 +431,7 @@ export function finalizar({ loja, termosUrl, api }) {
   const gratis = typeof ent.gratisAPartirDe === 'number' ? ent.gratisAPartirDe : null;
   const nota = (z) => (R.zonaSobConsulta(z) ? 'Portes e prazo sob consulta, pelo Instagram'
     : z.id === 'mao' ? 'Quando a encomenda estiver pronta, combinamos o levantamento pelo WhatsApp'
-      : z.id === 'continente' ? `Correio registado CTT; chega em até ${ent.prazoContinente} depois de enviada${gratis != null ? `. Grátis a partir de ${euro(gratis)}` : ''}`
+      : z.id === 'continente' ? `Correio registado CTT; chega em até ${ent.prazoContinente} depois de enviada${gratis != null ? `. Grátis a partir de ${euroRedondo(gratis)}` : ''}`
         : z.id === 'ilhas' ? 'Correio registado CTT; o prazo varia consoante a ilha'
           : 'Correio registado; o prazo varia consoante o destino');
   const preco = (z) => (R.zonaSobConsulta(z) ? 'Sob consulta' : z.portes === 0 ? 'Grátis' : euro(z.portes));

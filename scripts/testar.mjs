@@ -816,7 +816,10 @@ await teste('o texto da loja de 21 nov 2026: as perguntas frequentes e os contac
   let pf = pagina('perguntas-frequentes/index.html');
   assert.match(pf, /<p>Encontra aqui as respostas às dúvidas mais comuns sobre encomendas, personalizações, pagamentos e envios\. Se precisares de ajuda, estamos sempre por perto! <span class="coracao" aria-hidden="true">♡<\/span><\/p>/);
   // os portes pela ordem da loja, o continente numa linha só com os portes grátis
-  assert.match(pf, /<ul><li>Portugal continental: 3,50 € — grátis em compras a partir de 50,00 €\.<\/li><li>Açores e Madeira: 5,50 €\.<\/li><li>União Europeia: 8,00 €\.<\/li><li>Restantes países: sob consulta\.<\/li><li>Levantamento em mão em Valongo: gratuito\.<\/li><\/ul>/);
+  assert.match(pf, /<ul><li>Portugal continental: 3,50 € — grátis em compras a partir de 50 €\.<\/li><li>Açores e Madeira: 5,50 €\.<\/li><li>União Europeia: 8,00 €\.<\/li><li>Restantes países: sob consulta\.<\/li><li>Levantamento em mão em Valongo: gratuito\.<\/li><\/ul>/);
+  // o limiar dos portes grátis como a loja o escreve: «60 €», sem os cêntimos (nos envios e no finalizar também)
+  assert.match(pagina('envios/index.html'), /portes grátis em compras iguais ou superiores a 50 €\./);
+  assert.match(pagina('finalizar/index.html'), /Grátis a partir de 50 €/);
   assert.match(pf, /Artigos personalizados: o prazo de preparação é, geralmente, de 1 a 2 semanas\.<\/li>\s*<li>Artigos sem personalização: o prazo de preparação é de 2 a 3 dias úteis\./);
   assert.match(pf, /Após o envio, a entrega em Portugal continental demora habitualmente até 2 dias úteis\./);
   assert.match(pf, /Basta selecionares a opção «Levantamento em mão — Valongo» ao finalizar a compra\./);

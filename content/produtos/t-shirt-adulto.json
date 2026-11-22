@@ -26,7 +26,6 @@
   ],
   "personalizacao": {
     "rotulo": "Frase ou nome",
-    "pista": "Diz-nos a ideia; mandamos a pré-visualização",
     "max": 80,
     "obrigatoria": true
   },

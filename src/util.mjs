@@ -21,6 +21,8 @@ export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
 export function euro(n) {
   return n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 }
+// Um valor redondo sem os cêntimos («60 €»), como a loja escreve o limiar dos portes grátis (21 nov 2026).
+export const euroRedondo = (n) => (Number.isInteger(n) ? `${n} €` : euro(n));
 
 // ── Fotografias ──
 // As versões web (scripts/imagens.py → .cache/imagens/manifesto.json) e a descrição e o foco de

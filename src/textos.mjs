@@ -6,7 +6,7 @@ import {
   COMO_SE_FAZ_A_ENCOMENDA, LIVRE_RESOLUCAO, SEM_LIVRE_RESOLUCAO_PERSONALIZADO, FORMULARIO_LIVRE_RESOLUCAO, formularioLivreResolucao,
   textoGarantia, ralHtml, destinatariosHtml, direitosHtml, notaChamada, BOTAO_ENCOMENDA,
 } from '../legal-comum/index.mjs';
-import { url, esc, euro, icone, porConfirmar } from './util.mjs';
+import { url, esc, euro, euroRedondo, icone, porConfirmar } from './util.mjs';
 import { MEIOS_ONLINE, zonaSobConsulta } from './lib/regras.mjs';
 import { texto, coracao, mensagemInstagram } from './paginas.mjs';
 
@@ -33,7 +33,7 @@ export function paginasDeTexto(loja) {
   const zona = (id) => ent.zonas.find((z) => z.id === id);
   const mao = zona('mao') && !zonaSobConsulta(zona('mao')) ? zona('mao') : null;
   const online = loja.pagamentos?.modo === 'online';
-  const gratis = typeof ent.gratisAPartirDe === 'number' ? euro(ent.gratisAPartirDe) : null;
+  const gratis = typeof ent.gratisAPartirDe === 'number' ? euroRedondo(ent.gratisAPartirDe) : null;
   const producao = esc(loja.producao);
   const preparacao = typeof loja.preparacao === 'string' && loja.preparacao.trim() ? esc(loja.preparacao.trim()) : porConfirmar('preparação dos artigos sem personalização');
   const pagamentos = online ? [...MEIOS_ONLINE] : [];
