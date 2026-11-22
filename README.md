@@ -37,7 +37,7 @@ O contrato entre o site, o Worker `franjakids-encomendas` (`worker/encomendas/`)
 
 ## Outros
 
-- Textos legais: `legal-comum/` (cópia da biblioteca partilhada, v1.1.2).
+- Textos legais: `legal-comum/` (cópia da biblioteca partilhada, v1.1.3).
 - `propostas/`: as três propostas da página inicial (escolhida a C, 9 nov 2026).
 - Boas práticas aplicadas: `docs/boas-praticas.md`.
 - `_cliente/` (fora do git): o material do Instagram e da conversa com o cliente.

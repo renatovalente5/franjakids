@@ -101,7 +101,9 @@ const ligacaoDaEncomenda = (env, enc) => (enc.chave ? `${siteUrl(env)}/obrigado/
 
 /* A livre resolução: 14 dias para o que não é personalizado; os personalizados não a têm (DL
    24/2014, art. 17.º, n.º 1, al. c)). Escolher a cor ou o tamanho não é personalizar: o que conta
-   é a linha levar um nome ou uma frase (`personalizada`, de R.conferirEscolha). */
+   é a linha levar um nome ou uma frase (`personalizada`, de R.conferirEscolha).
+   (22 nov 2026, o Renato) Diz o prazo e onde estão as condições, sem empurrar o cliente para desistir: nada de
+   «sem dares justificação» nem «vê como». */
 function desistencia(env, enc) {
   const site = siteUrl(env);
   const trocas = `${site}/trocas-e-devolucoes/`;
@@ -110,16 +112,12 @@ function desistencia(env, enc) {
   const n = ls.filter((l) => l.personalizada).length;
   const termosTexto = `Os termos e condições estão em ${termos}.`;
   const termosHtml = `Lê os ${ligacao(termos, 'termos e condições')}.`;
-  if (n === 0) {
-    const frase = 'Tens 14 dias depois de receberes a encomenda para desistir da compra, sem dares justificação';
-    return { texto: `${frase}: vê como em ${trocas}. ${termosTexto}`, html: `${esc(frase)}: ${ligacao(trocas, 'vê como')}. ${termosHtml}` };
-  }
-  if (n === ls.length) {
-    const frase = 'Os artigos personalizados não têm troca nem devolução por desistência.';
-    return { texto: `${frase} As condições estão em ${trocas}. ${termosTexto}`, html: `${esc(frase)} ${ligacao(trocas, 'Vê as condições')}. ${termosHtml}` };
-  }
-  const frase = 'Tens 14 dias depois de receberes a encomenda para desistir dos artigos sem personalização, sem dares justificação; os personalizados não têm troca nem devolução por desistência.';
-  return { texto: `${frase} Vê como em ${trocas}. ${termosTexto}`, html: `${esc(frase)} ${ligacao(trocas, 'Vê como')}. ${termosHtml}` };
+  const frase = n === 0
+    ? 'O prazo para desistir da compra é de 14 dias depois de receberes a encomenda.'
+    : n === ls.length
+      ? 'Os artigos personalizados não têm troca nem devolução por desistência.'
+      : 'O prazo para desistir dos artigos sem personalização é de 14 dias depois de receberes a encomenda; os personalizados não têm troca nem devolução por desistência.';
+  return { texto: `${frase} As condições estão em ${trocas}. ${termosTexto}`, html: `${esc(frase)} ${ligacao(trocas, 'Vê as condições')}. ${termosHtml}` };
 }
 
 /* O contacto da loja: a mensagem no Instagram (é onde a loja responde) e o email, quando o houver. */

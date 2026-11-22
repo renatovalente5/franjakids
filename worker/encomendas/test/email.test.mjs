@@ -125,9 +125,11 @@ test('a livre resolução: 14 dias para o que não é personalizado; os personal
   const termos = 'https://renatovalente5.github.io/franjakids/termos/';
   const so = (linhas) => mensagens(env, 'registada', { ...enc, linhas }).cliente;
   const misto = so([BABYGROW, MANTA]);
-  assert.match(misto.texto, /Tens 14 dias depois de receberes a encomenda para desistir dos artigos sem personalização, sem dares justificação; os personalizados não têm troca nem devolução por desistência\./);
+  assert.match(misto.texto, /O prazo para desistir dos artigos sem personalização é de 14 dias depois de receberes a encomenda; os personalizados não têm troca nem devolução por desistência\. As condições estão em /);
   const semPers = so([MANTA]);
-  assert.match(semPers.texto, /Tens 14 dias depois de receberes a encomenda para desistir da compra, sem dares justificação: vê como em/);
+  assert.match(semPers.texto, /O prazo para desistir da compra é de 14 dias depois de receberes a encomenda\. As condições estão em /);
+  // (22 nov 2026, o Renato) sem empurrar o cliente para desistir
+  for (const e of [misto, semPers]) assert.doesNotMatch(e.texto + e.html, /justifica|motivo|vê como/i);
   assert.doesNotMatch(semPers.texto, /personalizados/);
   const soPers = so([BABYGROW]);
   assert.match(soPers.texto, /Os artigos personalizados não têm troca nem devolução por desistência\./);
