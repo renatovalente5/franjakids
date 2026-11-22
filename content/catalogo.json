@@ -18,7 +18,7 @@
         {
           "id": "conjuntos-de-malha",
           "nome": "Conjuntos de malha",
-          "frase": "Conjuntos de malha e de algodão para bebé, para os dias frios e para o verão."
+          "frase": "Conjuntos de malha para bebé, para os dias frios."
         },
         {
           "id": "mantas-e-cobertores",
@@ -159,7 +159,7 @@
     {
       "id": "colecoes",
       "nome": "Coleções",
-      "frase": "As nossas coleções: do Natal ao Dia da Mãe e ao Dia do Pai, e as edições especiais.",
+      "frase": "As nossas coleções, do Natal ao Dia da Mãe e ao Dia do Pai.",
       "foto": "ocasiao-natal",
       "itens": [
         {
@@ -170,7 +170,7 @@
         {
           "id": "entre-paises",
           "nome": "Entre Países",
-          "frase": "Para os bebés de duas terras: as duas bandeiras, os dois mapas ou a frase que escolheres.",
+          "frase": "Para os bebés de duas terras, com as bandeiras dos dois países.",
           "foto": "ocasiao-entre-paises"
         },
         {
@@ -299,6 +299,8 @@
     "Areia": "#E2CFAE",
     "Pérola": "#EFE6DA",
     "Branco": "#FFFFFF",
+    "Branco e rosa": "#F2B8C6",
+    "Branco e azul": "#9CC3E4",
     "Preto": "#1E1E1E",
     "Vermelho": "#C8313A",
     "Lilás": "#C3AEDB",

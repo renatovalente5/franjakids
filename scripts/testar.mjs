@@ -519,6 +519,9 @@ teste('modo online: o botão é «Encomendar e pagar»; as entregas sem portes a
   assert.deepEqual(meios(fin), ['MB WAY', 'Multibanco', 'Cartão', 'Apple Pay', 'Google Pay', 'Pagamento seguro pela Stripe']);
   assert.deepEqual(meios(pagina('carrinho/index.html')).slice(0, 5), ['MB WAY', 'Multibanco', 'Cartão', 'Apple Pay', 'Google Pay']);
   const termos = pagina('termos/index.html');
+  // (22 nov 2026) no modo online, um só email: a confirmação, quando o pagamento entra
+  assert.match(termos, /Assim que o pagamento entra, recebe por email a confirmação da encomenda, com o resumo, as condições de desistência e a ligação para os termos e condições\./);
+  assert.doesNotMatch(termos, /aviso de recepção|outro email quando o pagamento entrar/);
   assert.match(termos, /Paga-se por MB WAY, Multibanco, cartão, Apple Pay ou Google Pay, através da Stripe, no fim da encomenda\. Com Multibanco, a encomenda só avança depois de a referência ser paga/);
   assert.doesNotMatch(termos + fin, /MB WAY ou cartão/);
 });
@@ -799,8 +802,9 @@ await teste('textos da loja: o «Como funciona», os «Envios e prazos», as «I
   assert.match(t, /Para os Açores e a Madeira, e para os restantes países, os portes e o prazo são sob consulta, e a encomenda não se faz no site\./);
   // (a revisão de 20 nov 2026) o pagamento combinado por «você»; a confirmação diz o que o email leva; o telefone com o custo
   assert.match(t, /O pagamento é combinado consigo depois de confirmarmos a encomenda/);
-  assert.match(t, /até ao fim do próprio dia e sempre antes da entrega, a confirmação da encomenda por email, com o resumo/);
-  assert.doesNotMatch(t, /em anexo|até no próprio dia|combinamos contigo/);
+  // (22 nov 2026) os emails tal como o Worker os manda: no modo «encomenda», o resumo logo e outro quando o pagamento entrar
+  assert.match(t, /Recebe logo por email o resumo da encomenda, com as condições de desistência e a ligação para os termos e condições, e outro email quando o pagamento entrar\./);
+  assert.doesNotMatch(t, /em anexo|até no próprio dia|combinamos contigo|aviso de recepção/);
   // a ficha diz o prazo da peça: a personalizada, o de produção; a sem personalização, o de preparação
   assert.match(pagina('produtos/manta-remalhada/index.html'), /Sai em 2 a 3 dias úteis\. Depois, até /);
   assert.match(pagina('produtos/body-dad-mini/index.html'), /Fazemos por encomenda em 1 a 2 semanas\. Depois, até [^.]+ por CTT no continente, ou levantamento em mão em Valongo, sem portes\./);

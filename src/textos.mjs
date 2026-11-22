@@ -62,13 +62,21 @@ export function paginasDeTexto(loja) {
   // a zona numa frase: «para os Açores e a Madeira», «para os países da União Europeia», «para os restantes países»
   const comArtigo = (z) => ({ ilhas: 'os Açores e a Madeira', ue: 'os países da União Europeia', estrangeiro: 'os restantes países' })[z.id] || esc(z.nome);
   // «Como se faz a encomenda»: em modo «encomenda» o botão é outro e o pagamento combina-se depois
-  /* (a revisão de 20 nov 2026) os meios com «ou» no fim; a confirmação diz o que o email leva (o resumo, as condições
-     de desistência e a ligação para os termos: não leva anexos); e o pagamento combinado tratado por «você», como o
-     resto dos termos. */
+  /* (a revisão de 20 nov 2026) os meios com «ou» no fim; e o pagamento combinado tratado por «você», como o resto dos
+     termos. (22 nov 2026) Os emails, tal como o Worker os manda (o texto comum prometia um aviso de recepção logo e, à
+     parte, a confirmação com anexos): no modo online sai um só quando o pagamento entra, com o resumo, a desistência e
+     a ligação para os termos (no Multibanco vem antes o da referência); no modo «encomenda», o resumo logo e outro
+     quando o pagamento entrar. Se o texto comum mudar, a construção pára em vez de deixar a promessa antiga. */
+  const AVISO_COMUM = 'Recebe logo um aviso de recepção por email e, até ao fim do próprio dia e sempre antes da entrega, a confirmação da encomenda com as condições inteiras em anexo.';
+  const EMAILS = online
+    ? 'Assim que o pagamento entra, recebe por email a confirmação da encomenda, com o resumo, as condições de desistência e a ligação para os termos e condições.'
+    : 'Recebe logo por email o resumo da encomenda, com as condições de desistência e a ligação para os termos e condições, e outro email quando o pagamento entrar.';
   const comoSeFaz = () => {
-    const h = COMO_SE_FAZ_A_ENCOMENDA({ canal: 'site', pagamentos, linguas: ['português'], urlTermos: url('/termos/'), prazoConfirmacao: 'ao fim do próprio dia', arquivo: '10 anos' })
+    const comum = COMO_SE_FAZ_A_ENCOMENDA({ canal: 'site', pagamentos, linguas: ['português'], urlTermos: url('/termos/'), prazoConfirmacao: 'ao fim do próprio dia', arquivo: '10 anos' });
+    if (!comum.includes(AVISO_COMUM)) throw new Error('legal-comum: a frase dos emails em «Como se faz a encomenda» mudou; rever src/textos.mjs');
+    const h = comum
       .replace(`Pode pagar por ${MEIOS_ONLINE.join(', ')}.`, `Pode pagar por ${meios}.`)
-      .replace('a confirmação da encomenda com as condições inteiras em anexo.', 'a confirmação da encomenda por email, com o resumo, as condições de desistência e a ligação para os termos e condições.');
+      .replace(AVISO_COMUM, EMAILS);
     return online ? h : h.replace(`«${BOTAO_ENCOMENDA}».`, `«${botao}». O pagamento é combinado consigo depois de confirmarmos a encomenda, por MB WAY ou transferência.`);
   };
   const pagamentoHtml = online
