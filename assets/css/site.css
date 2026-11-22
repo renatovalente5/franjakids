@@ -111,11 +111,17 @@ h1, h2, h3 { font-weight: 400; }
   .menu__painel .menu__tudo { margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid var(--linha); }
   .menu__painel .menu__tudo a { font-weight: 600; }
   .menu__entrada.aberta .menu__painel { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .18s, transform .18s, visibility 0s; }
+  /* a 1.ª e a última listas ficam presas à ponta da entrada, não ao meio: centradas, a do «Bebé» saía 5 px pela
+     esquerda a 1024 px (a varredura de 22 nov 2026), e a dona pode mudar os nomes e a ordem do menu */
+  .menu__entrada:first-child .menu__painel { left: 0; transform: translate(0, 6px); }
+  .menu__entrada:last-child .menu__painel { left: auto; right: 0; transform: translate(0, 6px); }
+  .menu__entrada:first-child.aberta .menu__painel, .menu__entrada:last-child.aberta .menu__painel { transform: translate(0, 0); }
   .topo__menu, .topo__procurar { display: none; }
   .topo__procura { display: inline-flex; align-items: center; gap: 10px; width: 210px; min-height: 44px; padding: 0 18px; margin-right: 6px; border-radius: 999px; background: var(--superficie); color: var(--tinta-suave); text-decoration: none; box-shadow: inset 0 0 0 1px var(--linha); }
 }
 @media (min-width: 1024px) and (hover: hover) {
   .menu__entrada:hover .menu__painel { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .18s .06s, transform .18s .06s, visibility 0s .06s; }
+  .menu__entrada:first-child:hover .menu__painel, .menu__entrada:last-child:hover .menu__painel { transform: translate(0, 0); }
 }
 
 /* Herói num cartão */

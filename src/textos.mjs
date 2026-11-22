@@ -88,7 +88,7 @@ ${cartoes([
 ${pagamentoHtml}
 <h2>${coracao('Precisas da tua encomenda para uma data especial? ♡')}</h2>
 <p>Um nascimento, batizado, aniversário ou outra ocasião especial?</p>
-<p>Os nossos artigos personalizados são preparados especialmente para ti, com todo o cuidado e carinho. Por isso, o prazo habitual de produção e entrega é de ${producao}.</p>
+<p>Os nossos artigos personalizados são preparados especialmente para ti, com todo o cuidado e carinho. Por isso, o prazo habitual de produção é de ${producao}, mais o tempo do envio.</p>
 <p>Recomendamos que faças a tua encomenda com a maior antecedência possível, especialmente se tiveres uma data importante a cumprir.</p>
 <h2>${coracao('Não encontraste o que procuravas? ♡')}</h2>
 <p>Na Franja Kids, adoramos dar vida às tuas ideias!</p>
@@ -120,7 +120,7 @@ ${cartoes([
   ...(mao ? [['local', `Levantamento em mão em ${esc(ent.concelho)}`, 'Seleciona esta opção ao finalizar a compra e não pagues portes! Quando a tua encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento.']] : []),
   ['presente', 'Açores, Madeira e estrangeiro', 'Enviamos para as ilhas e para vários destinos internacionais. Os prazos de entrega variam consoante o destino.'],
 ])}
-<p>Os prazos de transporte acrescem aos prazos de produção ou preparação.</p>
+<p>Os prazos de transporte acrescem aos prazos de produção ou preparação. A página de cada artigo diz o prazo dele.</p>
 <h2>Portes de envio</h2>
 ${listaDePortes}
 <p>Os portes de envio são apresentados antes de finalizares a tua encomenda.</p>
@@ -154,7 +154,7 @@ ${falarNoInstagram}`,
   <li>Artigos sem personalização: o prazo de preparação é de ${preparacao}.</li>
 </ul>
 <p>Após o envio, a entrega em Portugal continental demora habitualmente até ${esc(ent.prazoContinente)}.</p>
-<p>Os prazos de preparação e transporte são distintos e podem variar.</p>
+<p>Os prazos de preparação e transporte são distintos e podem variar. A página de cada artigo diz o prazo dele.</p>
 <h2>Quanto custam os portes de envio?</h2>
 ${listaDasPerguntas}
 <p>Podes consultar todas as informações em <a href="${url('/envios/')}">Envios e prazos</a>.</p>
@@ -253,11 +253,15 @@ ${identificacao(e)}
   <li><strong>Carrinho:</strong> fica guardado só no seu browser (armazenamento local), para não o perder entre páginas.${online ? ' Enquanto paga na página da Stripe, os dados do finalizar ficam também só neste separador do browser, para voltarem aos campos se voltar atrás; saem quando a encomenda fica feita ou o separador se fecha.' : ''} Não usamos cookies nem estatísticas.</li>
 </ul>
 <h2>A quem os damos</h2>
-${destinatariosHtml({ alojamento: 'cloudflare', dns: 'cloudflare', ...(/@(gmail|googlemail)\.com$/i.test(String(e.email || '').trim()) ? { email: 'google' } : {}), ...(online ? { pagamentos: 'stripe' } : {}), instagram: true, ...(mao ? { whatsapp: true } : {}) }, { formato: 'lista' })
+${destinatariosHtml({ alojamento: 'cloudflare', dns: 'cloudflare', ...(/@(gmail|googlemail)\.com$/i.test(String(e.email || '').trim()) ? { email: 'google' } : /@franjakids\.com$/i.test(String(e.email || '').trim()) ? { email: 'hostinger' } : {}), ...(online ? { pagamentos: 'stripe' } : {}), instagram: true, ...(mao ? { whatsapp: true } : {}) }, { formato: 'lista' })
   /* A Cloudflare aloja o site e o DNS desde 10 nov 2026 (antes, o GitHub Pages), guarda as encomendas e os avisos de
      stock (o Worker franjakids-encomendas) e manda os emails delas (Email Sending; a Resend não se usa): estas
      finalidades a legal-comum ainda não tem. O testar.mjs confere que entram, e que não fica o GitHub nem a Resend. */
-  .replace('DNS do domínio.', 'DNS do domínio; guardar as encomendas feitas no site e os avisos de stock, e passá-los para nós; envio dos emails das encomendas e dos avisos.')}
+  .replace('DNS do domínio.', 'DNS do domínio; guardar as encomendas feitas no site e os avisos de stock, e passá-los para nós; envio dos emails das encomendas e dos avisos.')
+  /* A caixa geral@ (22 nov 2026) é do Hostinger Mail: as caixas ficam em centros de dados em França e na Alemanha
+     (a página «Where are Hostinger servers located», 22 nov 2026), sem transferência para fora da UE. A legal-comum
+     deixa «Por confirmar» porque o centro de dados do alojamento depende do plano; o do correio não. */
+  .replace('(Chipre (UE); o centro de dados depende do plano) — caixa de correio (Hostinger Email): os emails que nos envia e as respostas. Por confirmar.', '(Chipre, UE) — caixa de correio (Hostinger Email): os emails que nos envia, as respostas e os avisos das encomendas. Sem transferência: as caixas ficam em centros de dados em França e na Alemanha.')}
 <h2>Os seus direitos</h2>
 ${direitosHtml({ email: e.email || porConfirmar('email') })}`,
     'Política de privacidade da Franja Kids.', { indexar: false }),

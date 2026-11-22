@@ -118,6 +118,15 @@ test('desistir de uma que se pagou nesse instante: a Stripe recusa fechar, a ses
   assert.equal((await doObjecto(env, encomenda)).estado, 'paga');
 });
 
+test('desistir de uma encomenda JÁ PAGA (pagou o Multibanco no banco, ou o webhook chegou antes do «Voltar»): o site vai à «obrigado», nada se desfaz', async () => {
+  const { env, encomenda, chave } = await pendente();
+  assert.equal((await webhook(env, sessaoPaga(encomenda))).status, 200);
+  assert.equal((await doObjecto(env, encomenda)).estado, 'paga');
+  const r = await pedir(worker, env, 'POST', '/encomenda/desistir', { corpo: { e: encomenda, c: chave } });
+  assert.deepEqual(r.json, { estado: 'paga', feita: true, s: 'cs_test_a1b2c3d4e5f6' }, 'feita: o finalizar não pode dizer «não se cobrou nada»');
+  assert.equal((await doObjecto(env, encomenda)).estado, 'paga', 'e continua paga');
+});
+
 test('desistir à espera do Multibanco (a Stripe fica na página da referência e o «Voltar» do browser volta ao finalizar): a encomenda NÃO se desfaz, e o site vai à «obrigado» com a sessão', async () => {
   const { env, encomenda, chave } = await pendente({ fecho: RECUSA, sessao: { status: 'complete', payment_status: 'unpaid' } });
   const r = await pedir(worker, env, 'POST', '/encomenda/desistir', { corpo: { e: encomenda, c: chave } });

@@ -87,7 +87,8 @@ test('o webhook: a sessão paga marca «paga», avisa o cliente e a loja UMA vez
   assert.equal(emails.length, 2);
   const cliente = emails.find((e) => e.to[0] === 'maria@exemplo.pt');
   assert.equal(cliente.subject, `Pagamento recebido — encomenda ${encomenda}`);
-  assert.match(cliente.text, /Recebemos o teu pagamento\. Quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./);
+  assert.match(cliente.text, /Recebemos o teu pagamento\.\n/, 'a frase não repete o WhatsApp: está na entrega (22 nov 2026)');
+  assert.equal(cliente.text.match(/contactamos-te pelo WhatsApp/g).length, 1, 'o WhatsApp uma vez só');
   assert.match(cliente.text, /ENTREGA\n {2}Levantamento em mão: quando a encomenda estiver pronta, contactamos-te pelo WhatsApp para combinar o levantamento\./, 'pela Stripe é a confirmação: leva a entrega');
   assert.match(cliente.text, /Os artigos personalizados não têm troca nem devolução por desistência/);
   const loja = emails.find((e) => e.to[0] === 'loja@exemplo.pt');
@@ -308,6 +309,9 @@ test('o webhook: um pagamento que chega a uma encomenda já anulada não a «pag
   const { env, encomenda, ler } = await pendente();
   const anular = await pedir(worker, env, 'POST', `/painel/encomendas/${encomenda}/estado`, { cabecalhos: bearer(), corpo: { estado: 'anulada', por: 'dona@exemplo.pt', nota: 'A cliente desistiu por mensagem.' } });
   assert.equal(anular.status, 200, anular.texto);
+  const doAnular = rede.resend().at(-1);
+  assert.match(doAnular.text, /A tua encomenda foi anulada\./);
+  assert.doesNotMatch(doAnular.text, /devolvemos-te o valor/, 'sem pagamento, o email da anulação não fala de devolver dinheiro');
   rede.chamadas.length = 0;
   assert.equal((await webhook(env, sessaoPaga(encomenda))).status, 200);
   const enc = await ler();

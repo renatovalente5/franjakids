@@ -93,8 +93,10 @@ completa — pagou nesse instante, ou escolheu Multibanco e já tem a referênci
 fica na página da referência e não volta ao site; o «voltar» do browser é que traz a pessoa) — a
 encomenda fica (para o webhook) e responde `{ "estado": "pendente"|"paga", "feita": true, "s": "<sessão>" }`,
 e o finalizar leva a pessoa à «obrigado» com a sessão, que mostra a referência por pagar; já expirada,
-passa a `expirou` como se fechasse agora. → `{ "estado": "…" }`; sem a chave certa, 404. Sem `feita`, o
-finalizar repõe os dados escritos (menos os termos) e diz que não se cobrou nada.
+passa a `expirou` como se fechasse agora. Uma encomenda que já está paga (ou pronta, enviada, levantada) — pagou o
+Multibanco no banco e voltou com o «voltar» do browser — responde `{ "estado": "paga"|…, "feita": true, "s": "<sessão>" }`
+sem mexer em nada (22 nov 2026). → `{ "estado": "…" }`; sem a chave certa, 404. Sem `feita` (e sem um estado pago),
+o finalizar repõe os dados escritos (menos os termos) e diz que não se cobrou nada.
 
 CORS: só as origens de `ALLOWED_ORIGINS` (a pré-visualização `https://renatovalente5.github.io`, o
 `http://127.0.0.1:8985` do build local e, depois, o domínio); `OPTIONS` responde às duas rotas

@@ -482,6 +482,9 @@ teste('produção: os dados estruturados da loja, do site e dos produtos (para a
   assert.match(priv, /conversas pelo WhatsApp/);
   assert.match(priv, /<strong>Avisos de stock:<\/strong>[^<]*avisarmos uma vez[^<]*6 meses/);
   assert.doesNotMatch(priv, /GitHub|Resend|por indicar/);
+  // o email da loja no domínio (geral@) é da Hostinger: entra, com o sítio das caixas, e nada «Por confirmar» (22 nov 2026)
+  assert.match(priv, /Hostinger International Ltd\.<\/strong> \(Chipre, UE\) — caixa de correio[^<]*França e na Alemanha\./);
+  assert.doesNotMatch(priv, /Por confirmar/);
 });
 teste('SEO: os títulos e as descrições escritos à mão cabem, e são de secções e categorias que existem', () => {
   for (const [id, v] of Object.entries(SEO.SECCOES)) {
@@ -769,7 +772,7 @@ await teste('textos da loja: o «Como funciona», os «Envios e prazos», as «I
   const cf = pagina('como-funciona/index.html');
   for (const t of ['1. Escolhe o teu favorito', '2. Personaliza ao teu gosto', '3. Finaliza a tua encomenda', '4. Recebe com carinho']) assert.ok(cf.includes(`<h2>${t}</h2>`), t);
   assert.match(cf, /<h2>Precisas da tua encomenda para uma data especial\? <span class="coracao" aria-hidden="true">♡<\/span><\/h2>/);
-  assert.match(cf, /o prazo habitual de produção e entrega é de 1 a 2 semanas\./);
+  assert.match(cf, /o prazo habitual de produção é de 1 a 2 semanas, mais o tempo do envio\./);
   assert.match(cf, /<a class="botao botao--cheio" href="https:\/\/ig\.me\/m\/franjakids">Fala connosco no Instagram <span class="coracao" aria-hidden="true">♡<\/span><\/a>/);
   assert.match(cf, /A encomenda fica feita quando carregas em «Enviar encomenda»/, 'em modo «encomenda», o pagamento combina-se depois');
   const env = pagina('envios/index.html');
@@ -848,6 +851,30 @@ await teste('o texto da loja de 21 nov 2026: as perguntas frequentes e os contac
   assert.doesNotMatch(pagina('contactos/index.html'), /wa\.me|WhatsApp<\/h2>/);
   pf = pagina('perguntas-frequentes/index.html');
   assert.match(pf, /Podes consultar os métodos de pagamento disponíveis ao finalizar a tua encomenda\.<\/p>\s*<p>O pagamento é realizado através das opções apresentadas no checkout, de forma simples e segura\./);
+});
+
+teste('o carrinho de 22 nov 2026: uma linha guardada antes de a loja mudar o produto sai, em vez de mostrar um nome ou uma escolha que o Worker não faria', () => {
+  const unidade = new Function('cents', `return ${pedaco(/const unidade = (\(i, cat\) => \{[\s\S]*?\n {2}\});/, SITE_JS2())}`)((v) => Math.round(v * 100));
+  const manga = { nome: 'Manga', valores: [{ nome: 'Curta', suplemento: 0 }, { nome: 'Comprida', suplemento: 0 }] };
+  const cat = { produtos: {
+    opcional: { preco: 10, tamanhos: [], cores: [], opcoes: [], personalizacao: { rotulo: 'Nome', max: 15, opcional: 'Bordar um nome', suplemento: 3 } },
+    obrigatoria: { preco: 10, tamanhos: [], cores: [], opcoes: [], personalizacao: { rotulo: 'Nome', max: 15, obrigatoria: true } },
+    sem: { preco: 10, tamanhos: [], cores: [], opcoes: [manga], personalizacao: null },
+  } };
+  const u = (slug, linha) => unidade({ slug, opcoes: {}, qtd: 1, ...linha }, cat);
+  assert.equal(u('opcional', { texto: 'Ana', personalizar: true }), 1300, 'com a caixa marcada, o nome e o acréscimo');
+  assert.equal(u('opcional', { texto: 'Ana', personalizar: false }), null, 'um nome com a caixa por marcar (o Worker deitava-o fora): sai');
+  assert.equal(u('opcional', { texto: '', personalizar: true }), null, 'a caixa marcada sem nome: sai');
+  assert.equal(u('opcional', { texto: '' }), 1000, 'sem personalização: fica');
+  assert.equal(u('obrigatoria', { texto: '' }), null, 'o nome obrigatório que falta: sai');
+  assert.equal(u('obrigatoria', { texto: 'Ana' }), 1000);
+  assert.equal(u('sem', { texto: 'Ana' }), null, 'um nome num produto que já não se personaliza: sai');
+  assert.equal(u('sem', { opcoes: { Mangas: 'Curta' } }), null, 'um grupo que mudou de nome: sai');
+  assert.equal(u('sem', { opcoes: {} }), 1000, 'um grupo que a linha não tem vale o de omissão (o contrato)');
+  assert.equal(u('sem', { opcoes: { Manga: 'Comprida' } }), 1000);
+  // e o carrinho mostra o valor de omissão desse grupo, como a encomenda o grava
+  const escolhas = new Function('esc', `const opcaoDe = ${pedaco(/const opcaoDe = (\(i, g\) => [^\n]+);/, SITE_JS2())}; return ${pedaco(/const escolhasDe = (\(i, p, mais = \[\]\) => [\s\S]*?\.join\(' · '\));/, SITE_JS2())}`)((s) => s);
+  assert.equal(escolhas({ opcoes: {} }, cat.produtos.sem), 'Manga: Curta');
 });
 
 await teste('SEO de 22 nov 2026: o cartão de partilha com o logótipo, os títulos das fichas, os portes no Offer, o nome colado e a chave do IndexNow', () => {

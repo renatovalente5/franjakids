@@ -160,7 +160,7 @@ export function rodape(loja, menu = []) {
     </nav>
   </div>
   <div class="contentor rodape__legal">
-    <p>© 2026 ${esc(loja.nome)}</p>
+    <p>© ${new Date().getFullYear()} ${esc(loja.nome)}</p>
     <ul>
       <li><a href="${url('/termos/')}">Termos e condições</a></li>
       <li><a href="${url('/privacidade/')}">Política de privacidade</a></li>

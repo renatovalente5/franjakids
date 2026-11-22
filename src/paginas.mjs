@@ -250,7 +250,7 @@ function grupo(nome, valores, { campo, amostras = false } = {}) {
   const id = 'o-' + nome.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '');
   return `<fieldset class="opcao" data-opcao="${esc(nome)}"${campo ? ` data-campo="${campo}"` : ''} data-obrigatoria aria-describedby="${id}-erro">
     <legend>${esc(nome)} <span data-escolhido></span></legend>
-    <div class="opcao__valores">${valores.map((v) => `<label class="escolha${amostras ? ' amostra' : ''}"><input type="radio" name="${esc(nome)}" value="${esc(v.nome)}" data-suplemento="${v.suplemento || 0}"${v.foto != null && v.foto >= 0 ? ` data-foto="${v.foto}"` : ''}${v.marcada && !v.esgotado ? ' checked' : ''}${v.esgotado ? ' disabled' : ''}><span>${amostras ? `<i style="--amostra:${v.amostra || '#ddd'}"></i>` : ''}${esc(v.nome)}${v.esgotado ? ' <small class="escolha__esgotado">esgotado</small>' : v.suplemento ? ` <small>+${euro(v.suplemento)}</small>` : ''}</span></label>`).join('')}</div>
+    <div class="opcao__valores">${valores.map((v) => `<label class="escolha${amostras ? ' amostra' : ''}"><input type="radio" name="${esc(nome)}" value="${esc(v.nome)}" data-suplemento="${v.suplemento || 0}"${v.foto != null && v.foto >= 0 ? ` data-foto="${v.foto}"` : ''}${v.marcada && !v.esgotado ? ' checked' : ''}${v.esgotado ? ' disabled' : ''}><span>${amostras && v.amostra ? `<i style="--amostra:${v.amostra}"></i>` : ''}${esc(v.nome)}${v.esgotado ? ' <small class="escolha__esgotado">esgotado</small>' : v.suplemento ? ` <small>+${euro(v.suplemento)}</small>` : ''}</span></label>`).join('')}</div>
     <p class="campo__erro" id="${id}-erro" data-erro></p>
   </fieldset>`;
 }
@@ -415,7 +415,7 @@ export function carrinho({ loja, seccoes }) {
     <dl><dt>Artigos</dt><dd data-subtotal></dd><dt>Portes</dt><dd data-portes>No passo seguinte</dd></dl>
     <div class="progresso" data-progresso></div>
     <a class="botao botao--cheio" href="${url('/finalizar/')}">Finalizar a encomenda</a>
-    <p class="pagamentos">${online(loja) ? meiosOnline() : ''}${mao ? `<span>${esc(mao.nome)}</span>` : ''}</p>
+    ${online(loja) ? `<p class="pagamentos">${meiosOnline()}</p>` : ''}
   </aside>
 </div>`,
   };

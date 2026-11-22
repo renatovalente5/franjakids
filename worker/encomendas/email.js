@@ -264,7 +264,8 @@ const AVISOS = {
         titulo: 'Pagamento recebido',
         // Pela Stripe, este é o primeiro email (a confirmação): leva a entrega.
         // Marcada no painel, a encomenda já foi confirmada com o cliente.
-        frase: juntar('Recebemos o teu pagamento.', seguinte(enc)),
+        // Em mão e pela Stripe, a entrega já diz que se combina pelo WhatsApp: a frase não o repete (22 nov 2026).
+        frase: juntar('Recebemos o teu pagamento.', stripe && emMao(enc) ? '' : seguinte(enc)),
         comEntrega: stripe,
       }),
       // Pela Stripe, a loja tem de saber (faturar, produzir); pelo painel, foi ela que marcou.
@@ -297,7 +298,8 @@ const AVISOS = {
     cliente: emailCliente(env, enc, {
       assunto: `A tua encomenda ${enc.encomenda} foi anulada`,
       titulo: 'Encomenda anulada',
-      frase: 'A tua encomenda foi anulada.',
+      // uma que já estava paga: a pessoa fica a saber do dinheiro, mesmo que a loja não escreva nota (22 nov 2026)
+      frase: juntar('A tua encomenda foi anulada.', (enc.historico || []).some((h) => h.estado === 'paga') ? 'Como já estava paga, devolvemos-te o valor e avisamos-te quando estiver feito.' : ''),
       nota,
       semDesistencia: true,
     }),

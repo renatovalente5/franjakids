@@ -164,7 +164,8 @@
       "itens": [
         {
           "id": "baby-2027",
-          "nome": "Baby 2027"
+          "nome": "Baby 2027",
+          "frase": "Bodies para anunciar o bebé que chega em 2027."
         },
         {
           "id": "entre-paises",
@@ -190,7 +191,8 @@
         },
         {
           "id": "dia-do-pai",
-          "nome": "Dia do Pai"
+          "nome": "Dia do Pai",
+          "frase": "Bodies e t-shirts para o pai e o bebé, no Dia do Pai ou em qualquer dia."
         },
         {
           "id": "edicoes-especiais",

@@ -279,7 +279,8 @@ test('as transições proibidas dão 409 com a razão (a «pronta» de uma encom
   assert.equal(r.status, 200);
   emails = rede.resend();
   assert.equal(emails.at(-1).subject, `A tua encomenda ${ctt.encomenda} foi anulada`);
-  assert.match(emails.at(-1).text, /A tua encomenda foi anulada\.\n\nDevolvemos o dinheiro por MB WAY\./);
+  // já estava paga: o email diz que se devolve o valor (22 nov 2026), e a nota da loja vem a seguir
+  assert.match(emails.at(-1).text, /A tua encomenda foi anulada\. Como já estava paga, devolvemos-te o valor e avisamos-te quando estiver feito\.\n\nDevolvemos o dinheiro por MB WAY\./);
   assert.doesNotMatch(emails.at(-1).text, /14 dias|desistência/, 'anulada não fala da livre resolução');
   assert.deepEqual(r.json.historico.map((h) => h.estado), ['registada', 'paga', 'enviada', 'anulada']);
 });

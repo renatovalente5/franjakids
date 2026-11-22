@@ -70,6 +70,17 @@
     if (!p || typeof p.preco !== 'number' || p.esgotado) return null;
     if (p.tamanhos.length && (!p.tamanhos.includes(i.tamanho) || (p.tamanhosEsgotados || []).includes(i.tamanho))) return null;
     if (p.cores.length && !p.cores.some((c) => c.nome === i.cor && !c.esgotado)) return null;
+    /* A linha tem de ser a que a ficha de hoje faria (22 nov 2026, a revisão do dinheiro): num carrinho guardado antes
+       de a loja mudar o produto, um nome que o Worker deitaria fora (a personalização saiu, ou passou a opcional e a
+       caixa não vinha marcada), um nome obrigatório que falta, ou um grupo de opções que mudou de nome, ficavam no
+       carrinho a dizer o que não se ia fazer. Saem, com o aviso de sempre. Um grupo que a linha não tem vale o valor de
+       omissão (o contrato: a primeira escolha sem acréscimo), e o carrinho mostra-o (escolhasDe). */
+    const ps = p.personalizacao;
+    const texto = typeof i.texto === 'string' ? i.texto.replace(/\p{Cf}/gu, '').trim() : '';
+    if (texto && (!ps || (ps.opcional && !i.personalizar))) return null;
+    if (ps && !texto && (ps.opcional ? i.personalizar : ps.obrigatoria)) return null;
+    const grupos = p.opcoes.map((g) => g.nome);
+    if (Object.keys(i.opcoes || {}).some((k) => !grupos.includes(k))) return null;
     let v = cents(p.preco);
     // o acréscimo do tamanho (os de adulto numa t-shirt de criança e de adulto: R.suplementosTamanhoDe)
     const sup = p.suplementosTamanho;
@@ -93,7 +104,8 @@
     return { itens, sairam: todas.length - itens.length };
   };
   const fotoDe = (p) => `<picture><img src="${esc(p.foto)}" alt="" width="360" height="480" loading="lazy"></picture>`;
-  const escolhasDe = (i, p, mais = []) => [i.tamanho && `Tamanho: ${i.tamanho}`, i.cor && `Cor: ${i.cor}`, ...Object.entries(i.opcoes || {}).map(([k, v]) => `${k}: ${v}`),
+  const opcaoDe = (i, g) => (Object.prototype.hasOwnProperty.call(i.opcoes || {}, g.nome) ? i.opcoes[g.nome] : (g.valores.find((x) => !x.suplemento && !x.esgotado) || {}).nome);
+  const escolhasDe = (i, p, mais = []) => [i.tamanho && `Tamanho: ${i.tamanho}`, i.cor && `Cor: ${i.cor}`, ...(p.opcoes || []).map((g) => opcaoDe(i, g) && `${g.nome}: ${opcaoDe(i, g)}`),
     p.personalizacao?.opcional && i.personalizar && p.personalizacao.opcional, ...mais].filter(Boolean).map(esc).join(' · ');
   const textoDe = (i, p) => (i.texto ? `<p class="item__texto">${esc(p.personalizacao?.rotulo || 'Personalização')}: «${esc(i.texto)}»</p>` : '');
   const progresso = (el, subtotal, limite) => {
@@ -647,7 +659,8 @@
         fetch(API + '/encomenda/desistir', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ e: pendente.e, c: pendente.c }), keepalive: true })
           .then((r) => (r.ok ? r.json() : null))
           .then((j) => {
-            if (j && j.feita === true) location.replace(`${BASE}/obrigado/?e=${encodeURIComponent(pendente.e)}&c=${encodeURIComponent(pendente.c)}${typeof j.s === 'string' ? `&s=${encodeURIComponent(j.s)}` : ''}`);
+            // feita, ou já paga (ou mais à frente): nunca «não se cobrou nada» a quem já pagou (22 nov 2026)
+            if (j && (j.feita === true || ['paga', 'pronta', 'enviada', 'levantada'].includes(j.estado))) location.replace(`${BASE}/obrigado/?e=${encodeURIComponent(pendente.e)}&c=${encodeURIComponent(pendente.c)}${typeof j.s === 'string' ? `&s=${encodeURIComponent(j.s)}` : ''}`);
             else naoConcluido();
           })
           .catch(naoConcluido);
@@ -692,7 +705,7 @@
     const regras = {
       nome: (v) => (v ? '' : 'Escreve o teu nome.'),
       email: (v) => (emailCerto(v) ? '' : 'Escreve um email como nome@exemplo.pt.'),
-      telemovel: (v) => { const n = v.replace(/\D/g, '').length; return /^[+\d\s().-]+$/.test(v) && n >= 9 && n <= 15 ? '' : 'Escreve o telemóvel com 9 algarismos.'; },
+      telemovel: (v) => { const n = v.replace(/\D/g, '').length; return /^[+\d\s().-]+$/.test(v) && n >= 9 && n <= 15 ? '' : 'Escreve o telemóvel: 9 algarismos, ou com o indicativo do país.'; },
       nif: (v) => (!v || nifValido(v) ? '' : 'O NIF não está certo. Confirma-o ou deixa-o em branco.'),
       morada: (v) => (v ? '' : 'Escreve a morada.'),
       'codigo-postal': (v, zona) => {
@@ -811,7 +824,7 @@
         } else if (r.status === 400 && regras[id] && form.elements[id]) { marcar(id, resposta.erro); mostrarErros([[id, resposta.erro]]); }
         else {
           // um produto que deixou de se vender (ou mudou) entretanto: o resumo volta a desenhar-se sem ele
-          if (r.status === 400 && ['produto', 'tamanho', 'cor', 'opcoes'].includes(resposta.campo)) await desenhar(true);
+          if (r.status === 400 && ['produto', 'tamanho', 'cor', 'opcoes', 'texto'].includes(resposta.campo)) await desenhar(true);
           erroEnvio.textContent = resposta.erro || 'Não conseguimos enviar a encomenda. Tenta outra vez daqui a pouco, ou manda-nos mensagem.';
         }
       } catch {

@@ -28,7 +28,7 @@
   ],
   "personalizacao": {
     "rotulo": "Data ou nome",
-    "pista": "Opcional. Por exemplo: chego em julho 2027",
+    "pista": "Opcional. Por exemplo: chego em julho de 2027",
     "max": 40
   },
   "detalhes": [

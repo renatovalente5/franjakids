@@ -239,6 +239,10 @@ async function encomenda(url, env, cors) {
    «o pagamento não se concluiu», mesmo que entretanto tivesse pago outra). A página fecha-se
    PRIMEIRO: se a pessoa pagou nesse instante, a Stripe recusa, e a encomenda fica para o webhook.
    Pede o número e a chave da encomenda (só quem a fez os tem). */
+/* Os estados de uma encomenda que já está feita e paga (22 nov 2026, a revisão do dinheiro antes de a loja abrir):
+   quem pagou o Multibanco no banco — ou cuja página da Stripe voltou atrás depois de o webhook a marcar — e carrega em
+   «Voltar» até ao finalizar ouvia «O pagamento não se concluiu e não se cobrou nada», e podia pagar outra vez. */
+const FEITAS = Object.freeze(['paga', 'pronta', 'enviada', 'levantada']);
 async function desistir(request, env, cors) {
   const { corpo, resposta } = await lerCorpoJson(request, cors);
   if (resposta) return resposta;
@@ -247,6 +251,7 @@ async function desistir(request, env, cors) {
   if (!RE_ID.test(e) || !RE_CHAVE.test(c)) return naoHa();
   const enc = await lerEncomenda(env, e);
   if (!enc || !iguais(enc.chave, c)) return naoHa();
+  if (FEITAS.includes(enc.estado)) return json({ estado: enc.estado, feita: true, ...(enc.stripe && enc.stripe.session_id ? { s: enc.stripe.session_id } : {}) }, 200, cors);
   if (enc.estado !== 'pendente') return json({ estado: enc.estado }, 200, cors);
   const sessao = enc.stripe && enc.stripe.session_id;
   if (sessao && env.STRIPE_SECRET_KEY) {
