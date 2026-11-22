@@ -1,10 +1,11 @@
 {
-  "nome": "Bolsa «A minha primeira roupinha»",
+  "nome": "Bolsa Primeira Roupinha | Bordada",
   "categorias": [
-    "bebe/primeira-roupinha"
+    "bebe/primeira-roupinha",
+    "bebe/outros"
   ],
-  "preco": null,
-  "resumo": "Para levar a primeira roupinha para a maternidade, e guardar depois.",
+  "preco": 8,
+  "resumo": "Uma bolsinha delicada para guardar a primeira roupinha do seu bebé e levar para a maternidade. Um detalhe especial para um momento inesquecível! 🤍",
   "fotos": [
     "bolsa-primeira-roupinha-1",
     "bolsa-primeira-roupinha-2",
@@ -24,6 +25,13 @@
       "foto": "bolsa-primeira-roupinha-3"
     }
   ],
+  "personalizacao": {
+    "rotulo": "Personalização da bolsa com o nome do bebé",
+    "opcional": "Estampar nome",
+    "pista": "Nome que pretende estampar.",
+    "max": 20,
+    "suplemento": 4
+  },
   "destaque": false,
   "publicado": true,
   "ordem": 330
