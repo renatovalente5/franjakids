@@ -28,10 +28,10 @@
     }
   ],
   "personalizacao": {
-    "rotulo": "Nome a DTF",
+    "rotulo": "Nome estampado",
     "pista": "Até 15 letras",
     "max": 15,
-    "opcional": "Personalizar o nome a DTF",
+    "opcional": "Personalizar com o nome estampado",
     "suplemento": 3
   },
   "destaque": true,
