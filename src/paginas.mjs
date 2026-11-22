@@ -6,7 +6,7 @@
 import { BOTAO_ENCOMENDA } from '../legal-comum/index.mjs';
 import * as R from './lib/regras.mjs';
 import { url, esc, euro, euroRedondo, foto, icone, FOTOS } from './util.mjs';
-import { SECCOES, TITULOS, resumir, descricaoDoProduto, ldSite, ldLoja, ldMigalhas, ldProduto } from './seo.mjs';
+import { SECCOES, TITULOS, resumir, descricaoDoProduto, tituloDoProduto, ldSite, ldLoja, ldMigalhas, ldProduto } from './seo.mjs';
 
 const zonaMao = (loja) => loja.entrega.zonas.find((z) => z.id === 'mao' && !R.zonaSobConsulta(z));
 const online = (loja) => loja.pagamentos?.modo === 'online';
@@ -114,7 +114,6 @@ export function inicio({ loja, produtos, seccoes }) {
     caminho: '/',
     titulo: 'Início',
     descricao: resumir(loja.descricao),
-    imagem: 'vais-ser-avo',
     jsonld: [ldSite(loja), ldLoja(loja)],
     fontes: [R.PASTAS.artigos, R.PASTAS.fotos, R.FICHEIROS.fotos],
     corpo: `<section class="contentor heroi" aria-labelledby="t-heroi">
@@ -360,6 +359,7 @@ export function produto({ loja, catalogo, produtos, seccoes, api }, p) {
   return {
     caminho: `/produtos/${p.slug}/`,
     titulo: p.nome,
+    tituloSeo: tituloDoProduto(p),
     descricao: descricaoDoProduto(p),
     imagem: fotos[0],
     jsonld,
@@ -565,7 +565,6 @@ export function sobre({ loja, seccoes }) {
     caminho: '/sobre/',
     titulo: 'Sobre nós',
     descricao: 'A Franja Kids nasceu a 10 de setembro de 2025: roupa e presentes personalizados para bebés, crianças e família, feitos com amor.',
-    imagem: 'donas',
     fontes: [R.FICHEIROS.fotos, R.ficheiroDaFoto('donas')],
     corpo: `<section class="contentor historia" aria-labelledby="t-sobre">
   ${foto('donas', { sizes: '(min-width: 1024px) 460px, calc(100vw - 40px)', classe: 'historia__foto', prioridade: true })}

@@ -20,6 +20,11 @@ export const VERIFICACOES = Object.freeze({
   'msvalidate.01': 'DE1BA388910A8DC62D873CAEEF7B2BB8',
 });
 
+/* A chave do IndexNow (22 nov 2026): avisa o Bing (e quem partilha a rede: Yandex, Seznam, Naver) de que as páginas
+   mudaram. É pública por desenho: o build escreve-a em /<chave>.txt, e é assim que se prova quem manda no domínio.
+   O envio faz-se com scripts/indexnow.mjs, depois de publicar em produção. */
+export const INDEXNOW = 'e86004be6e1174843d06829d5429f2b4';
+
 /* OS TÍTULOS PARA O GOOGLE das secções do menu e das suas categorias (o <title>; a descrição é a `frase` de cada
    uma, no content/catalogo.json, que a dona muda no painel). Uma secção ou uma categoria que não está aqui (uma que
    a dona juntou) leva o nome dela, com a secção: «Gorros · Personalizados». */
@@ -53,7 +58,47 @@ export const TITULOS = {
   'colecoes/natal': 'Personalizados de Natal para bebé e família',
   'colecoes/dia-da-mae': 'Presentes para o Dia da Mãe',
   'colecoes/dia-do-pai': 'Presentes para o Dia do Pai',
+  // as do menu novo (20 nov 2026) que ainda não tinham título: o que as pessoas escrevem no Google (as sugestões da
+  // pesquisa a 22 nov: «babygrow personalizado com nome», «toalha bebé personalizada com nome», «body anúncio
+  // gravidez», «t-shirts personalizadas pai e filho»)
+  'bebe/bodies-e-babygrows': 'Bodies e babygrows para bebé',
+  'bebe/lencois-de-cama': 'Lençóis para cama de bebé',
+  'bebe/toalhas-de-banho-e-fraldinhas': 'Toalhas de banho e fraldinhas para bebé',
+  'personalizados/fraldinhas': 'Fraldinhas personalizadas com nome',
+  'personalizados/gorros': 'Gorros personalizados para bebé',
+  'personalizados/tapa-ovos': 'Tapa-ovos personalizados para bebé',
+  'crianca-e-familia/conjuntos-a-combinar': 'Conjuntos personalizados para pais e filhos',
+  'presentes/nascimento': 'Presentes de nascimento personalizados',
+  'colecoes/baby-2027': 'Baby 2027: bodies para anunciar a gravidez',
+  'colecoes/desporto-e-clubes': 'Personalizados de desporto e clubes',
+  'promocoes/ultimas-unidades': 'Últimas unidades em promoção',
 };
+
+/* O <title> de uma ficha (22 nov 2026). O que as pessoas escrevem é «body personalizado», «babygrow personalizado com
+   nome»… (as sugestões da pesquisa do Google). Fica a primeira destas que cabe nos 65 caracteres:
+   1) o nome e o título da categoria: «Body «Preparem o colinho» · Bodies personalizados para bebé» (a principal; num
+      artigo personalizável, uma dos Personalizados com título passa à frente);
+   2) num artigo que se personaliza, o tipo de peça com «personalizado/a»: «Body personalizado «Aceitas ser meu
+      padrinho?»» (só os tipos de PERSONALIZADO, que dizem o género);
+   3) o nome.
+   Um nome que já diz «personaliz…» fica como está. O layout junta « · Franja Kids» quando ainda cabe. */
+const PERSONALIZADO = {
+  Body: 'personalizado', Babygrow: 'personalizado', Babete: 'personalizado', Gorro: 'personalizado', Conjunto: 'personalizado',
+  'T-shirt': 'personalizada', Sweatshirt: 'personalizada', Camisola: 'personalizada', Toalha: 'personalizada',
+  Fraldinha: 'personalizada', Manta: 'personalizada', Caixa: 'personalizada', Placa: 'personalizada', Bolsa: 'personalizada',
+};
+export function tituloDoProduto(p) {
+  const nome = String(p.nome ?? '').trim();
+  if (/personaliz/i.test(nome)) return nome;
+  const comTitulo = (p._categorias || p.categorias || []).filter((k) => TITULOS[k]);
+  const escolhida = (p._pers && comTitulo.find((k) => k.startsWith('personalizados/'))) || comTitulo[0];
+  const tipo = nome.split(/\s/)[0];
+  const candidatos = [
+    escolhida && `${nome} · ${TITULOS[escolhida]}`,
+    p._pers && PERSONALIZADO[tipo] && `${tipo} ${PERSONALIZADO[tipo]}${nome.slice(tipo.length)}`,
+  ];
+  return candidatos.find((c) => c && c.length <= 65) || nome;
+}
 
 export function resumir(texto, max = 155) {
   const t = String(texto ?? '').replace(/\s+/g, ' ').trim();
@@ -91,7 +136,9 @@ const semDevolucao = () => ({
 
 /** O site (o nome que o Google mostra por cima dos resultados). */
 export const ldSite = (loja) => ({
-  '@context': 'https://schema.org', '@type': 'WebSite', '@id': id('site'), name: loja.nome, url: absoluto('/'),
+  '@context': 'https://schema.org', '@type': 'WebSite', '@id': id('site'), name: loja.nome,
+  // a forma colada, como se escreve no Instagram e no domínio (o Google aprende o nome do site por aqui)
+  alternateName: loja.nome.replace(/\s+/g, ''), url: absoluto('/'),
   inLanguage: 'pt-PT', publisher: { '@id': id('loja') },
 });
 
@@ -126,14 +173,21 @@ export const ldMigalhas = (itens) => ({
    NewCondition, o sku, até 6 fotografias, e o preço que a ficha mostra (o mais baixo que se pode pagar). */
 export function ldProduto({ loja }, p) {
   const pagina = absoluto(`/produtos/${p.slug}/`);
+  const preco = precoMinimo(p, p._tamanhos);
+  /* Os portes para Portugal (o continente; as ilhas custam o mesmo hoje), para as fichas de comerciante do Google: só
+     quando a dona os escreveu. Com o preço acima do limiar, grátis. */
+  const continente = (loja.entrega?.zonas || []).find((z) => z.id === 'continente');
+  const gratis = loja.entrega?.gratisAPartirDe;
+  const portes = typeof continente?.portes === 'number' ? (typeof gratis === 'number' && preco >= gratis ? 0 : continente.portes) : null;
   return {
     '@context': 'https://schema.org', '@type': 'Product', '@id': pagina + '#produto', name: p.nome,
     description: descricaoDoProduto(p), sku: p.slug, ...(p._nomeCategoria ? { category: p._nomeCategoria } : {}),
     image: p.fotos.slice(0, 6).map(fotoJpg).filter(Boolean), brand: { '@type': 'Brand', name: loja.nome },
     offers: {
-      '@type': 'Offer', url: pagina, price: precoMinimo(p, p._tamanhos).toFixed(2), priceCurrency: 'EUR',
+      '@type': 'Offer', url: pagina, price: preco.toFixed(2), priceCurrency: 'EUR',
       availability: p._esgotado ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', itemCondition: 'https://schema.org/NewCondition',
       seller: { '@id': id('loja') },
+      ...(portes != null ? { shippingDetails: { '@type': 'OfferShippingDetails', shippingRate: { '@type': 'MonetaryAmount', value: portes.toFixed(2), currency: 'EUR' }, shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'PT' } } } : {}),
       ...(p._pers?.obrigatoria ? { hasMerchantReturnPolicy: semDevolucao() } : {}),
     },
   };

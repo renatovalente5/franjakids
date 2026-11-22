@@ -1,6 +1,7 @@
 // O esqueleto de todas as páginas: cabeça, topo, rodapé e a gaveta do carrinho.
 import { livroReclamacoes } from '../legal-comum/index.mjs';
-import { url, absoluto, esc, icone, logotipo, fotoJpg, PRODUCAO, FOTOS } from './util.mjs';
+import { readdirSync } from 'node:fs';
+import { url, absoluto, esc, icone, logotipo, fotoJpg, PRODUCAO, FOTOS, RAIZ } from './util.mjs';
 import { TITULO_INICIO, VERIFICACOES } from './seo.mjs';
 
 /* O que diz aos motores de busca: na pré-visualização (sem --producao), nada entra (noindex, nofollow, e o
@@ -17,12 +18,17 @@ export const alturaReduzida = (largura, altura, w) => {
   return resto > 0.5 ? baixo + 1 : resto < 0.5 ? baixo : baixo % 2 === 0 ? baixo : baixo + 1;
 };
 
-/* O cartão de partilha: a fotografia da página em JPEG (o WhatsApp não lê AVIF), com as medidas e a descrição. */
+/* O cartão de partilha: a fotografia da página em JPEG (o WhatsApp não lê AVIF), com as medidas e a descrição. O
+   início e as páginas gerais (sem fotografia própria) partilham o logótipo num cartão 1200×630, feito pelo
+   scripts/cartao-de-partilha.py: a regra do Renato (16 nov 2026) é nunca mostrar no WhatsApp a fotografia de uma peça
+   com o nome de um cliente. */
+const CARTAO = readdirSync(RAIZ + 'assets/marca').find((n) => /^franjakids-[0-9a-f]{10}-partilha\.jpg$/.test(n));
+if (!CARTAO) throw new Error('falta o cartão de partilha: python3 scripts/cartao-de-partilha.py');
 function imagemDePartilha(imagem) {
   const f = imagem && FOTOS[imagem];
-  if (!f) return `<meta property="og:image" content="${absoluto('/assets/marca/logotipo-640.png')}">
-<meta property="og:image:width" content="640">
-<meta property="og:image:height" content="453">
+  if (!f) return `<meta property="og:image" content="${absoluto('/assets/marca/' + CARTAO)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Franja Kids">`;
   return `<meta property="og:image" content="${fotoJpg(imagem)}">
 <meta property="og:image:width" content="${f.jpg}">

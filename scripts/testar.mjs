@@ -630,7 +630,8 @@ teste('a página 404 não tem morada própria; o favicon.ico existe; o .nojekyll
   assert.ok(fs.existsSync(path.join(SAIDA, 'favicon.ico')));
   assert.ok(!fs.existsSync(path.join(SAIDA, '.nojekyll')));
   // o logótipo como cartão de partilha leva as medidas (a fotografia já levava)
-  assert.match(pagina('carrinho/index.html'), /og:image" content="[^"]+logotipo-640\.png">\n<meta property="og:image:width" content="640">\n<meta property="og:image:height" content="453">/);
+  // sem fotografia própria, o cartão com o logótipo (1200×630; o SEO de 22 nov 2026)
+  assert.match(pagina('carrinho/index.html'), /og:image" content="[^"]+\/franjakids-[0-9a-f]{10}-partilha\.jpg">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">/);
 });
 teste('listagens: o 1.º cartão carrega com prioridade, os 4 primeiros sem esperar; a contagem é o h2', () => {
   const h = pagina('bebe/index.html');
@@ -847,6 +848,56 @@ await teste('o texto da loja de 21 nov 2026: as perguntas frequentes e os contac
   assert.doesNotMatch(pagina('contactos/index.html'), /wa\.me|WhatsApp<\/h2>/);
   pf = pagina('perguntas-frequentes/index.html');
   assert.match(pf, /Podes consultar os métodos de pagamento disponíveis ao finalizar a tua encomenda\.<\/p>\s*<p>O pagamento é realizado através das opções apresentadas no checkout, de forma simples e segura\./);
+});
+
+await teste('SEO de 22 nov 2026: o cartão de partilha com o logótipo, os títulos das fichas, os portes no Offer, o nome colado e a chave do IndexNow', () => {
+  // os títulos das fichas, com produtos de faz-de-conta: a 1.ª forma que cabe nos 65 caracteres
+  const t = (nome, categorias, pers = true) => SEO.tituloDoProduto({ nome, _categorias: categorias, _pers: pers ? { rotulo: 'Nome' } : null });
+  assert.equal(t('Body «Preparem o colinho»', ['personalizados/bodies']), 'Body «Preparem o colinho» · Bodies personalizados para bebé');
+  assert.equal(t('Babygrow', ['bebe/bodies-e-babygrows', 'personalizados/babygrows']), 'Babygrow · Babygrows personalizados com nome', 'num artigo personalizável, a categoria dos Personalizados passa à frente');
+  assert.equal(t('Body «Aceitas ser meu padrinho?»', ['personalizados/bodies']), 'Body personalizado «Aceitas ser meu padrinho?»', 'sem espaço para a categoria, o tipo de peça com «personalizado»');
+  assert.equal(t('T-shirt «Eu posso ser tudo o que eu quiser»', ['crianca-e-familia/t-shirts-de-crianca']), 'T-shirt personalizada «Eu posso ser tudo o que eu quiser»', 'no feminino');
+  assert.equal(t('Manta remalhada com um nome muito comprido para caber', ['bebe/mantas-e-cobertores'], false), 'Manta remalhada com um nome muito comprido para caber', 'sem personalização não se diz «personalizada»');
+  assert.equal(t('Caixa surpresa personalizada', ['presentes/caixas-presente']), 'Caixa surpresa personalizada', 'o nome que já o diz fica como está');
+  assert.equal(t('Body «Sou a prova de que o meu pai não joga padel o tempo todo»', ['personalizados/bodies']), 'Body «Sou a prova de que o meu pai não joga padel o tempo todo»', 'nada cabe: o nome');
+  assert.equal(t('Lenço', ['bebe/outros']), 'Lenço', 'uma categoria sem título não acrescenta nada');
+
+  repor();
+  mexer('loja.json', (o) => { legal(o); });
+  const r = construir(['--producao']);
+  assert.equal(r.status, 0, r.stderr);
+  const og = (h) => ({ img: h.match(/<meta property="og:image" content="([^"]*)"/)[1], w: h.match(/og:image:width" content="(\d+)"/)[1], h: h.match(/og:image:height" content="(\d+)"/)[1] });
+  const noSite = (u) => path.join(SAIDA, u.replace(/^https?:\/\/[^/]+/, '').replace(/^\//, ''));
+  // o início e as páginas gerais partilham o logótipo num cartão 1200×630 (a regra do Renato, 16 nov 2026)
+  for (const rel of ['index.html', 'sobre/index.html', 'contactos/index.html', 'perguntas-frequentes/index.html', 'como-funciona/index.html']) {
+    const o = og(pagina(rel));
+    assert.match(o.img, /\/assets\/marca\/franjakids-[0-9a-f]{10}-partilha\.jpg$/, `${rel}: o cartão com o logótipo`);
+    assert.deepEqual([o.w, o.h], ['1200', '630'], rel);
+    assert.ok(fs.existsSync(noSite(o.img)), `${rel}: o cartão existe no site`);
+  }
+  // as fichas partilham a fotografia delas, e o Offer leva os portes do continente (grátis acima do limiar)
+  const lojaEnsaio = JSON.parse(fs.readFileSync(path.join(CONTEUDO, 'loja.json'), 'utf8'));
+  let comOferta = 0;
+  for (const slug of fs.readdirSync(path.join(SAIDA, 'produtos'))) {
+    const h = pagina(`produtos/${slug}/index.html`);
+    const o = og(h);
+    assert.match(o.img, /\/assets\/img\/.+\.jpg$/, `${slug}: a fotografia`);
+    assert.ok(fs.existsSync(noSite(o.img)), `${slug}: a fotografia existe`);
+    const produto = [...h.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1])).find((j) => j['@type'] === 'Product');
+    if (!produto) continue;
+    comOferta += 1;
+    const portes = Number(produto.offers.price) >= lojaEnsaio.entrega.gratisAPartirDe ? 0 : lojaEnsaio.entrega.zonas.find((z) => z.id === 'continente').portes;
+    assert.deepEqual(produto.offers.shippingDetails, { '@type': 'OfferShippingDetails', shippingRate: { '@type': 'MonetaryAmount', value: portes.toFixed(2), currency: 'EUR' }, shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'PT' } }, slug);
+    const titulo = h.match(/<title>(.*?)<\/title>/s)[1];
+    assert.ok(titulo.length <= 65 + 20, `${slug}: o título (com as entidades) não cresceu sem conta`);
+  }
+  assert.ok(comOferta > 0, 'há fichas com Offer no ensaio');
+  // o nome do site também colado (como no Instagram e no domínio)
+  const site = [...pagina('index.html').matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1])).find((j) => j['@type'] === 'WebSite');
+  assert.equal(site.alternateName, 'FranjaKids');
+  // a chave do IndexNow, na raiz, com ela própria lá dentro
+  assert.match(SEO.INDEXNOW, /^[0-9a-f]{32}$/);
+  assert.equal(fs.readFileSync(path.join(SAIDA, `${SEO.INDEXNOW}.txt`), 'utf8'), SEO.INDEXNOW);
 });
 
 // ---------------------------------------------------------------- os cupões (11 nov 2026)
