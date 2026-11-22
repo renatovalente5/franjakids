@@ -299,6 +299,14 @@
         "0 meses",
         "1 mês"
       ]
+    },
+    "natal-6-a-18-meses": {
+      "nome": "Natal (6 a 18 meses)",
+      "valores": [
+        "6 meses",
+        "12 meses",
+        "18 meses"
+      ]
     }
   },
   "cores": {
