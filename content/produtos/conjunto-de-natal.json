@@ -1,7 +1,6 @@
 {
   "nome": "Conjunto de Natal | Menino e Menina",
   "categorias": [
-    "bebe/outros",
     "colecoes/natal"
   ],
   "preco": 25,
@@ -9,7 +8,7 @@
   "fotos": [
     "conjunto-de-natal-1"
   ],
-  "tamanhos": "natal",
+  "tamanhos": "natal-6-a-18-meses",
   "tamanhosEsgotados": [
     "12 meses"
   ],
