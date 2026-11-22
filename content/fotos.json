@@ -95,10 +95,6 @@
     "alt": "Body com «O meu primeiro Natal» ao lado de uma placa de madeira",
     "foco": "50% 45%"
   },
-  "body-o-nosso-maior-sonho-1": {
-    "alt": "Body com «O nosso maior sonho chega em 2027» e o desenho de um casal",
-    "foco": "50% 45%"
-  },
   "body-o-sonho-da-mae-1": {
     "alt": "Body com «O sonho da mãe + o desejo do pai + o pedido da mana = bebé a caminho»",
     "foco": "50% 45%"
@@ -377,6 +373,14 @@
   },
   "conjunto-primavera-verao-ecac680b": {
     "alt": "Conjunto de três peças, primavera-verão",
+    "foco": "50% 50%"
+  },
+  "body-o-nosso-maior-sonho-f04f303d": {
+    "alt": "Body «O nosso maior sonho chega em 2027»",
+    "foco": "50% 50%"
+  },
+  "body-o-nosso-maior-sonho-40ca6c85": {
+    "alt": "Body «O nosso maior sonho chega em 2027»",
     "foco": "50% 50%"
   }
 }
