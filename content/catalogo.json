@@ -280,6 +280,12 @@
         "24 meses",
         "36 meses"
       ]
+    },
+    "tamanho-unico-0-3-meses": {
+      "nome": "Conjunto de malha de 3 peças",
+      "valores": [
+        "0/3 meses"
+      ]
     }
   },
   "cores": {

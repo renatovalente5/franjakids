@@ -1,10 +1,10 @@
 {
-  "nome": "Conjunto de malha: casaco, gorro e luvas",
+  "nome": "Conjunto de Malha | Casaco, Gorro e Luvas",
   "categorias": [
     "bebe/conjuntos-de-malha"
   ],
-  "preco": null,
-  "resumo": "Três peças de malha para os dias frios, em sete cores.",
+  "preco": 14.9,
+  "resumo": "Um conjunto de 3 peças em malha, quentinho e delicado, perfeito para aconchegar o seu bebé nos dias mais frios. Disponível em 7 cores. 🤍",
   "fotos": [
     "conjunto-de-malha-tres-pecas-1",
     "conjunto-de-malha-tres-pecas-2",
@@ -44,11 +44,12 @@
       "foto": "conjunto-de-malha-tres-pecas-7"
     }
   ],
+  "opcoes": [],
   "detalhes": [
     "Casaco, gorro com pompom e luvas",
-    "Tamanho único"
+    "Tamanho único (0/3 meses)"
   ],
-  "destaque": false,
+  "destaque": true,
   "publicado": true,
   "ordem": 300
 }
