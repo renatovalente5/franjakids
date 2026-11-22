@@ -10,15 +10,19 @@
     "conjunto-primavera-verao-c2e2e4b7",
     "conjunto-primavera-verao-ecac680b"
   ],
+  "tamanhos": "conjunto-de-malha-2-pecas-0-3-meses",
   "cores": [
     {
-      "nome": "Azul"
+      "nome": "Rosa velho",
+      "foto": "conjunto-primavera-verao-40b4357a"
     },
     {
-      "nome": "Rosa velho"
+      "nome": "Azul",
+      "foto": "conjunto-primavera-verao-c2e2e4b7"
     },
     {
-      "nome": "Lilás"
+      "nome": "Rosa bebé",
+      "foto": "conjunto-primavera-verao-ecac680b"
     }
   ],
   "detalhes": [
