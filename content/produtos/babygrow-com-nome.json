@@ -1,11 +1,11 @@
 {
-  "nome": "Babygrow Franja",
+  "nome": "Babygrow Franja | Personalizável com nome",
   "categorias": [
     "bebe/bodies-e-babygrows",
     "personalizados/babygrows"
   ],
   "preco": 16.9,
-  "resumo": "Algodão macio, com a etiqueta Franja Kids. \nEstampamos o nome por mais 3 €.",
+  "resumo": "Babygrow em algodão macio, delicado e confortável para o seu bebé. Personalize com o nome por apenas +3 €! 🤍",
   "fotos": [
     "babygrow-com-nome-1",
     "babygrow-com-nome-64b43234",
@@ -37,6 +37,9 @@
     "opcional": "Personalizar com o nome estampado",
     "suplemento": 3
   },
+  "detalhes": [
+    "80% Algodão / 20% Poliéster"
+  ],
   "destaque": true,
   "publicado": true,
   "ordem": 290
