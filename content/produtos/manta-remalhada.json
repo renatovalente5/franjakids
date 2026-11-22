@@ -1,13 +1,12 @@
 {
-  "nome": "Manta remalhada",
+  "nome": "Manta de Malha | 90 × 90 cm",
   "categorias": [
     "bebe/mantas-e-cobertores"
   ],
-  "preco": 21.9,
-  "resumo": "90 × 90 cm, de malha macia, para o berço, o carrinho e o colo.",
+  "preco": 16,
+  "resumo": "Manta de malha macia e aconchegante, ideal para o carrinho ou os momentos de colinho. Tamanho 90 × 90 cm. 🤍",
   "fotos": [
-    "manta-remalhada-1",
-    "manta-remalhada-2"
+    "manta-remalhada-1"
   ],
   "cores": [
     {
@@ -18,6 +17,12 @@
     },
     {
       "nome": "Azul cobalto"
+    },
+    {
+      "nome": "Rosa bebé"
+    },
+    {
+      "nome": "Azul bebé"
     }
   ],
   "detalhes": [
