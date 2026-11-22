@@ -1,12 +1,12 @@
 {
-  "nome": "Body «Preparem o colinho»",
+  "nome": "Body Preparem o Colinho | Anúncio de Gravidez",
   "categorias": [
     "personalizados/bodies",
     "presentes/anunciar-gravidez",
     "bebe/bodies-e-babygrows"
   ],
   "preco": 12,
-  "resumo": "A forma mais doce de dizer que vem aí um bebé. Juntamos a data ou um nome, se quiseres.",
+  "resumo": "Uma forma doce e original de anunciar a chegada de um bebé! 🤍 Personalize com um nome ou uma data e torne esta surpresa ainda mais especial.",
   "fotos": [
     "body-preparem-o-colinho-1"
   ],
@@ -34,7 +34,7 @@
   "detalhes": [
     "100% Algodão"
   ],
-  "destaque": true,
+  "destaque": false,
   "publicado": true,
   "ordem": 10
 }
