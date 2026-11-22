@@ -227,18 +227,6 @@
     "alt": "Dois conjuntos de Natal aos quadrados vermelhos, de menino e de menina, numa escada de bambu",
     "foco": "50% 45%"
   },
-  "conjunto-primavera-verao-1": {
-    "alt": "Conjunto de malha azul de três peças",
-    "foco": "50% 45%"
-  },
-  "conjunto-primavera-verao-2": {
-    "alt": "Conjunto rosa velho de três peças",
-    "foco": "50% 45%"
-  },
-  "conjunto-primavera-verao-3": {
-    "alt": "Conjunto lilás de três peças",
-    "foco": "50% 45%"
-  },
   "donas": {
     "alt": "As duas amigas que fazem a Franja Kids, lado a lado e a sorrir",
     "foco": "50% 30%"
@@ -381,6 +369,18 @@
   },
   "babygrow-com-nome-061caad0": {
     "alt": "Babygrow Franja",
+    "foco": "50% 50%"
+  },
+  "conjunto-primavera-verao-40b4357a": {
+    "alt": "Conjunto de três peças, primavera-verão",
+    "foco": "50% 50%"
+  },
+  "conjunto-primavera-verao-c2e2e4b7": {
+    "alt": "Conjunto de três peças, primavera-verão",
+    "foco": "50% 50%"
+  },
+  "conjunto-primavera-verao-ecac680b": {
+    "alt": "Conjunto de três peças, primavera-verão",
     "foco": "50% 50%"
   }
 }

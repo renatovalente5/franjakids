@@ -282,9 +282,15 @@
       ]
     },
     "tamanho-unico-0-3-meses": {
-      "nome": "Conjunto de malha de 3 peças",
+      "nome": "Conjunto de malha de 3 peças (0/3 meses)",
       "valores": [
         "0/3 meses"
+      ]
+    },
+    "conjunto-de-malha-2-pecas-0-3-meses": {
+      "nome": "Conjunto de Malha 2 Peças (1/3 meses)",
+      "valores": [
+        "1/3 meses"
       ]
     }
   },

@@ -1,27 +1,24 @@
 {
-  "nome": "Conjunto de três peças, primavera-verão",
+  "nome": "Conjunto Outono-Inverno | 2 Peças",
   "categorias": [
     "bebe/outros"
   ],
-  "preco": null,
-  "resumo": "100% algodão, leve e suave, em três cores.",
+  "preco": 20,
+  "resumo": "Conjunto de 2 peças em 100% algodão, macio e aconchegante, ideal para manter o seu bebé confortável nos dias mais frios. Disponível em 3 cores. 🤍",
   "fotos": [
-    "conjunto-primavera-verao-1",
-    "conjunto-primavera-verao-2",
-    "conjunto-primavera-verao-3"
+    "conjunto-primavera-verao-40b4357a",
+    "conjunto-primavera-verao-c2e2e4b7",
+    "conjunto-primavera-verao-ecac680b"
   ],
   "cores": [
     {
-      "nome": "Azul",
-      "foto": "conjunto-primavera-verao-1"
+      "nome": "Azul"
     },
     {
-      "nome": "Rosa velho",
-      "foto": "conjunto-primavera-verao-2"
+      "nome": "Rosa velho"
     },
     {
-      "nome": "Lilás",
-      "foto": "conjunto-primavera-verao-3"
+      "nome": "Lilás"
     }
   ],
   "detalhes": [
