@@ -1,14 +1,15 @@
 {
-  "nome": "Placa de madeira «O meu primeiro…»",
+  "nome": "Placa de Madeira | O Meu Primeiro...",
   "categorias": [
     "bebe/outros",
     "presentes/papas",
     "colecoes/dia-do-pai",
     "colecoes/dia-da-mae",
-    "colecoes/natal"
+    "colecoes/natal",
+    "colecoes/edicoes-especiais"
   ],
-  "preco": null,
-  "resumo": "Para as fotografias das primeiras datas: Dia do Pai, Dia da Mãe, aniversário ou Natal.",
+  "preco": 5,
+  "resumo": "Uma recordação especial para eternizar os primeiros momentos do seu bebé! 🤎 Plaquinhas de madeira ideais para fotografias do primeiro Dia da Mãe, Dia do Pai, Natal e outras datas especiais.",
   "fotos": [
     "placa-o-meu-primeiro-1"
   ],
@@ -25,11 +26,19 @@
           "suplemento": 0
         },
         {
-          "nome": "Aniversário",
+          "nome": "Páscoa",
           "suplemento": 0
         },
         {
           "nome": "Natal",
+          "suplemento": 0
+        },
+        {
+          "nome": "Dia dos Namorados",
+          "suplemento": 0
+        },
+        {
+          "nome": "Ano Novo",
           "suplemento": 0
         }
       ]
