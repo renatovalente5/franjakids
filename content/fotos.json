@@ -11,14 +11,6 @@
     "alt": "Babygrow branco com gola cor-de-rosa e o nome «Clara»",
     "foco": "50% 45%"
   },
-  "babygrow-com-nome-2": {
-    "alt": "Babygrow branco com gola azul, um elefante bordado e o nome «Asher»",
-    "foco": "50% 45%"
-  },
-  "babygrow-com-nome-3": {
-    "alt": "Babygrow cinzento com o nome «Lourenço»",
-    "foco": "50% 45%"
-  },
   "body-a-melhor-mae-do-mundo-1": {
     "alt": "Body com «A melhor mãe do mundo é a minha» e um globo",
     "foco": "50% 45%"
@@ -378,5 +370,17 @@
   "historia-900bee1c": {
     "alt": "O Sérgio, a Juliana, a Daniela e o Samuel, a equipa da Franja Kids, de t-shirt da marca com o nome de cada um",
     "foco": "50% 57%"
+  },
+  "babygrow-com-nome-64b43234": {
+    "alt": "Babygrow Franja",
+    "foco": "50% 50%"
+  },
+  "babygrow-com-nome-9e544ab0": {
+    "alt": "Babygrow Franja",
+    "foco": "50% 50%"
+  },
+  "babygrow-com-nome-061caad0": {
+    "alt": "Babygrow Franja",
+    "foco": "50% 50%"
   }
 }
