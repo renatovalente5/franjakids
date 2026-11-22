@@ -101,7 +101,7 @@ ${falarNoInstagram}`,
 ${cartoes([
   ['saco', '1. Escolhe o artigo', 'Na página de cada artigo personalizável, escolhe o tamanho, a cor e as opções disponíveis.'],
   ['lapis', '2. Escreve o nome ou a frase', 'Escreve exatamente como queres que fique, com as maiúsculas e os acentos. Por baixo do campo vês quantos caracteres ainda podes usar.'],
-  ['olho', '3. Confere', 'Fazemos a peça tal e qual a escreves. Vê bem o nome, a frase, o tamanho e a cor antes de encomendar.'],
+  ['olho', '3. Confere', 'Fazemos a peça exatamente como escreves. Vê bem o nome, a frase, o tamanho e a cor antes de encomendar.'],
   ['coracao', '4. Feito para ti', `Cada peça personalizada leva ${producao} a ficar pronta.`],
 ])}
 <h2>Personalização opcional</h2>
@@ -136,7 +136,7 @@ ${falarNoInstagram}`,
 <p>${LIVRE_RESOLUCAO}</p>
 <h2>Artigos personalizados</h2>
 <p>${SEM_LIVRE_RESOLUCAO_PERSONALIZADO}</p>
-<p>Por isso, confirma bem o nome, a frase, o tamanho e a cor antes de encomendares: fazemos a peça tal e qual a escreves.</p>
+<p>Por isso, confirma bem o nome, a frase, o tamanho e a cor antes de encomendares: fazemos a peça exatamente como escreves.</p>
 <h2>Se chegar com defeito ou diferente do que pediste</h2>
 <p>Diz-nos logo, com uma fotografia, e resolvemos. ${textoGarantia()}</p>
 <h2>Como pedir</h2>

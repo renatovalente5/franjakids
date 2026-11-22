@@ -322,7 +322,7 @@ export function produto({ loja, catalogo, produtos, seccoes, api }, p) {
   /* A loja deixou de mandar a pré-visualização das peças do site (o Samuel, 21 nov 2026: só nos pedidos à medida,
      combinados por mensagem): a pista lembra que a peça fica como se escreve, a não ser que a do produto já fale
      disso («Exactamente como queres que fique», «Diz-nos a ideia; mandamos a pré-visualização»). */
-  const lembrete = /exa(c)?tamente|pr[ée]-?visualiza/i.test(pista || '') ? '' : 'Fica tal e qual a escreves.';
+  const lembrete = /exa(c)?tamente|pr[ée]-?visualiza/i.test(pista || '') ? '' : 'Fica exatamente como escreves.';
   const campoTexto = ps ? `<div class="campo" data-campo-texto${ps.opcional ? ' hidden' : ''}>
       <label for="texto">${esc(ps.rotulo)}${ps.obrigatoria || ps.opcional ? '' : ' <span class="campo__pista">(opcional)</span>'}</label>
       <p class="campo__pista" id="texto-pista">${pista ? `${esc(pista.replace(/\.$/, ''))}.${lembrete ? ' ' : ''}` : ''}${lembrete}</p>

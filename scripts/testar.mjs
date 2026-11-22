@@ -323,7 +323,7 @@ teste('pré-visualização: a ficha com escolhas, a sem preço pede por mensagem
 
 teste('pré-visualização: só se promete nos pedidos à medida (21 nov 2026); a pista lembra que fica como se escreve', () => {
   const bg = pagina('produtos/babygrow-com-nome/index.html');
-  assert.match(bg, /id="texto-pista">[^<]*Fica tal e qual a escreves\.<\/p>/);
+  assert.match(bg, /id="texto-pista">[^<]*Fica exatamente como escreves\.<\/p>/);
   assert.doesNotMatch(bg, /pré-visualiza/);
   for (const pg of ['sobre/index.html', 'trocas-e-devolucoes/index.html']) assert.doesNotMatch(pagina(pg), /pré-visualiza/, pg);
   assert.match(pagina('como-personalizar/index.html'), /Tens outra ideia\?[\s\S]*mandamos-te a pré-visualização antes de produzir/);
