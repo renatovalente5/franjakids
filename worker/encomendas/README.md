@@ -103,7 +103,9 @@ vir com ~50 s de atraso (medido), e escrever por cima dela perdia pagamentos —
 
 1. ~~O KV~~ — `ORDERS` com o id no `wrangler.toml` (10 nov 2026).
 2. ~~O painel~~ — o mesmo `PAINEL_SEGREDO` nos dois Workers (em `~/Chaves/franjakids/PAINEL_SEGREDO`).
-3. ~~O email da loja~~ — `STORE_EMAIL = "franjakids@gmail.com"` (11 nov 2026).
+3. ~~O email da loja~~ — `STORE_EMAIL = "geral@franjakids.com"` (a caixa da Hostinger, desde 22 nov 2026; antes, o
+   `franjakids@gmail.com`). Os MX do domínio são da Hostinger: o Email Routing da Cloudflare está desligado, e o
+   Email Sending (cf-bounce) continua a enviar.
 4. ~~O email~~ — pela Cloudflare (Email Sending, binding `EMAIL`, de `encomendas@franjakids.com`); o Resend
    não se usa.
 5. **A Stripe** — conta da cliente «Franja Kids», com o Renato como «Developer»:

@@ -83,9 +83,9 @@ ALLOWED_ORIGINS = "https://franjakids.com"
 STORE_NAME = "Franja Kids"
 # A conta do Instagram (sem @): é o contacto dos emails (https://ig.me/m/<conta>).
 STORE_INSTAGRAM = "franjakids"
-# O email da loja (o da Franja Kids, dado a 10 nov 2026): recebe «Nova encomenda», «Encomenda paga» e
-# os falhados, e é o reply-to dos emails ao cliente.
-STORE_EMAIL = "franjakids@gmail.com"
+# O email da loja: recebe «Nova encomenda», «Encomenda paga» e os falhados, e é o reply-to dos emails ao
+# cliente. Desde 22 nov 2026 é a caixa geral@franjakids.com (Hostinger; antes, o franjakids@gmail.com).
+STORE_EMAIL = "geral@franjakids.com"
 # O remetente (o binding EMAIL só deixa este endereço; o Resend, se um dia voltar, teria de ter o
 # domínio verificado).
 MAIL_FROM = "Franja Kids <encomendas@franjakids.com>"
