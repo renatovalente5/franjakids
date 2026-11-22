@@ -1,15 +1,15 @@
 {
-  "nome": "Body «Baby 2027»",
+  "nome": "Body Baby 2027 | Anúncio de Gravidez",
   "categorias": [
     "personalizados/bodies",
     "presentes/anunciar-gravidez",
     "colecoes/baby-2027"
   ],
   "preco": 12,
-  "resumo": "O ano em que chega o bebé, com o apelido da família se quiseres.",
+  "resumo": "Uma forma doce e especial de anunciar a chegada do seu bebé em 2027! 🤍 Personalize com o apelido da família e torne esta surpresa ainda mais inesquecível.",
   "fotos": [
-    "body-baby-2027-1",
-    "body-baby-2027-2"
+    "body-baby-2027-2",
+    "body-baby-2027-1"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -32,6 +32,9 @@
     "pista": "Opcional. Por exemplo: Alves 2027",
     "max": 30
   },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 30
