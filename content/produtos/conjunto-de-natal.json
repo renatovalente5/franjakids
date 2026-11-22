@@ -1,15 +1,18 @@
 {
-  "nome": "Conjunto de Natal aos quadrados",
+  "nome": "Conjunto de Natal | Menino e Menina",
   "categorias": [
     "bebe/outros",
     "colecoes/natal"
   ],
-  "preco": null,
-  "resumo": "Para as fotografias de Natal: calção de alças para eles, vestido para elas.",
+  "preco": 25,
+  "resumo": "O encanto do Natal num conjunto cheio de ternura! ❤️ Calção com alças para menino e vestido para menina, perfeitos para celebrar esta época tão especial.",
   "fotos": [
     "conjunto-de-natal-1"
   ],
   "tamanhos": "natal",
+  "tamanhosEsgotados": [
+    "12 meses"
+  ],
   "opcoes": [
     {
       "nome": "Modelo",
@@ -20,7 +23,8 @@
         },
         {
           "nome": "Menina: vestido",
-          "suplemento": 0
+          "suplemento": 0,
+          "esgotado": true
         }
       ]
     }
