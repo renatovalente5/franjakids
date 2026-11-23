@@ -1,12 +1,13 @@
 {
-  "nome": "Body «Prepara o colinho, avó»",
+  "nome": "Body «Prepara o colinho» | Personalizável",
   "categorias": [
     "personalizados/bodies",
     "presentes/avos-e-bisavos",
-    "presentes/anunciar-gravidez"
+    "presentes/anunciar-gravidez",
+    "bebe/bodies-e-babygrows"
   ],
   "preco": 12,
-  "resumo": "Com o ano em que o bebé chega e um desenho dos avós com o neto.",
+  "resumo": "Uma forma especial de anunciar a chegada de um bebé! ❤️ Personalize este body para a avó, o avô ou os avós e escolha o ano de nascimento. Um anúncio cheio de amor e emoção!",
   "fotos": [
     "body-prepara-o-colinho-avo-1",
     "body-prepara-o-colinho-avo-2"
@@ -25,13 +26,45 @@
           "suplemento": 0
         }
       ]
+    },
+    {
+      "nome": "Para quem é?",
+      "valores": [
+        {
+          "nome": "Avó",
+          "suplemento": 0
+        },
+        {
+          "nome": "Avô",
+          "suplemento": 0
+        },
+        {
+          "nome": "Avós",
+          "suplemento": 0
+        },
+        {
+          "nome": "Bisavó",
+          "suplemento": 0
+        },
+        {
+          "nome": "Bisavô",
+          "suplemento": 0
+        },
+        {
+          "nome": "Bisavós",
+          "suplemento": 0
+        }
+      ]
     }
   ],
   "personalizacao": {
-    "rotulo": "Avó, avô ou avós, e o ano",
-    "pista": "Por exemplo: avós, 2027",
+    "rotulo": "Ano de nascimento (opcional)",
+    "pista": "Ex.: 2027",
     "max": 30
   },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 70
