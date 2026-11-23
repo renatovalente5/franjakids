@@ -1,15 +1,15 @@
 {
-  "nome": "Body «Queridos avós, preparem o colinho»",
+  "nome": "Body «O sonho da mãe + o desejo do pai» | Personalizável",
   "categorias": [
     "personalizados/bodies",
     "presentes/avos-e-bisavos",
-    "presentes/anunciar-gravidez"
+    "presentes/anunciar-gravidez",
+    "bebe/bodies-e-babygrows"
   ],
   "preco": 12,
-  "resumo": "Para dar a notícia aos avós e aos bisavós. Também fazemos «Bisa» e «Vovó».",
+  "resumo": "Um sonho da mãe, um desejo do pai e um pedido cheio de amor! ❤️ Personalize este body com o pedido dos avós, padrinhos, tios ou outros familiares. Escolha também a cor do coração e torne este anúncio ainda mais especial.",
   "fotos": [
-    "body-queridos-avos-1",
-    "body-queridos-avos-2"
+    "body-queridos-avos-a215f280"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -25,12 +25,66 @@
           "suplemento": 0
         }
       ]
+    },
+    {
+      "nome": "Juntar uma escolha",
+      "valores": [
+        {
+          "nome": "Pedido dos Avós",
+          "suplemento": 0
+        },
+        {
+          "nome": "Pedido dos Bisavós",
+          "suplemento": 0
+        },
+        {
+          "nome": "Pedido dos Padrinhos",
+          "suplemento": 0
+        },
+        {
+          "nome": "Pedido dos Tios",
+          "suplemento": 0
+        },
+        {
+          "nome": "Pedido dos Manos",
+          "suplemento": 0
+        },
+        {
+          "nome": "Outro Pedido",
+          "suplemento": 0
+        }
+      ]
+    },
+    {
+      "nome": "Cor do Coração",
+      "valores": [
+        {
+          "nome": "Amarelo",
+          "suplemento": 0
+        },
+        {
+          "nome": "Rosa",
+          "suplemento": 0
+        },
+        {
+          "nome": "Azul",
+          "suplemento": 0
+        },
+        {
+          "nome": "Rosa e Azul",
+          "suplemento": 0
+        },
+        {
+          "nome": "Vermelho",
+          "suplemento": 0
+        }
+      ]
     }
   ],
   "personalizacao": {
-    "rotulo": "Para quem",
-    "pista": "Opcional. Por exemplo: Vovó e Vovô",
-    "max": 40
+    "rotulo": "Pedido Personalizado (Opcional)",
+    "pista": "Se escolheu «Outro pedido», indique aqui a frase pretendida. Ex.: O pedido da madrinha.",
+    "max": 100
   },
   "destaque": true,
   "publicado": true,

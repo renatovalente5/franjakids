@@ -123,14 +123,6 @@
     "alt": "Body com «Promovida a irmã mais fixe» e a data 04/07/2026",
     "foco": "50% 45%"
   },
-  "body-queridos-avos-1": {
-    "alt": "Body com «Queridos avós, preparem o colinho porque estou a caminho»",
-    "foco": "50% 45%"
-  },
-  "body-queridos-avos-2": {
-    "alt": "Body com «Queridos avós, preparem o colinho porque estou a caminho» num tabuleiro de vime",
-    "foco": "50% 45%"
-  },
   "body-tios-preparem-o-colinho-1": {
     "alt": "Body com «Tios, preparem o colinho porque estou a caminho»",
     "foco": "50% 45%"
@@ -381,6 +373,10 @@
   },
   "body-o-nosso-maior-sonho-40ca6c85": {
     "alt": "Body «O nosso maior sonho chega em 2027»",
+    "foco": "50% 50%"
+  },
+  "body-queridos-avos-a215f280": {
+    "alt": "Body «Queridos avós, preparem o colinho»",
     "foco": "50% 50%"
   }
 }
