@@ -7,7 +7,7 @@
     "bebe/bodies-e-babygrows"
   ],
   "preco": 12,
-  "resumo": "A conta mais bonita: o sonho da mãe, o desejo do pai e, se houver, o pedido dos manos.",
+  "resumo": "Body de bebé personalizado, perfeito para anunciar uma gravidez de forma especial. Disponível em dois modelos, com diferentes tipos de letra e coração. Possibilidade de incluir o pedido dos manos. ❤️",
   "fotos": [
     "body-o-sonho-da-mae-1",
     "body-o-sonho-da-mae-2"
@@ -41,6 +41,14 @@
         }
       ]
     }
+  ],
+  "personalizacao": {
+    "rotulo": "Pedido dos manos (opcional)",
+    "pista": "Ex.: O pedido da mana / O pedido do mano / O pedido dos manos",
+    "max": 40
+  },
+  "detalhes": [
+    "100% Algodão"
   ],
   "destaque": false,
   "publicado": true,
