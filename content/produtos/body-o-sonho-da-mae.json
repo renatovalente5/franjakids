@@ -3,7 +3,8 @@
   "categorias": [
     "personalizados/bodies",
     "presentes/anunciar-gravidez",
-    "presentes/irmaos"
+    "presentes/irmaos",
+    "bebe/bodies-e-babygrows"
   ],
   "preco": 12,
   "resumo": "A conta mais bonita: o sonho da mãe, o desejo do pai e, se houver, o pedido dos manos.",
@@ -12,6 +13,7 @@
     "body-o-sonho-da-mae-2"
   ],
   "tamanhos": "body",
+  "cores": [],
   "opcoes": [
     {
       "nome": "Manga",
@@ -25,13 +27,21 @@
           "suplemento": 0
         }
       ]
+    },
+    {
+      "nome": "Escolha o seu modelo",
+      "valores": [
+        {
+          "nome": "Modelo 1 - Letra e coração da 1ª Imagem",
+          "suplemento": 0
+        },
+        {
+          "nome": "Modelo 2 - Letra e coração da 2ª Imagem",
+          "suplemento": 0
+        }
+      ]
     }
   ],
-  "personalizacao": {
-    "rotulo": "Quem mais entra na conta",
-    "pista": "Opcional. Por exemplo: o pedido da mana",
-    "max": 40
-  },
   "destaque": false,
   "publicado": true,
   "ordem": 50
