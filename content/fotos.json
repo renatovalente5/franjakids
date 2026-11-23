@@ -71,10 +71,6 @@
     "alt": "Body com «Entre o pão de queijo e o croissant eu nasci» e as bandeiras do Brasil e de França",
     "foco": "50% 45%"
   },
-  "body-fada-madrinha-1": {
-    "alt": "Body com «Toda a princesa precisa de uma fada-madrinha. Titia Ângela, queres ser a minha?»",
-    "foco": "50% 45%"
-  },
   "body-familia-preparem-o-colinho-1": {
     "alt": "Body de manga comprida com «Família, preparem o colinho, pois estou a caminho!»",
     "foco": "50% 45%"
@@ -377,6 +373,10 @@
   },
   "body-aceitas-ser-minha-madrinha-b930eeb6": {
     "alt": "Body «Aceitas ser minha madrinha?»",
+    "foco": "50% 50%"
+  },
+  "body-fada-madrinha-c24268a4": {
+    "alt": "Body «Toda a princesa precisa de uma fada-madrinha»",
     "foco": "50% 50%"
   }
 }

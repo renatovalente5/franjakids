@@ -1,13 +1,13 @@
 {
-  "nome": "Body «Toda a princesa precisa de uma fada-madrinha»",
+  "nome": "Body «Toda a princesa precisa de uma fada-madrinha» | Personalizado",
   "categorias": [
     "personalizados/bodies",
     "presentes/padrinhos"
   ],
   "preco": 12,
-  "resumo": "Para pedir à tia, à prima ou à amiga que seja a fada-madrinha.",
+  "resumo": "Porque toda a princesa merece uma fada-madrinha especial! 🩷 Um body cheio de ternura, personalizado com o nome da futura madrinha, para fazer um convite inesquecível.",
   "fotos": [
-    "body-fada-madrinha-1"
+    "body-fada-madrinha-c24268a4"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -26,11 +26,14 @@
     }
   ],
   "personalizacao": {
-    "rotulo": "Nome da madrinha",
-    "pista": "Por exemplo: Titia Ângela",
+    "rotulo": "Nome da futura madrinha",
+    "pista": "Ex.: Madrinha Sofia (indique apenas o nome)",
     "max": 30,
     "obrigatoria": true
   },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 90
