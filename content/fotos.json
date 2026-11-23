@@ -27,10 +27,6 @@
     "alt": "Body com «Chica e Tony, ainda não nasci mas já vos escolhi. Aceitam ser os meus padrinhos?»",
     "foco": "50% 45%"
   },
-  "body-aceitas-ser-minha-madrinha-1": {
-    "alt": "Body com «Prima Lili, aceitas ser minha madrinha?» e a data",
-    "foco": "50% 45%"
-  },
   "body-aceitas-ser-minha-madrinha-2": {
     "alt": "Body com «Tenho um grande pedido para te fazer: queres ser a minha madrinha?» e um ursinho",
     "foco": "50% 45%"
@@ -377,6 +373,10 @@
   },
   "body-queridos-avos-a215f280": {
     "alt": "Body «Queridos avós, preparem o colinho»",
+    "foco": "50% 50%"
+  },
+  "body-aceitas-ser-minha-madrinha-b930eeb6": {
+    "alt": "Body «Aceitas ser minha madrinha?»",
     "foco": "50% 50%"
   }
 }

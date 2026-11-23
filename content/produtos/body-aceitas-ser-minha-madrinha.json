@@ -1,13 +1,13 @@
 {
-  "nome": "Body «Aceitas ser minha madrinha?»",
+  "nome": "Body «Aceitas ser meu padrinho ou madrinha?» | Personalizável",
   "categorias": [
     "personalizados/bodies",
     "presentes/padrinhos"
   ],
   "preco": 12,
-  "resumo": "O pedido mais especial, com o nome da madrinha e a data do batizado.",
+  "resumo": "Um convite cheio de amor para uma missão muito especial! ❤️ Personalize este body com o nome dos futuros padrinhos e transforme o pedido num momento inesquecível.",
   "fotos": [
-    "body-aceitas-ser-minha-madrinha-1",
+    "body-aceitas-ser-minha-madrinha-b930eeb6",
     "body-aceitas-ser-minha-madrinha-2"
   ],
   "tamanhos": "body",
@@ -24,14 +24,28 @@
           "suplemento": 0
         }
       ]
+    },
+    {
+      "nome": "A quem se destina o pedido?",
+      "valores": [
+        {
+          "nome": "Padrinhos?",
+          "suplemento": 0
+        },
+        {
+          "nome": "Madrinha?",
+          "suplemento": 0
+        },
+        {
+          "nome": "Padrinho?",
+          "suplemento": 0
+        }
+      ]
     }
   ],
-  "personalizacao": {
-    "rotulo": "Nome da madrinha e data",
-    "pista": "Por exemplo: Prima Lili, 04/07/2027",
-    "max": 50,
-    "obrigatoria": true
-  },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": true,
   "publicado": true,
   "ordem": 80
