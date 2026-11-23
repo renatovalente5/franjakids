@@ -86,6 +86,9 @@
     "pista": "Se escolheu «Outro pedido», indique aqui a frase pretendida. Ex.: O pedido da madrinha.",
     "max": 100
   },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": true,
   "publicado": true,
   "ordem": 60
