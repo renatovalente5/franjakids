@@ -2,8 +2,7 @@
   "nome": "Body Família, Preparem o Colinho | Anúncio de Gravidez",
   "categorias": [
     "personalizados/bodies",
-    "presentes/anunciar-gravidez",
-    "bebe/bodies-e-babygrows"
+    "presentes/anunciar-gravidez"
   ],
   "preco": 12,
   "resumo": "Uma surpresa cheia de amor para anunciar à família que vem um bebé a caminho! 🤍 Um body especial para transformar uma grande notícia num momento inesquecível.",
@@ -25,12 +24,50 @@
           "suplemento": 0
         }
       ]
+    },
+    {
+      "nome": "Escolha o seu modelo",
+      "valores": [
+        {
+          "nome": "Modelo 1 — 1.ª fotografia",
+          "suplemento": 0
+        },
+        {
+          "nome": "Modelo 2 — 2.ª fotografia",
+          "suplemento": 0
+        }
+      ]
+    },
+    {
+      "nome": "Para quem é?",
+      "valores": [
+        {
+          "nome": "Família",
+          "suplemento": 0
+        },
+        {
+          "nome": "Tios",
+          "suplemento": 0
+        },
+        {
+          "nome": "Primos",
+          "suplemento": 0
+        },
+        {
+          "nome": "Tios e Primos",
+          "suplemento": 0
+        },
+        {
+          "nome": "Outro destinatário",
+          "suplemento": 0
+        }
+      ]
     }
   ],
   "personalizacao": {
-    "rotulo": "Data, nome ou frase",
-    "pista": "Opcional",
-    "max": 60
+    "rotulo": "Destinatário personalizado",
+    "pista": "Caso pretenda outro destinatário, indique aqui qual.",
+    "max": 40
   },
   "detalhes": [
     "100% Algodão"
