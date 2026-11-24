@@ -3,11 +3,10 @@
   "categorias": [
     "personalizados/bodies",
     "presentes/anunciar-gravidez",
-    "colecoes/baby-2027",
-    "bebe/bodies-e-babygrows"
+    "colecoes/baby-2027"
   ],
   "preco": 12,
-  "resumo": "Uma forma doce e especial de anunciar a chegada do seu bebé em 2027! 🤍 Personalize com o apelido da família e torne esta surpresa ainda mais inesquecível.",
+  "resumo": "Uma forma doce e especial de anunciar a chegada do seu bebé em 2027! Disponível em dois modelos, com ou sem o apelido da família. 🤍",
   "fotos": [
     "body-baby-2027-2",
     "body-baby-2027-1"
@@ -26,12 +25,25 @@
           "suplemento": 0
         }
       ]
+    },
+    {
+      "nome": "Escolha o seu modelo",
+      "valores": [
+        {
+          "nome": "Modelo 1 — 1.ª fotografia",
+          "suplemento": 0
+        },
+        {
+          "nome": "Modelo 2 — 2.ª fotografia",
+          "suplemento": 0
+        }
+      ]
     }
   ],
   "personalizacao": {
-    "rotulo": "Apelido ou ano",
-    "pista": "Opcional. Por exemplo: Alves 2027",
-    "max": 30
+    "rotulo": "Apelido da família (opcional)",
+    "pista": "Ex.: Silva. Deixe em branco se pretender apenas «Baby 2027».",
+    "max": 40
   },
   "detalhes": [
     "100% Algodão"
