@@ -3,8 +3,7 @@
   "categorias": [
     "personalizados/bodies",
     "presentes/avos-e-bisavos",
-    "presentes/anunciar-gravidez",
-    "bebe/bodies-e-babygrows"
+    "presentes/anunciar-gravidez"
   ],
   "preco": 12,
   "resumo": "Uma forma especial de anunciar a chegada de um bebé! ❤️ Personalize este body para a avó, o avô ou os avós e escolha o ano de nascimento. Um anúncio cheio de amor e emoção!",
@@ -57,11 +56,6 @@
       ]
     }
   ],
-  "personalizacao": {
-    "rotulo": "Ano de nascimento (opcional)",
-    "pista": "Ex.: 2027",
-    "max": 30
-  },
   "detalhes": [
     "100% Algodão"
   ],
