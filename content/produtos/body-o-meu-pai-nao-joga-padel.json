@@ -1,14 +1,16 @@
 {
-  "nome": "Body «Sou a prova de que o meu pai não joga padel o tempo todo»",
+  "nome": "Body «Sou a prova de que o meu pai não joga o tempo todo» | Desporto",
   "categorias": [
     "personalizados/bodies",
     "presentes/papas",
-    "colecoes/dia-do-pai"
+    "colecoes/dia-do-pai",
+    "colecoes/desporto-e-clubes"
   ],
   "preco": 12,
-  "resumo": "Para o pai do padel, do ténis ou do futebol: trocamos o desporto.",
+  "resumo": "Para os papás apaixonados pelo desporto! Um body divertido e original para anunciar uma gravidez ou surpreender o papá. Escolha o desporto favorito e personalize esta surpresa cheia de humor e amor.",
   "fotos": [
-    "body-o-meu-pai-nao-joga-padel-1"
+    "body-o-meu-pai-nao-joga-padel-1",
+    "body-o-meu-pai-nao-joga-padel-57ebb724"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -24,13 +26,24 @@
           "suplemento": 0
         }
       ]
+    },
+    {
+      "nome": "Desporto favorito",
+      "valores": [
+        {
+          "nome": "Padel — 1.ª fotografia",
+          "suplemento": 0
+        },
+        {
+          "nome": "Ténis — 2.ª fotografia",
+          "suplemento": 0
+        }
+      ]
     }
   ],
-  "personalizacao": {
-    "rotulo": "Desporto",
-    "pista": "Por exemplo: padel, ténis, futebol",
-    "max": 20
-  },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 120
