@@ -26,7 +26,7 @@
     }
   ],
   "personalizacao": {
-    "rotulo": "Nome da futura madrinha",
+    "rotulo": "Nome da Futura Madrinha",
     "pista": "Ex.: Madrinha Sofia (indique apenas o nome)",
     "max": 30,
     "obrigatoria": true
