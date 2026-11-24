@@ -5,10 +5,9 @@
     "colecoes/dia-da-mae"
   ],
   "preco": 12,
-  "resumo": "Para o primeiro Dia da Mãe, ou para qualquer dia.",
+  "resumo": "Uma declaração de amor à melhor mãe do mundo! Um body cheio de ternura, perfeito para celebrar o Dia da Mãe ou tornar qualquer dia ainda mais especial. 🩷",
   "fotos": [
-    "body-a-melhor-mae-do-mundo-1",
-    "body-a-melhor-mae-do-mundo-2"
+    "body-a-melhor-mae-do-mundo-1"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -26,11 +25,9 @@
       ]
     }
   ],
-  "personalizacao": {
-    "rotulo": "Nome ou data",
-    "pista": "Opcional",
-    "max": 30
-  },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 140
