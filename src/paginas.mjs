@@ -323,7 +323,7 @@ export function produto({ loja, catalogo, produtos, seccoes, api }, p) {
      disso («Exactamente como queres que fique», «Diz-nos a ideia; mandamos a pré-visualização»). */
   const lembrete = /exa(c)?tamente|pr[ée]-?visualiza/i.test(pista || '') ? '' : 'Fica exatamente como escreves.';
   const campoTexto = ps ? `<div class="campo" data-campo-texto${ps.opcional ? ' hidden' : ''}>
-      <label for="texto">${esc(ps.rotulo)}${ps.obrigatoria || ps.opcional ? '' : ' <span class="campo__pista">(opcional)</span>'}</label>
+      <label for="texto">${esc(ps.rotulo)}${ps.obrigatoria || ps.opcional || R.rotuloDizOpcional(ps.rotulo) ? '' : ' <span class="campo__pista">(opcional)</span>'}</label>
       <p class="campo__pista" id="texto-pista">${pista ? `${esc(pista.replace(/\.$/, ''))}.${lembrete ? ' ' : ''}` : ''}${lembrete}</p>
       <input id="texto" name="texto" type="text" autocomplete="off" spellcheck="false" data-max="${ps.max}"${ps.obrigatoria ? ' data-obrigatorio' : ''} aria-describedby="texto-pista texto-contador texto-erro">
       <p class="campo__contador" id="texto-contador" aria-live="polite" data-contador></p>

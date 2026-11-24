@@ -321,6 +321,10 @@ teste('pré-visualização: a ficha com escolhas, a sem preço pede por mensagem
   assert.match(pagina('termos/index.html'), /\[por confirmar: NIF\]/);
 });
 
+teste('rotuloDizOpcional: o «(opcional)» que a loja já escreveu no rótulo não se repete (23 nov 2026)', () => {
+  for (const r of ['Pedido dos manos (opcional)', 'Pedido Personalizado (Opcional)', 'Opcional: o nome', 'Nome, opcional']) assert.ok(R.rotuloDizOpcional(r), r);
+  for (const r of ['Nome do bebé', 'Escreve opcionalmente o nome', '', undefined]) assert.ok(!R.rotuloDizOpcional(r), String(r));
+});
 teste('pré-visualização: só se promete nos pedidos à medida (21 nov 2026); a pista lembra que fica como se escreve', () => {
   const bg = pagina('produtos/babygrow-com-nome/index.html');
   assert.match(bg, /id="texto-pista">[^<]*Fica exatamente como escreves\.<\/p>/);

@@ -440,6 +440,10 @@ export function personalizacaoDe(a) {
   return { rotulo: ps.rotulo.trim(), pista: temTexto(ps.pista) ? ps.pista.trim() : '', max, obrigatoria: !opcional && ps.obrigatoria === true, opcional, suplemento };
 }
 
+/* O rótulo da caixa de texto já diz que é opcional (a loja escreveu «Pedido dos manos (opcional)», 23 nov 2026):
+   a página não lhe junta outro «(opcional)». «Opcionalmente» não conta. */
+export const rotuloDizOpcional = (rotulo) => /(^|[^\p{L}])opcional(?![\p{L}])/iu.test(rotulo || '');
+
 /* «Desde»: só quando alguma escolha pode fazer o preço subir (uma escolha, a personalização ou um
    tamanho). `tamanhos`: a lista dos tamanhos do produto (sem ela, a da entrada do catálogo publicado). */
 export const temSuplementos = (a, tamanhos = null) => opcoesDe(a).some((g) => g.valores.some((v) => v.suplemento > 0))
