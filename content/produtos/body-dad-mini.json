@@ -1,19 +1,28 @@
 {
-  "nome": "Body «Mini» e t-shirt «Dad»",
+  "nome": "Body «Mini» e T-shirt «Dad» | A combinar",
   "categorias": [
     "personalizados/bodies",
     "presentes/papas",
-    "colecoes/dia-do-pai"
+    "colecoes/dia-do-pai",
+    "crianca-e-familia/t-shirts-de-adulto"
   ],
-  "preco": null,
-  "resumo": "Tal pai, tal mini. O ano muda para o do nascimento do bebé.",
+  "preco": 12,
+  "resumo": "Tal pai, tal mini! 🤍 Um conjunto especial para celebrar a cumplicidade entre pai e bebé. Disponível individualmente ou em conjunto, com possibilidade de personalizar o ano de nascimento.",
   "fotos": [
     "body-dad-mini-1"
   ],
-  "tamanhos": "body",
+  "tamanhos": "adulto",
+  "cores": [
+    {
+      "nome": "Preto"
+    },
+    {
+      "nome": "Branco"
+    }
+  ],
   "opcoes": [
     {
-      "nome": "Manga",
+      "nome": "Manga do body",
       "valores": [
         {
           "nome": "Manga curta",
@@ -22,28 +31,39 @@
         {
           "nome": "Manga comprida",
           "suplemento": 0
+        },
+        {
+          "nome": "Não pretendo body",
+          "suplemento": 0
         }
       ]
     },
     {
-      "nome": "Peças",
+      "nome": "Artigo pretendido",
       "valores": [
         {
-          "nome": "Só o body",
+          "nome": "Body «Mini»",
           "suplemento": 0
         },
         {
-          "nome": "Body e t-shirt Dad",
-          "suplemento": 15
+          "nome": "T-shirt «Dad»",
+          "suplemento": 14
+        },
+        {
+          "nome": "Conjunto Body + T-shirt",
+          "suplemento": 26
         }
       ]
     }
   ],
   "personalizacao": {
-    "rotulo": "Ano e tamanho da t-shirt do pai",
-    "pista": "Por exemplo: est. 2026, t-shirt L",
-    "max": 40
+    "rotulo": "Ano de nascimento do bebé",
+    "pista": "Ex.: 2027",
+    "max": 5
   },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 130
