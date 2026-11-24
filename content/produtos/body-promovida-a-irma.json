@@ -1,12 +1,12 @@
 {
-  "nome": "Body «Promovida a irmã mais velha»",
+  "nome": "Body «Promovido(a) a irmão(ã) mais velho(a)» | Anúncio de gravidez",
   "categorias": [
     "personalizados/bodies",
     "presentes/irmaos",
     "presentes/anunciar-gravidez"
   ],
   "preco": 12,
-  "resumo": "Para anunciar que vem aí um mano, com a data prevista.",
+  "resumo": "Uma promoção muito especial: ser mano ou mana mais velha! 💛 Um body personalizado com a data prevista de nascimento do bebé, perfeito para anunciar que a família vai crescer.",
   "fotos": [
     "irmaos-f8385ef2"
   ],
@@ -24,13 +24,24 @@
           "suplemento": 0
         }
       ]
+    },
+    {
+      "nome": "Escolha a sua mensagem",
+      "valores": [
+        {
+          "nome": "Promovida a irmã mais velha",
+          "suplemento": 0
+        },
+        {
+          "nome": "Promovido a irmão mais velho",
+          "suplemento": 0
+        }
+      ]
     }
   ],
-  "personalizacao": {
-    "rotulo": "Irmã ou irmão, e a data",
-    "pista": "Por exemplo: irmã, 04/07/2027",
-    "max": 40
-  },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 150
