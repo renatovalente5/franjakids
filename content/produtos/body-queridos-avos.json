@@ -3,8 +3,7 @@
   "categorias": [
     "personalizados/bodies",
     "presentes/avos-e-bisavos",
-    "presentes/anunciar-gravidez",
-    "bebe/bodies-e-babygrows"
+    "presentes/anunciar-gravidez"
   ],
   "preco": 12,
   "resumo": "Um sonho da mãe, um desejo do pai e um pedido cheio de amor! ❤️ Personalize este body com o pedido dos avós, padrinhos, tios ou outros familiares. Escolha também a cor do coração e torne este anúncio ainda mais especial.",
@@ -84,7 +83,7 @@
   "personalizacao": {
     "rotulo": "Pedido Personalizado (Opcional)",
     "pista": "Se escolheu «Outro pedido», indique aqui a frase pretendida. Ex.: O pedido da madrinha.",
-    "max": 100
+    "max": 40
   },
   "detalhes": [
     "100% Algodão"
