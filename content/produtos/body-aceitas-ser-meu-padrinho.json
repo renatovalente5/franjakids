@@ -1,14 +1,13 @@
 {
-  "nome": "Body «Aceitas ser meu padrinho?»",
+  "nome": "Body «Aceitas ser meu padrinho?» | Personalizado",
   "categorias": [
     "personalizados/bodies",
     "presentes/padrinhos"
   ],
   "preco": 12,
-  "resumo": "Para o padrinho, ou para os dois de uma vez.",
+  "resumo": "Um convite especial para alguém que terá um lugar único na vida do seu bebé. Personalize este body com o nome do futuro padrinho e surpreenda-o com um pedido inesquecível. 💙",
   "fotos": [
-    "body-aceitas-ser-meu-padrinho-1",
-    "body-aceitas-ser-meu-padrinho-2"
+    "body-aceitas-ser-meu-padrinho-1"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -27,11 +26,14 @@
     }
   ],
   "personalizacao": {
-    "rotulo": "Nome do padrinho (ou dos padrinhos)",
-    "pista": "Por exemplo: Primo Diogo",
+    "rotulo": "Nome do futuro padrinho",
+    "pista": "Ex.: Diogo",
     "max": 40,
     "obrigatoria": true
   },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 100
