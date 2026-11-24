@@ -1,14 +1,13 @@
 {
-  "nome": "Body «Coração de dois países»",
+  "nome": "Body «Um coração, dois países» | Personalizável",
   "categorias": [
     "personalizados/bodies",
     "colecoes/entre-paises"
   ],
   "preco": 12,
-  "resumo": "Um coração com as duas bandeiras, ou os dois mapas ligados por um caminho.",
+  "resumo": "Duas culturas, duas raízes, um só coração. Personalize com as bandeiras dos países que fazem parte da história do seu bebé.",
   "fotos": [
-    "body-coracao-dois-paises-1",
-    "body-coracao-dois-paises-2"
+    "body-coracao-dois-paises-28d1cc8e"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -24,27 +23,17 @@
           "suplemento": 0
         }
       ]
-    },
-    {
-      "nome": "Desenho",
-      "valores": [
-        {
-          "nome": "Coração com bandeiras",
-          "suplemento": 0
-        },
-        {
-          "nome": "Mapas ligados",
-          "suplemento": 0
-        }
-      ]
     }
   ],
   "personalizacao": {
-    "rotulo": "Os dois países",
-    "pista": "Por exemplo: Portugal e Brasil",
-    "max": 40,
+    "rotulo": "Países a personalizar",
+    "pista": "Por exemplo: Portugal e Brasil, Portugal e França ou quaisquer outros dois países.",
+    "max": 60,
     "obrigatoria": true
   },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 170

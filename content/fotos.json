@@ -39,14 +39,6 @@
     "alt": "Body com o nome «Lucas Miguel» e um ursinho numa lua",
     "foco": "50% 45%"
   },
-  "body-coracao-dois-paises-1": {
-    "alt": "Body com um coração metade bandeira de Portugal, metade bandeira do Brasil",
-    "foco": "50% 45%"
-  },
-  "body-coracao-dois-paises-2": {
-    "alt": "Body com os mapas de Portugal e do Brasil ligados por um caminho de coração",
-    "foco": "50% 45%"
-  },
   "body-dad-mini-1": {
     "alt": "Body branco «Mini» e t-shirt azul-escura «Dad», os dois com «est. 2026»",
     "foco": "50% 45%"
@@ -373,6 +365,10 @@
   },
   "body-entre-dois-paises-cdd031f6": {
     "alt": "Body «Entre o samba e o fado eu nasci»",
+    "foco": "50% 50%"
+  },
+  "body-coracao-dois-paises-28d1cc8e": {
+    "alt": "Body «Coração de dois países»",
     "foco": "50% 50%"
   }
 }
