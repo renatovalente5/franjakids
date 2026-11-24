@@ -59,7 +59,8 @@
   "personalizacao": {
     "rotulo": "Ano de nascimento do bebé",
     "pista": "Ex.: 2027",
-    "max": 5
+    "max": 5,
+    "obrigatoria": true
   },
   "detalhes": [
     "100% Algodão"
