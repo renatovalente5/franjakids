@@ -91,10 +91,6 @@
     "alt": "Body com «O sonho da mãe + o desejo do pai + o pedido da mana = bebé a caminho» e uma data",
     "foco": "50% 45%"
   },
-  "body-papa-dois-coracoes-1": {
-    "alt": "Body com «Papá, dentro da mamã agora batem dois corações apaixonados por ti»",
-    "foco": "50% 45%"
-  },
   "body-prepara-o-colinho-avo-1": {
     "alt": "Body com «Prepara o colinho, avó, chego em 2027» e o desenho de uma avó com um bebé",
     "foco": "50% 45%"
@@ -373,6 +369,10 @@
   },
   "body-fada-madrinha-c24268a4": {
     "alt": "Body «Toda a princesa precisa de uma fada-madrinha»",
+    "foco": "50% 50%"
+  },
+  "body-papa-dois-coracoes-d4bc63dd": {
+    "alt": "Body «Papá, dentro da mamã agora batem dois corações»",
     "foco": "50% 50%"
   }
 }

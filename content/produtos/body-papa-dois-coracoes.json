@@ -1,5 +1,5 @@
 {
-  "nome": "Body «Papá, dentro da mamã agora batem dois corações»",
+  "nome": "Body «Papá, prepara o colinho» | Anúncio de gravidez",
   "categorias": [
     "personalizados/bodies",
     "presentes/papas",
@@ -7,9 +7,9 @@
     "presentes/anunciar-gravidez"
   ],
   "preco": 12,
-  "resumo": "Para contar ao futuro papá. Uma surpresa para guardar.",
+  "resumo": "Uma forma ternurenta de surpreender o futuro papá com a notícia mais bonita da sua vida. Um pequeno body para anunciar um amor gigante que está a caminho! 🤍",
   "fotos": [
-    "body-papa-dois-coracoes-1"
+    "body-papa-dois-coracoes-d4bc63dd"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -27,11 +27,9 @@
       ]
     }
   ],
-  "personalizacao": {
-    "rotulo": "Nome ou data",
-    "pista": "Opcional",
-    "max": 30
-  },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 110
