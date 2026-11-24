@@ -59,10 +59,6 @@
     "alt": "Body com «Entre o forró e o fado eu nasci»",
     "foco": "50% 45%"
   },
-  "body-entre-dois-paises-3": {
-    "alt": "Body com «Entre o pão de queijo e o croissant eu nasci» e as bandeiras do Brasil e de França",
-    "foco": "50% 45%"
-  },
   "body-familia-preparem-o-colinho-1": {
     "alt": "Body de manga comprida com «Família, preparem o colinho, pois estou a caminho!»",
     "foco": "50% 45%"
@@ -373,6 +369,10 @@
   },
   "body-o-meu-pai-nao-joga-padel-57ebb724": {
     "alt": "Body «Sou a prova de que o meu pai não joga padel o tempo todo»",
+    "foco": "50% 50%"
+  },
+  "body-entre-dois-paises-cdd031f6": {
+    "alt": "Body «Entre o samba e o fado eu nasci»",
     "foco": "50% 50%"
   }
 }

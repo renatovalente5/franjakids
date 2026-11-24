@@ -1,15 +1,15 @@
 {
-  "nome": "Body «Entre o samba e o fado eu nasci»",
+  "nome": "Body «Entre Duas Culturas» | Personalizável",
   "categorias": [
     "personalizados/bodies",
     "colecoes/entre-paises"
   ],
   "preco": 12,
-  "resumo": "Para os bebés de duas terras. Escreve os dois países: as bandeiras são as deles.",
+  "resumo": "Duas culturas, duas raízes e um só coração! 🤍 Um body especial para celebrar as origens do seu bebé, com diferentes frases e bandeiras personalizáveis.",
   "fotos": [
     "body-entre-dois-paises-1",
     "body-entre-dois-paises-2",
-    "body-entre-dois-paises-3"
+    "body-entre-dois-paises-cdd031f6"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -25,14 +25,37 @@
           "suplemento": 0
         }
       ]
+    },
+    {
+      "nome": "Modelo",
+      "valores": [
+        {
+          "nome": "Entre o samba e o fado eu nasci (Foto 1)",
+          "suplemento": 0
+        },
+        {
+          "nome": "Entre o forró e o fado eu nasci (Foto 2)",
+          "suplemento": 0
+        },
+        {
+          "nome": "Entre o pagode e o fado eu nasci (Foto 3)",
+          "suplemento": 0
+        },
+        {
+          "nome": "Outra combinação personalizada",
+          "suplemento": 0
+        }
+      ]
     }
   ],
   "personalizacao": {
-    "rotulo": "Os dois países",
-    "pista": "Por exemplo: Brasil e Portugal",
-    "max": 40,
-    "obrigatoria": true
+    "rotulo": "Países e frase pretendida",
+    "pista": "Ex.: Portugal e França — Entre o fado e a chanson eu nasci. Deixe em branco para manter o modelo esc",
+    "max": 150
   },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": true,
   "publicado": true,
   "ordem": 160
