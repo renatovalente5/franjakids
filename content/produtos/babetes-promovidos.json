@@ -1,22 +1,36 @@
 {
-  "nome": "Babete «Promovidos a…»",
+  "nome": "Babete | Promovidos a…",
   "categorias": [
     "personalizados/babetes",
     "presentes/avos-e-bisavos",
-    "presentes/padrinhos"
+    "presentes/padrinhos",
+    "presentes/anunciar-gravidez"
   ],
-  "preco": null,
-  "resumo": "Promovidos a avós, a tios, a padrinhos ou a bisavós: um babete para cada um.",
+  "preco": 12,
+  "resumo": "Uma forma original e carinhosa de anunciar uma gravidez e surpreender os futuros avós, tios, padrinhos ou bisavós com uma notícia inesquecível.",
   "fotos": [
-    "babetes-promovidos-1",
     "babetes-promovidos-2"
   ],
+  "cores": [
+    {
+      "nome": "Rosa"
+    },
+    {
+      "nome": "Azul"
+    },
+    {
+      "nome": "Bege"
+    }
+  ],
   "personalizacao": {
-    "rotulo": "Promovidos a…",
-    "pista": "Por exemplo: avós",
-    "max": 30,
+    "rotulo": "Quem vai ser promovido?",
+    "pista": "Ex.: Avó, Avós, Tia, Tios, Padrinhos, Bisavós…",
+    "max": 40,
     "obrigatoria": true
   },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 280
