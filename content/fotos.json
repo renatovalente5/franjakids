@@ -63,10 +63,6 @@
     "alt": "Body com «Sou a prova de que o meu pai não joga padel o tempo todo» e uma raquete",
     "foco": "50% 45%"
   },
-  "body-o-meu-primeiro-natal-1": {
-    "alt": "Body com «O meu primeiro Natal» ao lado de uma placa de madeira",
-    "foco": "50% 45%"
-  },
   "body-o-sonho-da-mae-1": {
     "alt": "Body com «O sonho da mãe + o desejo do pai + o pedido da mana = bebé a caminho»",
     "foco": "50% 45%"
@@ -369,6 +365,10 @@
   },
   "placa-o-meu-primeiro-81d6672f": {
     "alt": "Placa de Madeira | O Meu Primeiro...",
+    "foco": "50% 50%"
+  },
+  "body-o-meu-primeiro-natal-98b6abd8": {
+    "alt": "Body «O meu primeiro Natal»",
     "foco": "50% 50%"
   }
 }

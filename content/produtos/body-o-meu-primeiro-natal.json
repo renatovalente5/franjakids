@@ -1,13 +1,13 @@
 {
-  "nome": "Body «O meu primeiro Natal»",
+  "nome": "Body | O Meu Primeiro Natal",
   "categorias": [
     "personalizados/bodies",
     "colecoes/natal"
   ],
-  "preco": null,
-  "resumo": "Para a primeira fotografia de Natal. Também fazemos a primeira Páscoa e o primeiro Halloween.",
+  "preco": 12,
+  "resumo": "Um body especial para celebrar a magia do primeiro Natal do bebé e eternizar memórias inesquecíveis em família.",
   "fotos": [
-    "body-o-meu-primeiro-natal-1"
+    "body-o-meu-primeiro-natal-98b6abd8"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -25,11 +25,9 @@
       ]
     }
   ],
-  "personalizacao": {
-    "rotulo": "Nome ou ano",
-    "pista": "Opcional",
-    "max": 30
-  },
+  "detalhes": [
+    "100% Algodão"
+  ],
   "destaque": false,
   "publicado": true,
   "ordem": 180
