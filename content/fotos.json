@@ -207,10 +207,6 @@
     "alt": "Body com «O sonho da mãe + o desejo do pai + o pedido da mana = bebé a caminho»",
     "foco": "50% 45%"
   },
-  "manta-remalhada-1": {
-    "alt": "Mantas de malha empilhadas em rosa, coral, azul e areia",
-    "foco": "50% 45%"
-  },
   "mercadinho": {
     "alt": "A banca da Franja Kids no Mercadinho de Natal, com roupa de bebé e as donas atrás",
     "foco": "50% 50%"
@@ -369,6 +365,10 @@
   },
   "body-coracao-dois-paises-28d1cc8e": {
     "alt": "Body «Coração de dois países»",
+    "foco": "50% 50%"
+  },
+  "manta-remalhada-fd284517": {
+    "alt": "Manta de Malha | 90 × 90 cm",
     "foco": "50% 50%"
   }
 }
