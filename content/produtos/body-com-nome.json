@@ -6,8 +6,7 @@
   "preco": null,
   "resumo": "O nome do bebé na letra e na cor que escolheres, com ou sem desenho.",
   "fotos": [
-    "body-com-nome-1",
-    "body-com-nome-2"
+    "body-com-nome-1"
   ],
   "tamanhos": "body",
   "opcoes": [
@@ -32,6 +31,6 @@
     "obrigatoria": true
   },
   "destaque": false,
-  "publicado": true,
+  "publicado": false,
   "ordem": 190
 }
