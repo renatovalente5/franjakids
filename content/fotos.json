@@ -231,10 +231,6 @@
     "alt": "Dois conjuntos de Natal em padrão xadrez vermelho: um conjunto de jardineiras com camisa branca e um vestido de manga comprida.",
     "foco": "50% 45%"
   },
-  "placa-o-meu-primeiro-1": {
-    "alt": "Placas de madeira «O meu primeiro Dia do Pai», «Dia da Mãe» e «Aniversário»",
-    "foco": "50% 45%"
-  },
   "t-shirt-adulto-1": {
     "alt": "T-shirt branca de adulto com uma frase em letra manuscrita",
     "foco": "50% 45%"
@@ -369,6 +365,10 @@
   },
   "manta-remalhada-fd284517": {
     "alt": "Manta de Malha | 90 × 90 cm",
+    "foco": "50% 50%"
+  },
+  "placa-o-meu-primeiro-81d6672f": {
+    "alt": "Placa de Madeira | O Meu Primeiro...",
     "foco": "50% 50%"
   }
 }
