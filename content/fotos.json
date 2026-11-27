@@ -83,14 +83,6 @@
     "alt": "Body com «Promovida a irmã mais fixe» e a data 04/07/2026",
     "foco": "50% 45%"
   },
-  "body-tios-preparem-o-colinho-1": {
-    "alt": "Body com «Tios, preparem o colinho porque estou a caminho»",
-    "foco": "50% 45%"
-  },
-  "body-tios-preparem-o-colinho-2": {
-    "alt": "Body com «Tios e primos, preparem o colinho que estou a caminho»",
-    "foco": "50% 45%"
-  },
   "bolsa-primeira-roupinha-1": {
     "alt": "Bolsa branca com acabamento azul e «A minha primeira roupinha» bordado",
     "foco": "50% 45%"
@@ -365,6 +357,10 @@
   },
   "body-o-meu-primeiro-natal-98b6abd8": {
     "alt": "Body «O meu primeiro Natal»",
+    "foco": "50% 50%"
+  },
+  "body-tios-preparem-o-colinho-342c35db": {
+    "alt": "Body «Tios, preparem o colinho»",
     "foco": "50% 50%"
   }
 }
